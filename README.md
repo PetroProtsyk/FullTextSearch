@@ -1,2 +1,1 @@
-# Full-Text Search
-What is full-text search engine and how to implement it? This tutorial answers these questions.
+# PMS full-text search engine for .NET
