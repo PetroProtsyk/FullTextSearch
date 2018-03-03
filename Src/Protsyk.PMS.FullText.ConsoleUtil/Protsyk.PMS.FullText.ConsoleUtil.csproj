@@ -1,0 +1,16 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <Authors>Petro Protsyk</Authors>
+    <Company />
+    <Product>PMS FullText Search</Product>
+    <Version>0.0.1</Version>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Protsyk.PMS.FullText.Core\Protsyk.PMS.FullText.Core.csproj" />
+  </ItemGroup>
+
+</Project>
