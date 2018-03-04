@@ -20,7 +20,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             if (args[0] == "index")
             {
-                using (var builder = IndexFactory.CreateBuilder(new IndexFolderName(".")))
+                using (var builder = IndexFactory.CreateBuilder(new InMemoryIndexName()))
                 {
                     builder.Start();
 

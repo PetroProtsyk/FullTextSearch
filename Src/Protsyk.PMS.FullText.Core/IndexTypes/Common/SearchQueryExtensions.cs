@@ -5,7 +5,7 @@ using System.Text;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public static class ISearchQueryExtensions
+    public static class SearchQueryExtensions
     {
         public static IEnumerable<IMatch> AsEnumerable(this ISearchQuery query)
         {

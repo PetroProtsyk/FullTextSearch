@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace PMS.FullText.Core.Tokenizer
+namespace Protsyk.PMS.FullText.Core
 {
     public interface ITextTokenizer : IDisposable
     {

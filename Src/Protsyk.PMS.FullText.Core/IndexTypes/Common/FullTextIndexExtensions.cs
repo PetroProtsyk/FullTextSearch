@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public static class IFullTextIndexExtensions
+    public static class FullTextIndexExtensions
     {
         public static void Visit(this IFullTextIndex index, IIndexVisitor visitor)
         {
