@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -7,12 +8,12 @@ namespace Protsyk.PMS.FullText.Core
     {
         public static ISearchQuery OrMultiQuery(IEnumerable<ISearchQuery> subqueries)
         {
-            throw new NotImplementedException();
+            return new OrMultiQuery(subqueries.ToArray());
         }
 
-        public static ISearchQuery TermQuery(IPostingList postingList)
+        public static ISearchQuery TermQuery(IPostingList postings)
         {
-            throw new NotImplementedException();
+            return new TermQuery(postings);
         }
     }
 }
