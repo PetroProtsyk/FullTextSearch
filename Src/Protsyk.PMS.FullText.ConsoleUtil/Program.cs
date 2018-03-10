@@ -28,7 +28,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                     var documents = 0;
                     foreach (var file in Directory.EnumerateFiles(args[1], "*.txt", SearchOption.AllDirectories).Select(f => new FileInfo(f)))
                     {
-                        Console.WriteLine($"{file.FullName}");
+                        PrintConsole(ConsoleColor.Gray, $"{file.FullName}");
                         builder.AddFile(
                             file.FullName,
                             "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
@@ -53,19 +53,19 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                         {
                             if (prevDoc != Occurrence.NoId)
                             {
-                                Console.WriteLine();
+                                PrintConsole(ConsoleColor.Gray, string.Empty);
                             }
 
-                            Console.WriteLine(index.Fields.GetMetadata(match.DocumentId));
+                            PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
                             prevDoc = match.DocumentId;
                             documentsCount++;
                         }
                         ++matchesCount;
-                        Console.Write($"{match} ");
+                        PrintConsole(ConsoleColor.Gray, $"{match} ");
                     }
                     if (prevDoc != Occurrence.NoId)
                     {
-                        Console.WriteLine();
+                        PrintConsole(ConsoleColor.Gray, string.Empty);
                     }
                 }
 
@@ -103,7 +103,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                     foreach (var term in terms)
                     {
                         ++termsFound;
-                        Console.WriteLine(term.Key);
+                        PrintConsole(ConsoleColor.Gray, term.Key);
                     }
                 }
                 PrintConsole(ConsoleColor.White, $"Terms found: {termsFound}, time: {timer.Elapsed}");
@@ -150,7 +150,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             public bool VisitTerm(DictionaryTerm term)
             {
-                Console.WriteLine($"{term.Key} -> {index.GetPostingList(term.Key).ToString()}");
+                PrintConsole(ConsoleColor.Gray, $"{term.Key} -> {index.GetPostingList(term.Key).ToString()}");
                 return true;
             }
         }
