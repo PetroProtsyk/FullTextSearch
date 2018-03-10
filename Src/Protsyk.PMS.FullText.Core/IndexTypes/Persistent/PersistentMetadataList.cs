@@ -1,6 +1,6 @@
 ﻿using System;
 using System.IO;
-using PMS.Common.Collections.List;
+using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core

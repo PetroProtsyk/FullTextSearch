@@ -1,7 +1,7 @@
 ﻿using System;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
-namespace PMS.Common.Collections.List
+namespace Protsyk.PMS.FullText.Core.Collections
 {
     /// <summary>
     /// Persistent List
