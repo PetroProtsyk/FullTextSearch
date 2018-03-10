@@ -13,6 +13,6 @@ namespace Protsyk.PMS.FullText.Core
 
         IMetadataStorage<string> Fields { get; }
 
-        IEnumerable<DictionaryTerm> GetTerms(ITermMatcher<char> matcher);
+        IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher);
     }
 }

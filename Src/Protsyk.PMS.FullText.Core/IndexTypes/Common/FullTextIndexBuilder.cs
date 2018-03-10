@@ -47,7 +47,6 @@ namespace Protsyk.PMS.FullText.Core
             AddFields(id, metadata);
         }
 
-
         private IEnumerable<string> TokenizeFile(string fileName)
         {
             using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
@@ -61,7 +60,6 @@ namespace Protsyk.PMS.FullText.Core
                 }
             }
         }
-
 
         private IEnumerable<string> TokenizeReader(TextReader reader)
         {

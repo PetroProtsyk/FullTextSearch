@@ -8,6 +8,7 @@ namespace Protsyk.PMS.FullText.Core
         private static readonly Dictionary<Type, IIndexTypeFactory> indexTypes = new Dictionary<Type, IIndexTypeFactory>
         {
             { typeof(InMemoryIndexName), new InMemoryIndexFactory() },
+            { typeof(PersistentIndexName), new PersistentIndexFactory() },
         };
 
         public static IIndexBuilder CreateBuilder(IIndexName name)

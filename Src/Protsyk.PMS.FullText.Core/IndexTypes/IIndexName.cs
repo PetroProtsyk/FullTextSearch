@@ -10,17 +10,4 @@ namespace Protsyk.PMS.FullText.Core
     public interface IIndexName
     {
     }
-
-    /// <summary>
-    /// Name of the index stored in the folder
-    /// </summary>
-    public class IndexFolderName : IIndexName
-    {
-        private readonly string folder;
-
-        public IndexFolderName(string folder)
-        {
-            this.folder = folder;
-        }
-    }
 }

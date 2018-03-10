@@ -8,6 +8,6 @@ namespace Protsyk.PMS.FullText.Core
         /// <summary>
         /// Get all posting lists that match pattern
         /// </summary>
-        IEnumerable<DictionaryTerm> GetTerms(ITermMatcher<char> matcher);
+        IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher);
     }
 }

@@ -2,12 +2,15 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core
 {
     internal class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName, IFullTextIndex, IMetadataStorage<string>
     {
         #region Fields
+        private const int MaxTokenSize = 64;
+
         private readonly ConcurrentDictionary<string, PostingListAddress> data = new ConcurrentDictionary<string, PostingListAddress>();
         private readonly ConcurrentDictionary<PostingListAddress, Occurrence[]> postingLists = new ConcurrentDictionary<PostingListAddress, Occurrence[]>();
         private readonly ConcurrentDictionary<ulong, string> fields = new ConcurrentDictionary<ulong, string>();
@@ -19,7 +22,7 @@ namespace Protsyk.PMS.FullText.Core
             Header = new IndexHeaderData
             {
                 Type = nameof(InMemoryIndex),
-                MaxTokenSize = 64,
+                MaxTokenSize = MaxTokenSize,
                 NextDocumentId = 0,
                 CreatedDate = DateTime.UtcNow,
                 ModifiedDate = DateTime.UtcNow,
@@ -36,7 +39,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public IFullTextIndexHeader Header { get; internal set; }
 
-        IEnumerable<DictionaryTerm> IFullTextIndex.GetTerms(ITermMatcher<char> matcher)
+        IEnumerable<DictionaryTerm> IFullTextIndex.GetTerms(ITermMatcher matcher)
         {
             return Dictionary.GetTerms(matcher);
         }
@@ -55,11 +58,12 @@ namespace Protsyk.PMS.FullText.Core
         #endregion
 
         #region ITermDictionary
-        public IEnumerable<DictionaryTerm> GetTerms(ITermMatcher<char> matcher)
+        public IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher)
         {
+            var dfaMatcher = matcher.ToDfaMatcher();
             foreach (var term in data)
             {
-                if (matcher.IsMatch(term.Key))
+                if (dfaMatcher.IsMatch(term.Key))
                 {
                     yield return new DictionaryTerm(term.Key, term.Value);
                 }

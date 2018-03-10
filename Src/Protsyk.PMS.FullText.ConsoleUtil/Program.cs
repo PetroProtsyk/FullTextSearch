@@ -20,7 +20,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             if (args[0] == "index")
             {
-                using (var builder = IndexFactory.CreateBuilder(new InMemoryIndexName()))
+                using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".")))
                 {
                     builder.Start();
 
@@ -43,9 +43,9 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                 var timer = Stopwatch.StartNew();
                 var documentsCount = 0;
                 var matchesCount = 0;
-                using (var index = IndexFactory.OpenIndex(new IndexFolderName(".")))
+                using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
                 {
-                    var searchResults = QueryFactory.OrMultiQuery(index.GetPostingLists(args[1]).Select(QueryFactory.TermQuery));
+                    var searchResults = QueryFactory.OrMultiQuery(index.GetPostingLists(args[1].ToLowerInvariant()).Select(QueryFactory.TermQuery));
                     var prevDoc = Occurrence.NoId;
                     foreach (var match in searchResults.AsEnumerable())
                     {
@@ -75,7 +75,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             {
                 var timer = Stopwatch.StartNew();
                 var terms = 0;
-                using (var index = IndexFactory.OpenIndex(new IndexFolderName(".")))
+                using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
                 {
                     index.Visit(new PrintVisitor(index));
                     ++terms;
@@ -87,7 +87,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             {
                 var timer = Stopwatch.StartNew();
                 var termsFound = 0;
-                using (var index = IndexFactory.OpenIndex(new IndexFolderName(".")))
+                using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
                 {
                     int tilda = args[1].IndexOf("~");
                     IEnumerable<DictionaryTerm> terms = null;

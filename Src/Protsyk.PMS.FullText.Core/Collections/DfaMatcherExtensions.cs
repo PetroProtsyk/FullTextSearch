@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core.Collections
 {
-    public static class TermMatcherExtensions
+    public static class DfaMatcherExtensions
     {
-        public static bool IsMatch(this ITermMatcher<char> matcher, string word)
+        public static bool IsMatch<T>(this IDfaMatcher<T> matcher, IEnumerable<T> word)
         {
             matcher.Reset();
-            for(int i=0; i<word.Length; ++i)
+            foreach(var c in word)
             {
-                if (!matcher.Next(word[i]))
+                if (!matcher.Next(c))
                 {
                     return false;
                 }
