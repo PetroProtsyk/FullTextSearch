@@ -1,0 +1,11 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <Authors>Petro Protsyk</Authors>
+    <Company />
+    <Product>PMS FullText Search</Product>
+    <Version>0.0.1</Version>
+  </PropertyGroup>
+
+</Project>
