@@ -693,7 +693,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
                 if (valueSerializer == null)
                 {
-                    throw new ArgumentNullException(nameof(keySerializer));
+                    throw new ArgumentNullException(nameof(valueSerializer));
                 }
 
                 this.syncRoot = new object();
