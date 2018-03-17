@@ -7,6 +7,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Protsyk.PMS.FullText.Consol
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Protsyk.PMS.FullText.Core", "Protsyk.PMS.FullText.Core\Protsyk.PMS.FullText.Core.csproj", "{21F6B46F-47F7-4F0E-B90A-1B75BC5B41B3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Protsyk.PMS.FullText.Core.UnitTests", "Protsyk.PMS.FullText.Core.UnitTests\Protsyk.PMS.FullText.Core.UnitTests.csproj", "{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -21,6 +23,10 @@ Global
 		{21F6B46F-47F7-4F0E-B90A-1B75BC5B41B3}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{21F6B46F-47F7-4F0E-B90A-1B75BC5B41B3}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{21F6B46F-47F7-4F0E-B90A-1B75BC5B41B3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
