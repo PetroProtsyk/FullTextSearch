@@ -13,4 +13,10 @@
     <ProjectReference Include="..\Protsyk.PMS.FullText.Core\Protsyk.PMS.FullText.Core.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Update="run_test.cmd">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+  </ItemGroup>
+
 </Project>

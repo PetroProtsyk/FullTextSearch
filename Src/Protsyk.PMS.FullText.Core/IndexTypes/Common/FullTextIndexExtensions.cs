@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using Protsyk.PMS.FullText.Core.Automata;
 using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core
@@ -20,19 +21,19 @@ namespace Protsyk.PMS.FullText.Core
 
         public static IEnumerable<DictionaryTerm> GetTerms(this IFullTextIndex index, string wildcardPattern)
         {
-            var matcher = default(ITermMatcher); //TODO: new WildcardMatcher(wildcardPattern, index.Header.MaxTokenSize);
+            var matcher = new DfaTermMatcher(new WildcardMatcher(wildcardPattern, index.Header.MaxTokenSize));
             return index.GetTerms(matcher);
         }
 
         public static IEnumerable<DictionaryTerm> GetTerms(this IFullTextIndex index, string word, int distance)
         {
-            var matcher = default(ITermMatcher); //TODO: new LevenshteinMatcher(word, distance);
+            var matcher = new DfaTermMatcher(new LevenshteinMatcher(word, distance));
             return index.GetTerms(matcher);
         }
 
         public static IEnumerable<IPostingList> GetPostingLists(this IFullTextIndex index, string wildcardPattern)
         {
-            var matcher = new DfaTermMatcher(new SequenceMatcher<char>(wildcardPattern, false)); //TODO: new WildcardMatcher(wildcardPattern, index.Header.MaxTokenSize);
+            var matcher = new DfaTermMatcher(new WildcardMatcher(wildcardPattern, index.Header.MaxTokenSize));
             return index.GetTerms(matcher).Select(p => index.PostingLists.Get(p.Value));
         }
 
