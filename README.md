@@ -1,5 +1,21 @@
 # PMS Full-Text search engine for .NET Core
-Simple Full-Text searcg engine with no external dependencies written in C#.
+Simple Full-Text search engine with no external dependencies written in C#.
+
+# Query Language
+
+* WORD(apple)       - single word
+* WILD(app*)        - wildcard pattern
+* EDIT(apple, 1)    - Levenshtein (edit distance, fuzzy search)
+
+Conjunction operators
+
+* OR                - boolean or
+* SEQ               - sequence of words, phrase
+
+Examples of queries:
+
+* AND(WORD(apple), OR(WILD(a*), EDIT(apple, 1))) 
+* SEQ(WORD(hello), WORD(world))
 
 # Data Structures
 
