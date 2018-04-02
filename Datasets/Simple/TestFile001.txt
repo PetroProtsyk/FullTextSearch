@@ -1,0 +1,3 @@
+PMS Full-Text search engine. 
+Project started in July 2017.
+It is written in managed .NET/C# to demonstrate algorithms and data structures used to build full-text search engines.
