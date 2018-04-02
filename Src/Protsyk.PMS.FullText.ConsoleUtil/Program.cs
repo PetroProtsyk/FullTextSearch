@@ -45,27 +45,30 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                 var matchesCount = 0;
                 using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
                 {
-                    var searchResults = QueryFactory.OrMultiQuery(index.GetPostingLists(args[1].ToLowerInvariant()).Select(QueryFactory.TermQuery));
-                    var prevDoc = Occurrence.NoId;
-                    foreach (var match in searchResults.AsEnumerable())
+                    using (var compiler = new FullTextQueryCompiler(index))
                     {
-                        if (match.DocumentId != prevDoc)
+                        var searchQuery = compiler.Compile(args[1]);
+                        var prevDoc = Occurrence.NoId;
+                        foreach (var match in searchQuery.AsEnumerable())
                         {
-                            if (prevDoc != Occurrence.NoId)
+                            if (match.DocumentId != prevDoc)
                             {
-                                PrintConsole(ConsoleColor.Gray, string.Empty);
-                            }
+                                if (prevDoc != Occurrence.NoId)
+                                {
+                                    PrintConsole(ConsoleColor.Gray, String.Empty);
+                                }
 
-                            PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
-                            prevDoc = match.DocumentId;
-                            documentsCount++;
+                                PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
+                                prevDoc = match.DocumentId;
+                                documentsCount++;
+                            }
+                            ++matchesCount;
+                            PrintConsole(ConsoleColor.Gray, $"{match} ");
                         }
-                        ++matchesCount;
-                        PrintConsole(ConsoleColor.Gray, $"{match} ");
-                    }
-                    if (prevDoc != Occurrence.NoId)
-                    {
-                        PrintConsole(ConsoleColor.Gray, string.Empty);
+                        if (prevDoc != Occurrence.NoId)
+                        {
+                            PrintConsole(ConsoleColor.Gray, String.Empty);
+                        }
                     }
                 }
 

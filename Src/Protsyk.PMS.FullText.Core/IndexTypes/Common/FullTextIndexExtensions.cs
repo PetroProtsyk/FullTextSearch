@@ -33,8 +33,12 @@ namespace Protsyk.PMS.FullText.Core
 
         public static IEnumerable<IPostingList> GetPostingLists(this IFullTextIndex index, string wildcardPattern)
         {
-            var matcher = new DfaTermMatcher(new WildcardMatcher(wildcardPattern, index.Header.MaxTokenSize));
-            return index.GetTerms(matcher).Select(p => index.PostingLists.Get(p.Value));
+            return index.GetTerms(wildcardPattern).Select(p => index.PostingLists.Get(p.Value));
+        }
+
+        public static IEnumerable<IPostingList> GetPostingLists(this IFullTextIndex index, string word, int distance)
+        {
+            return index.GetTerms(word, distance).Select(p => index.PostingLists.Get(p.Value));
         }
 
         public static IPostingList GetPostingList(this IFullTextIndex index, string term)
