@@ -7,7 +7,18 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Protsyk.PMS.FullText.Consol
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Protsyk.PMS.FullText.Core", "Protsyk.PMS.FullText.Core\Protsyk.PMS.FullText.Core.csproj", "{21F6B46F-47F7-4F0E-B90A-1B75BC5B41B3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Protsyk.PMS.FullText.Core.UnitTests", "Protsyk.PMS.FullText.Core.UnitTests\Protsyk.PMS.FullText.Core.UnitTests.csproj", "{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Protsyk.PMS.FullText.Core.UnitTests", "Protsyk.PMS.FullText.Core.UnitTests\Protsyk.PMS.FullText.Core.UnitTests.csproj", "{51C4FE43-E817-4A1D-B6B5-713CDF1C8D0B}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Wiki", "Wiki", "{DC9C5BB2-51DF-4A5D-A437-A742815A0271}"
+	ProjectSection(SolutionItems) = preProject
+		..\LICENSE = ..\LICENSE
+		..\README.md = ..\README.md
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{8627F877-DA8D-4533-B1F1-64549D775640}"
+	ProjectSection(SolutionItems) = preProject
+		AssemblyVersionInfo.cs = AssemblyVersionInfo.cs
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
