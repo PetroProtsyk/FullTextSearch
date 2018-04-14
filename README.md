@@ -104,6 +104,9 @@ Approximate term matching is based on [Levenshtein automaton](http://blog.notdot
 # References
 
 * [Introduction to Information Retrieval](https://nlp.stanford.edu/IR-book/)
+
   ![alt text](https://nlp.stanford.edu/IR-book/iir.jpg "Introduction to Information Retrieval")
+
 * [Compilers: Principles, Techniques, and Tools](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools)
+
   ![alt text](https://upload.wikimedia.org/wikipedia/en/a/a3/Purple_dragon_book_b.jpg "Compilers: Principles, Techniques, and Tools")
