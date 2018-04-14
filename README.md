@@ -20,7 +20,7 @@ On Windows:
     ```bat
     run_test.bat DATA_PATH
     ```
-4. If everything goes well the following messages are be printed:
+4. If everything goes well the following messages are printed:
 
    Log from index construction:
     ```txt
