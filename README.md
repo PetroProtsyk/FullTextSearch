@@ -1,4 +1,6 @@
 # PMS Full-Text search engine for .NET Core
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 Simple Full-Text search engine with no external dependencies written in C#.
 
 The aim of this project is to showcase algorithms, data structures and techniques that are used to created full-text search engines.
