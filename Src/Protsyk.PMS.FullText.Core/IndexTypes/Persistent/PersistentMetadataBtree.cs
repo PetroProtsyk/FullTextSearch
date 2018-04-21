@@ -10,6 +10,8 @@ namespace Protsyk.PMS.FullText.Core
     {
         private BtreePersistent<ulong, string> fields;
 
+        public static readonly string Id = "BTree";
+
         public PersistentMetadataBtree(string folder, string fileNameFields)
         {
             fields = new BtreePersistent<ulong, string>(new FileStorage(Path.Combine(folder, fileNameFields)), 32);

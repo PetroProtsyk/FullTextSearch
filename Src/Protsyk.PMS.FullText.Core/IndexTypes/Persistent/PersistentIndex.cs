@@ -15,6 +15,11 @@ namespace Protsyk.PMS.FullText.Core
         {
             var folder = name.Folder;
 
+            if (!PersistentIndexInfo.Exists(folder, FileNameInfo))
+            {
+                throw new InvalidOperationException("No index");
+            }
+
             HeaderReader = new PersistentIndexInfo(folder, FileNameInfo);
             Header = HeaderReader.Read();
             if (Header == null)
@@ -24,7 +29,7 @@ namespace Protsyk.PMS.FullText.Core
 
             Dictionary = new PersistentDictionary(folder, FileNameDictionary, FileNamePostingLists);
             PostingLists = new PostingListReader(folder, FileNamePostingLists);
-            Fields = new PersistentMetadataList(folder, FileNameFields);
+            Fields = PersistentMetadataFactory.CreateStorage(Header.Type.Split(' ')[1], folder, FileNameFields);
             this.name = name;
         }
 

@@ -10,6 +10,7 @@ namespace Protsyk.PMS.FullText.Core
         private const int MaxTokenSize = 64;
 
         private readonly PersistentIndexName name;
+        private readonly string fieldsType;
         private IMetadataStorage<string> fields;
         private PostingListWriter occurrenceWriter;
         private PersistentDictionary dictionaryWriter;
@@ -19,16 +20,17 @@ namespace Protsyk.PMS.FullText.Core
 
         private string Folder => name.Folder;
 
-        public PersistentBuilder(PersistentIndexName name)
+        public PersistentBuilder(PersistentIndexName name, string fieldsType)
         {
             this.name = name;
+            this.fieldsType = fieldsType;
         }
 
         protected override void DoStart()
         {
             base.DoStart();
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
-            fields = new PersistentMetadataList(Folder, PersistentIndex.FileNameFields);
+            fields = PersistentMetadataFactory.CreateStorage(fieldsType, Folder, PersistentIndex.FileNameFields);
             occurrenceWriter = new PostingListWriter(Folder, PersistentIndex.FileNamePostingLists);
             dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, PersistentIndex.FileNamePostingLists);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
@@ -75,7 +77,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             return indexInfo.Read() ?? new IndexHeaderData
             {
-                Type = nameof(PersistentIndex),
+                Type = $"{nameof(PersistentIndex)} {fieldsType}",
                 MaxTokenSize = MaxTokenSize,
                 NextDocumentId = 0,
                 CreatedDate = DateTime.UtcNow,

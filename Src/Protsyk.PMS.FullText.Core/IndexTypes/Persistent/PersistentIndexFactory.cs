@@ -6,7 +6,11 @@ namespace Protsyk.PMS.FullText.Core
     {
         public IIndexBuilder CreateBuilder(IIndexName name)
         {
-            return new PersistentBuilder(Convert(name));
+            //NOTE: Choice of index storage from:
+            //      - PersistentMetadataList
+            //      - PersistentMetadataBtree
+
+            return new PersistentBuilder(Convert(name), PersistentMetadataBtree.Id);
         }
 
         public IFullTextIndex OpenIndex(IIndexName name)

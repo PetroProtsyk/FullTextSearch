@@ -8,6 +8,7 @@ namespace Protsyk.PMS.FullText.Core
     internal class PersistentMetadataList : IMetadataStorage<string>
     {
         private PersistentDictionary<string> fields;
+        public static readonly string Id = "List";
 
         public PersistentMetadataList(string folder, string fileNameFields)
         {
