@@ -1021,6 +1021,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public ulong SaveData(byte[] data)
             {
+                //TODO: Allow to save zero length data
                 if (data == null || data.Length == 0)
                 {
                     throw new ArgumentNullException();

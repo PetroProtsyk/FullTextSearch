@@ -10,7 +10,7 @@ namespace Protsyk.PMS.FullText.Core
             //      - PersistentMetadataList
             //      - PersistentMetadataBtree
 
-            return new PersistentBuilder(Convert(name), PersistentMetadataBtree.Id);
+            return new PersistentBuilder(Convert(name));
         }
 
         public IFullTextIndex OpenIndex(IIndexName name)

@@ -1,7 +1,7 @@
-# PMS Full-Text search engine for .NET Core
+# PMS Full-Text Search Engine for .NET Core
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-Simple Full-Text search engine with no external dependencies written in C#.
+Full-Text Search Engine with no external dependencies written in C# for .NET Core.
 
 The aim of this project is to showcase algorithms, data structures and techniques that are used to created full-text search engines.
 
@@ -97,13 +97,13 @@ Examples of queries:
 
 # Data Structures
 
-Dictionary of the persistent index is implemented using: [Ternary Search Tree](http://www.protsyk.com/cms/?page_id=3004)
-
-Key-value storage for document metadata is based on persistent B-Tree implementation: [B-Tree](http://www.protsyk.com/cms/?page_id=3003)
+* Dictionary of the persistent index is implemented using: [Ternary Search Tree](http://www.protsyk.com/cms/?page_id=3004).
+* Key-value storage for document metadata is based on persistent B-Tree implementation: [B-Tree](http://www.protsyk.com/cms/?page_id=3003).
 
 # Algorithms
 
-Approximate term matching is based on [Levenshtein automaton](http://blog.notdot.net/2010/07/Damn-Cool-Algorithms-Levenshtein-Automata)
+* Approximate term matching is based on [Levenshtein automaton](http://blog.notdot.net/2010/07/Damn-Cool-Algorithms-Levenshtein-Automata).
+* Query Language parser is implemented using [recursive descent parser](https://en.wikipedia.org/wiki/Recursive_descent_parser) technique.
 
 # References
 
@@ -114,3 +114,7 @@ Approximate term matching is based on [Levenshtein automaton](http://blog.notdot
 * [Compilers: Principles, Techniques, and Tools](https://en.wikipedia.org/wiki/Compilers:_Principles,_Techniques,_and_Tools)
 
   ![alt text](https://upload.wikimedia.org/wikipedia/en/a/a3/Purple_dragon_book_b.jpg "Compilers: Principles, Techniques, and Tools")
+
+# Links
+
+* [Project Website](http://www.protsyk.com/pms)
