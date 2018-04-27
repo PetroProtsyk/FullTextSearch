@@ -9,9 +9,13 @@ namespace Protsyk.PMS.FullText.Core
     {
         private readonly FileStorage persistentStorage;
 
+        public static bool Exists(string folder, string fileName)
+        {
+            return FileStorage.Exists(Path.Combine(folder, fileName));
+        }
+
         public PersistentIndexInfo(string folder, string fileName)
         {
-            //TODO: Do not create file when index is opened for reading (i.e. index does not exists)
             persistentStorage = new FileStorage(Path.Combine(folder, fileName));
         }
 
