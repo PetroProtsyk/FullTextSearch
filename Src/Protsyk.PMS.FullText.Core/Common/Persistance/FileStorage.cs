@@ -1,4 +1,5 @@
-﻿using System.IO;
+﻿using System;
+using System.IO;
 
 namespace Protsyk.PMS.FullText.Core.Common.Persistance
 {
@@ -10,6 +11,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         public override void Flush()
         {
             stream.Flush(true);
+        }
+
+        public static bool Exists(string name)
+        {
+            return File.Exists(name);
         }
     }
 }

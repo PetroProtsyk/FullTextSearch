@@ -20,7 +20,8 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             if (args[0] == "index")
             {
-                using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".")))
+                var fieldsType = (args.Length > 3 && args[2] == "--fieldsType") ? args[3] : "List";
+                using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", fieldsType)))
                 {
                     builder.Start();
 
@@ -119,6 +120,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             PrintConsole(ConsoleColor.Gray, "\tIndex folder:");
             PrintConsole(ConsoleColor.Gray, "\tindex FOLDERNAME");
+            PrintConsole(ConsoleColor.Gray, "\t--fieldsType List|BTree");
             PrintConsole(ConsoleColor.Gray, "");
 
             PrintConsole(ConsoleColor.Gray, "\tSearch:");

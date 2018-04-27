@@ -28,7 +28,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             base.DoStart();
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
-            fields = new PersistentMetadataList(Folder, PersistentIndex.FileNameFields);
+            fields = PersistentMetadataFactory.CreateStorage(name.FieldsType, Folder, PersistentIndex.FileNameFields);
             occurrenceWriter = new PostingListWriter(Folder, PersistentIndex.FileNamePostingLists);
             dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, PersistentIndex.FileNamePostingLists);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
@@ -75,7 +75,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             return indexInfo.Read() ?? new IndexHeaderData
             {
-                Type = nameof(PersistentIndex),
+                Type = $"{nameof(PersistentIndex)} {name.FieldsType}",
                 MaxTokenSize = MaxTokenSize,
                 NextDocumentId = 0,
                 CreatedDate = DateTime.UtcNow,
