@@ -7,12 +7,12 @@ IF "%1"=="" (
 	goto EXIT
 )
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index %1 --fieldsType BTree
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index --input "%1" --fieldsType BTree
 dotnet Protsyk.PMS.FullText.ConsoleUtil.dll print
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search "WORD(pms)"
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search --query "WORD(pms)"
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup pet*
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup projct~1
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern pet*
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern projct~1
 
 :EXIT

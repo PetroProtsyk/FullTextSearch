@@ -3,115 +3,159 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
+using CommandLine;
 using Protsyk.PMS.FullText.Core;
 
 namespace Protsyk.PMS.FullText.ConsoleUtil
 {
+    [Verb("index", HelpText = "Add file contents to the index.")]
+    class IndexOptions
+    {
+        [Option('i', "input", Required = true, HelpText = "Folder with files that should be indexed")]
+        public string InputPath { get; set; }
+
+        [Option('f', "fieldsType", Required = false, Default = "List", HelpText = "Type of metadata storage. List or BTree")]
+        public string FieldsType { get; set; }
+
+        [Option('f', "filter", Required = false, Default = "*.txt", HelpText = "File name filter")]
+        public string Filter { get; set; }
+    }
+
+    [Verb("search", HelpText = "Search index.")]
+    class SearchOptions
+    {
+        [Option('q', "query", Required = true, HelpText = "Search Query")]
+        public string Query { get; set; }
+    }
+
+    [Verb("print", HelpText = "Print index.")]
+    class PrintOptions
+    {
+    }
+
+    [Verb("lookup", HelpText = "Match dictionary terms using pattern.")]
+    class LookupOptions
+    {
+        [Option('p', "pattern", Required = true, HelpText = "Search Pattern")]
+        public string Pattern { get; internal set; }
+    }
+
     class Program
     {
-        static void Main(string[] args)
+        static int Main(string[] args)
         {
-            PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2018");
-            if (args.Length < 1)
-            {
-                PrintHelp();
-                return;
-            }
+            //PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2018");
 
-            if (args[0] == "index")
+            return Parser.Default.ParseArguments<IndexOptions, SearchOptions, PrintOptions, LookupOptions>(args)
+              .MapResult(
+                (IndexOptions opts) => DoIndex(opts),
+                (SearchOptions opts) => DoSearch(opts),
+                (PrintOptions opts) => DoPrint(opts),
+                (LookupOptions opts) => DoLookup(opts),
+                errors => 255);
+        }
+
+        private static int DoLookup(LookupOptions opts)
+        {
+            var pattern = opts.Pattern;
+            var timer = Stopwatch.StartNew();
+            var termsFound = 0;
+            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
             {
-                var fieldsType = (args.Length > 3 && args[2] == "--fieldsType") ? args[3] : "List";
-                using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", fieldsType)))
+                int tilda = pattern.IndexOf("~");
+                IEnumerable<DictionaryTerm> terms = null;
+                if (tilda == -1)
                 {
-                    builder.Start();
+                    terms = index.GetTerms(pattern);
+                }
+                else
+                {
+                    terms = index.GetTerms(pattern.Substring(0, tilda), int.Parse(pattern.Substring(tilda + 1)));
+                }
 
-                    var timer = Stopwatch.StartNew();
-                    var documents = 0;
-                    foreach (var file in Directory.EnumerateFiles(args[1], "*.txt", SearchOption.AllDirectories).Select(f => new FileInfo(f)))
-                    {
-                        PrintConsole(ConsoleColor.Gray, $"{file.FullName}");
-                        builder.AddFile(
-                            file.FullName,
-                            "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
-                        ++documents;
-                    }
-                    builder.StopAndWait();
-                    PrintConsole(ConsoleColor.White, $"Indexed documents: {documents}, time: {timer.Elapsed}");
+                foreach (var term in terms)
+                {
+                    ++termsFound;
+                    PrintConsole(ConsoleColor.Gray, term.Key);
                 }
             }
-            else if (args[0] == "search")
+            PrintConsole(ConsoleColor.White, $"Terms found: {termsFound}, time: {timer.Elapsed}");
+            return 0;
+        }
+
+        private static int DoPrint(PrintOptions opts)
+        {
+            var timer = Stopwatch.StartNew();
+            var terms = 0;
+            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
             {
-                var timer = Stopwatch.StartNew();
-                var documentsCount = 0;
-                var matchesCount = 0;
-                using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
+                index.Visit(new PrintVisitor(index));
+                ++terms;
+            }
+
+            PrintConsole(ConsoleColor.White, $"Terms: {terms}, time: {timer.Elapsed}");
+            return 0;
+        }
+
+        private static int DoSearch(SearchOptions opts)
+        {
+            var timer = Stopwatch.StartNew();
+            var documentsCount = 0;
+            var matchesCount = 0;
+            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
+            {
+                using (var compiler = new FullTextQueryCompiler(index))
                 {
-                    using (var compiler = new FullTextQueryCompiler(index))
+                    var searchQuery = compiler.Compile(opts.Query);
+                    var prevDoc = Occurrence.NoId;
+                    foreach (var match in searchQuery.AsEnumerable())
                     {
-                        var searchQuery = compiler.Compile(args[1]);
-                        var prevDoc = Occurrence.NoId;
-                        foreach (var match in searchQuery.AsEnumerable())
+                        if (match.DocumentId != prevDoc)
                         {
-                            if (match.DocumentId != prevDoc)
+                            if (prevDoc != Occurrence.NoId)
                             {
-                                if (prevDoc != Occurrence.NoId)
-                                {
-                                    PrintConsole(ConsoleColor.Gray, String.Empty);
-                                }
-
-                                PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
-                                prevDoc = match.DocumentId;
-                                documentsCount++;
+                                PrintConsole(ConsoleColor.Gray, String.Empty);
                             }
-                            ++matchesCount;
-                            PrintConsole(ConsoleColor.Gray, $"{match} ");
+
+                            PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
+                            prevDoc = match.DocumentId;
+                            documentsCount++;
                         }
-                        if (prevDoc != Occurrence.NoId)
-                        {
-                            PrintConsole(ConsoleColor.Gray, String.Empty);
-                        }
+                        ++matchesCount;
+                        PrintConsole(ConsoleColor.Gray, $"{match} ");
+                    }
+                    if (prevDoc != Occurrence.NoId)
+                    {
+                        PrintConsole(ConsoleColor.Gray, String.Empty);
                     }
                 }
-
-                PrintConsole(ConsoleColor.White, $"Documents found: {documentsCount}, matches: {matchesCount}, time: {timer.Elapsed}");
             }
-            else if (args[0] == "print")
+
+            PrintConsole(ConsoleColor.White, $"Documents found: {documentsCount}, matches: {matchesCount}, time: {timer.Elapsed}");
+            return 0;
+        }
+
+        private static int DoIndex(IndexOptions opts)
+        {
+            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.FieldsType)))
             {
-                var timer = Stopwatch.StartNew();
-                var terms = 0;
-                using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
-                {
-                    index.Visit(new PrintVisitor(index));
-                    ++terms;
-                }
+                builder.Start();
 
-                PrintConsole(ConsoleColor.White, $"Terms: {terms}, time: {timer.Elapsed}");
-            }
-            else if (args[0] == "lookup")
-            {
                 var timer = Stopwatch.StartNew();
-                var termsFound = 0;
-                using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
+                var documents = 0;
+                foreach (var file in Directory.EnumerateFiles(opts.InputPath, opts.Filter, SearchOption.AllDirectories).Select(f => new FileInfo(f)))
                 {
-                    int tilda = args[1].IndexOf("~");
-                    IEnumerable<DictionaryTerm> terms = null;
-                    if (tilda == -1)
-                    {
-                        terms = index.GetTerms(args[1]);
-                    }
-                    else
-                    {
-                        terms = index.GetTerms(args[1].Substring(0, tilda), int.Parse(args[1].Substring(tilda + 1)));
-                    }
-
-                    foreach (var term in terms)
-                    {
-                        ++termsFound;
-                        PrintConsole(ConsoleColor.Gray, term.Key);
-                    }
+                    PrintConsole(ConsoleColor.Gray, $"{file.FullName}");
+                    builder.AddFile(
+                        file.FullName,
+                        "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
+                    ++documents;
                 }
-                PrintConsole(ConsoleColor.White, $"Terms found: {termsFound}, time: {timer.Elapsed}");
+                builder.StopAndWait();
+                PrintConsole(ConsoleColor.White, $"Indexed documents: {documents}, time: {timer.Elapsed}");
             }
+
+            return 0;
         }
 
         private static void PrintHelp()

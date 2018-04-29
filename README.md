@@ -26,7 +26,7 @@ On Windows:
 
    Log from index construction:
     ```txt
-    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index "F:\Sources\FullTextSearch\Datasets"
+    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index --input "F:\Sources\FullTextSearch\Datasets"
     
     PMS Full-Text Search (c) Petro Protsyk 2017-2018
     F:\Sources\FullTextSearch\Datasets\Simple\TestFile001.txt
@@ -55,7 +55,7 @@ On Windows:
     Search with query WORD(pms):
 
     ```txt
-    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search "WORD(pms)"
+    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search --query "WORD(pms)"
     
     {filename:"TestFile001.txt", size:"180", created:"2018-04-02T10:09:41.4208444+02:00"}
     {[1,1,1]}
@@ -69,11 +69,11 @@ On Windows:
     Lookup in the dictionary using a pattern i.e. all terms matching pattern:
     
     ```txt
-    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup pet*
+    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern pet*
     petro-mariya-sophie
     Terms found: 1, time: 00:00:00.0704173
 
-    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup projct~1
+    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern projct~1
     project
     Terms found: 1, time: 00:00:00.0847931
     ```

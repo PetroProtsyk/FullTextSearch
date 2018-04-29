@@ -13,6 +13,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="CommandLineParser" Version="2.2.1" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\Protsyk.PMS.FullText.Core\Protsyk.PMS.FullText.Core.csproj" />
   </ItemGroup>
 
