@@ -4,4 +4,4 @@ dotnet: 2.0.0
 script:
  - dotnet restore ./Src/
  - dotnet build ./Src/
- - dotnet test ./Src/
+ - dotnet test ./Src/Protsyk.PMS.FullText.Core.UnitTests/
