@@ -1,6 +1,6 @@
 language: csharp
 mono: none
-dotnet: 1.1.5
+dotnet: 2.0.0
 script:
- - dotnet restore --source Src\
- - dotnet build --source Src\
+ - dotnet restore --source .\Src\
+ - dotnet build --source .\Src\
