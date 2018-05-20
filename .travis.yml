@@ -2,5 +2,5 @@ language: csharp
 mono: none
 dotnet: 2.0.0
 script:
- - dotnet restore --source .\Src\
- - dotnet build --source .\Src\
+ - dotnet restore
+ - dotnet build .\Src\
