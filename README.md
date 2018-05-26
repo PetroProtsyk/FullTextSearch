@@ -3,7 +3,7 @@
 
 Full-Text Search Engine with no external dependencies written in C# for .NET Core.
 
-The aim of this project is to showcase algorithms, data structures and techniques that are used to created full-text search engines.
+The aim of this project is to showcase algorithms, data structures and techniques that are used to create full-text search engines.
 
 # Getting Started
 
