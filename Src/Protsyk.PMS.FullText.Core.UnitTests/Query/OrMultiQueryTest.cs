@@ -23,5 +23,19 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
                 }
             }
         }
+
+        [Fact]
+        public void TestOrMultiQueryWithFixedPostingList_2()
+        {
+            using (var query = new OrMultiQuery(
+                new TermQuery(new PostingListArray(new Occurrence[] { Occurrence.O(1, 1, 1) })),
+                new TermQuery(new PostingListArray(new Occurrence[] { Occurrence.O(1, 1, 2), })),
+                new TermQuery(new PostingListArray(new Occurrence[] { Occurrence.O(1, 1, 2), Occurrence.O(1, 1, 3) }))))
+            {
+                var result = query.ExecuteToString();
+                var expected = "{[1,1,1]}, {[1,1,2]}, {[1,1,2]}, {[1,1,3]}";
+                Assert.Equal(expected, result);
+            }
+        }
     }
 }

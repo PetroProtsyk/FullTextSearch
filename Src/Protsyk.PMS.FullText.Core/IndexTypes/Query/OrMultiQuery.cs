@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
+using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -8,7 +8,7 @@ namespace Protsyk.PMS.FullText.Core
     {
         #region Fields
         private readonly ISearchQuery[] queries;
-        private readonly SortedDictionary<IMatch, ISearchQuery> heap;
+        private readonly Heap<ValueTuple<IMatch, ISearchQuery>> heap;
         private States state;
 
         private enum States
@@ -24,8 +24,10 @@ namespace Protsyk.PMS.FullText.Core
         public OrMultiQuery(params ISearchQuery[] queries)
         {
             this.queries = queries;
-            this.heap = new SortedDictionary<IMatch, ISearchQuery>(MatchComparer.Instance);
             this.state = States.Initial;
+            this.heap = new Heap<ValueTuple<IMatch, ISearchQuery>>(
+                    Comparer<ValueTuple<IMatch, ISearchQuery>>.Create(
+                        (x, y) => MatchComparer.Instance.Compare(x.Item1, y.Item1)));
         }
         #endregion
 
@@ -47,7 +49,7 @@ namespace Protsyk.PMS.FullText.Core
                                 var match = searchQuery.NextMatch();
                                 if (match != null)
                                 {
-                                    heap.Add(match, searchQuery);
+                                    heap.Add(new ValueTuple<IMatch, ISearchQuery>(match, searchQuery));
                                 }
                             }
                         }
@@ -59,16 +61,15 @@ namespace Protsyk.PMS.FullText.Core
                             return null;
                         }
                         state = States.MatchAdvance;
-                        return heap.First().Key;
+                        return heap.Top.Item1;
                     case States.MatchAdvance:
                         {
-                            var top = heap.First();
-                            heap.Remove(top.Key);
-                            var searchQuery = top.Value;
+                            var top = heap.RemoveTop();
+                            var searchQuery = top.Item2;
                             var match = searchQuery.NextMatch();
                             if (match != null)
                             {
-                                heap.Add(match, searchQuery);
+                                heap.Add(new ValueTuple<IMatch, ISearchQuery>(match, searchQuery));
                             }
                             state = States.MatchReturn;
                         }
