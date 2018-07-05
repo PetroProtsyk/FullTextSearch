@@ -8,7 +8,7 @@ using Protsyk.PMS.FullText.Core.Collections;
 namespace Protsyk.PMS.FullText.Core
 {
 
-    public class FullTextQueryCompiler : IFullTextQueryCompiler
+    internal class FullTextQueryCompiler : IFullTextQueryCompiler
     {
         private readonly IFullTextIndex index;
         private readonly int maxTokenLength;
@@ -25,10 +25,10 @@ namespace Protsyk.PMS.FullText.Core
             return Compile(ast);
         }
 
-        public IEnumerable<DictionaryTerm> CompilePattern(string pattern)
+        public ITermMatcher CompilePattern(string pattern)
         {
             var ast = Parse(pattern);
-            return LookupPattern(ast);
+            return BuildMatcher(ast);
         }
 
         public void Dispose()
@@ -53,7 +53,7 @@ namespace Protsyk.PMS.FullText.Core
                 (ast is WildcardAstQuery) ||
                 (ast is EditAstQuery))
             {
-                return CompilePattern(LookupPattern(ast));
+                return CompilePattern(index.GetTerms(BuildMatcher(ast)));
             }
 
             var func = ast as FunctionAstQuery;
@@ -98,24 +98,24 @@ namespace Protsyk.PMS.FullText.Core
             }
         }
 
-        private IEnumerable<DictionaryTerm> LookupPattern(AstQuery ast)
+        private ITermMatcher BuildMatcher(AstQuery ast)
         {
             var wordQuery = ast as WordAstQuery;
             if (wordQuery != null)
             {
-                return CompileWord(wordQuery);
+                return BuildWordMatcher(wordQuery);
             }
 
             var wildQuery = ast as WildcardAstQuery;
             if (wildQuery != null)
             {
-                return CompileWildcard(wildQuery);
+                return BuildWildcardMatcher(wildQuery);
             }
 
             var editQuery = ast as EditAstQuery;
             if (editQuery != null)
             {
-                return CompileEdit(editQuery);
+                return BuildEditMatcher(editQuery);
             }
 
             throw new Exception("Not a terminal query");
@@ -136,22 +136,19 @@ namespace Protsyk.PMS.FullText.Core
             return new PhraseQuery(func.Args.Select(Compile).ToArray());
         }
 
-        private IEnumerable<DictionaryTerm> CompileWord(WordAstQuery wordQuery)
+        private ITermMatcher BuildWordMatcher(WordAstQuery wordQuery)
         {
-            var matcher = new DfaTermMatcher(new SequenceMatcher<char>(wordQuery.Value, false));
-            return index.GetTerms(matcher);
+            return new DfaTermMatcher(new SequenceMatcher<char>(wordQuery.Value, false));
         }
 
-        private IEnumerable<DictionaryTerm> CompileWildcard(WildcardAstQuery wildQuery)
+        private ITermMatcher BuildWildcardMatcher(WildcardAstQuery wildQuery)
         {
-            var matcher = new DfaTermMatcher(new WildcardMatcher(wildQuery.Value, index.Header.MaxTokenSize));
-            return index.GetTerms(matcher);
+            return new DfaTermMatcher(new WildcardMatcher(wildQuery.Value, index.Header.MaxTokenSize));
         }
 
-        private IEnumerable<DictionaryTerm> CompileEdit(EditAstQuery editQuery)
+        private ITermMatcher BuildEditMatcher(EditAstQuery editQuery)
         {
-            var matcher = new DfaTermMatcher(new LevenshteinMatcher(editQuery.Value, editQuery.Distance));
-            return index.GetTerms(matcher);
+            return new DfaTermMatcher(new LevenshteinMatcher(editQuery.Value, editQuery.Distance));
         }
     }
 }

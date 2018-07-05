@@ -43,10 +43,25 @@ namespace Protsyk.PMS.FullText.Core
 
         public IMetadataStorage<string> Fields { get; }
 
-
         public IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher)
         {
             return Dictionary.GetTerms(matcher);
+        }
+
+        public ITermMatcher CompilePattern(string pattern)
+        {
+            using (var compiler = new FullTextQueryCompiler(this))
+            {
+                return compiler.CompilePattern(pattern);
+            }
+        }
+
+        public ISearchQuery Compile(string query)
+        {
+            using (var compiler = new FullTextQueryCompiler(this))
+            {
+                return compiler.Compile(query);
+            }
         }
 
         public void Dispose()

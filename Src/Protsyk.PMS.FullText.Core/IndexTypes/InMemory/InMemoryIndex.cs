@@ -43,6 +43,22 @@ namespace Protsyk.PMS.FullText.Core
         {
             return Dictionary.GetTerms(matcher);
         }
+
+        public ITermMatcher CompilePattern(string pattern)
+        {
+            using (var compiler = new FullTextQueryCompiler(this))
+            {
+                return compiler.CompilePattern(pattern);
+            }
+        }
+
+        public ISearchQuery Compile(string query)
+        {
+            using (var compiler = new FullTextQueryCompiler(this))
+            {
+                return compiler.Compile(query);
+            }
+        }
         #endregion
 
         #region IMetadataStorage

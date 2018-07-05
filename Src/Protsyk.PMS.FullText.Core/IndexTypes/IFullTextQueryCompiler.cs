@@ -9,6 +9,6 @@ namespace Protsyk.PMS.FullText.Core
     {
         ISearchQuery Compile(string query);
 
-        IEnumerable<DictionaryTerm> CompilePattern(string pattern);
+        ITermMatcher CompilePattern(string pattern);
     }
 }

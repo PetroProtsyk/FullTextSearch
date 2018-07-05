@@ -62,14 +62,12 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             var termsFound = 0;
             using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
             {
-                using (var compiler = new FullTextQueryCompiler(index))
+                var matcher = index.CompilePattern(pattern);
+                var terms = index.GetTerms(matcher);
+                foreach (var term in terms)
                 {
-                    var terms = compiler.CompilePattern(pattern);
-                    foreach (var term in terms)
-                    {
-                        ++termsFound;
-                        PrintConsole(ConsoleColor.Gray, term.Key);
-                    }
+                    ++termsFound;
+                    PrintConsole(ConsoleColor.Gray, term.Key);
                 }
             }
 
@@ -98,30 +96,27 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             var matchesCount = 0;
             using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
             {
-                using (var compiler = new FullTextQueryCompiler(index))
+                var searchQuery = index.Compile(opts.Query);
+                var prevDoc = Occurrence.NoId;
+                foreach (var match in searchQuery.AsEnumerable())
                 {
-                    var searchQuery = compiler.Compile(opts.Query);
-                    var prevDoc = Occurrence.NoId;
-                    foreach (var match in searchQuery.AsEnumerable())
+                    if (match.DocumentId != prevDoc)
                     {
-                        if (match.DocumentId != prevDoc)
+                        if (prevDoc != Occurrence.NoId)
                         {
-                            if (prevDoc != Occurrence.NoId)
-                            {
-                                PrintConsole(ConsoleColor.Gray, String.Empty);
-                            }
-
-                            PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
-                            prevDoc = match.DocumentId;
-                            documentsCount++;
+                            PrintConsole(ConsoleColor.Gray, String.Empty);
                         }
-                        ++matchesCount;
-                        PrintConsole(ConsoleColor.Gray, $"{match} ");
+
+                        PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
+                        prevDoc = match.DocumentId;
+                        documentsCount++;
                     }
-                    if (prevDoc != Occurrence.NoId)
-                    {
-                        PrintConsole(ConsoleColor.Gray, String.Empty);
-                    }
+                    ++matchesCount;
+                    PrintConsole(ConsoleColor.Gray, $"{match} ");
+                }
+                if (prevDoc != Occurrence.NoId)
+                {
+                    PrintConsole(ConsoleColor.Gray, String.Empty);
                 }
             }
 
