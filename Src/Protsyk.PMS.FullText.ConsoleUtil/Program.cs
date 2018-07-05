@@ -62,23 +62,17 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             var termsFound = 0;
             using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
             {
-                int tilda = pattern.IndexOf("~");
-                IEnumerable<DictionaryTerm> terms = null;
-                if (tilda == -1)
+                using (var compiler = new FullTextQueryCompiler(index))
                 {
-                    terms = index.GetTerms(pattern);
-                }
-                else
-                {
-                    terms = index.GetTerms(pattern.Substring(0, tilda), int.Parse(pattern.Substring(tilda + 1)));
-                }
-
-                foreach (var term in terms)
-                {
-                    ++termsFound;
-                    PrintConsole(ConsoleColor.Gray, term.Key);
+                    var terms = compiler.CompilePattern(pattern);
+                    foreach (var term in terms)
+                    {
+                        ++termsFound;
+                        PrintConsole(ConsoleColor.Gray, term.Key);
+                    }
                 }
             }
+
             PrintConsole(ConsoleColor.White, $"Terms found: {termsFound}, time: {timer.Elapsed}");
             return 0;
         }
@@ -199,7 +193,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             public bool VisitTerm(DictionaryTerm term)
             {
-                PrintConsole(ConsoleColor.Gray, $"{term.Key} -> {index.GetPostingList(term.Key).ToString()}");
+                PrintConsole(ConsoleColor.Gray, $"{term.Key} -> {index.PostingLists.Get(term.Value).ToString()}");
                 return true;
             }
         }

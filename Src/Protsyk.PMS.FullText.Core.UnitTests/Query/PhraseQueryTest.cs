@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Linq;
+using Protsyk.PMS.FullText.Core.Automata;
 using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests
@@ -12,8 +13,8 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             using (var index = TestHelper.PrepareIndexForSearch(new PersistentIndexName(TestFolder)))
             {
                 using (var query = new PhraseQuery(
-                    new TermQuery(index.GetPostingList("search")),
-                    new TermQuery(index.GetPostingList("only"))))
+                    new TermQuery(TestHelper.GetPostingList(index, "search")),
+                    new TermQuery(TestHelper.GetPostingList(index, "only"))))
                 {
                     var result = query.ExecuteToString();
                     var expected = "{[5,1,3], [5,1,4]}";
@@ -28,8 +29,8 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             using (var index = TestHelper.PrepareIndexForSearch(new PersistentIndexName(TestFolder)))
             {
                 using (var query = new PhraseQuery(
-                    new TermQuery(index.GetPostingList("this")),
-                    new TermQuery(index.GetPostingList("is"))))
+                    new TermQuery(TestHelper.GetPostingList(index, "this")),
+                    new TermQuery(TestHelper.GetPostingList(index, "is"))))
                 {
                     var result = query.ExecuteToString();
                     var expected = "{[3,1,1], [3,1,2]}, {[6,1,8], [6,1,9]}";
@@ -44,10 +45,10 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             using (var index = TestHelper.PrepareIndexForSearch(new PersistentIndexName(TestFolder)))
             {
                 using (var query = new PhraseQuery(
-                    new TermQuery(index.GetPostingList("search")),
-                    new TermQuery(index.GetPostingList("only")),
-                    new TermQuery(index.GetPostingList("supports")),
-                    new TermQuery(index.GetPostingList("boolean"))))
+                    new TermQuery(TestHelper.GetPostingList(index, "search")),
+                    new TermQuery(TestHelper.GetPostingList(index, "only")),
+                    new TermQuery(TestHelper.GetPostingList(index, "supports")),
+                    new TermQuery(TestHelper.GetPostingList(index, "boolean"))))
                 {
                     var result = query.ExecuteToString();
                     var expected = "{[5,1,3], [5,1,4], [5,1,5], [5,1,6]}";

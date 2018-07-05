@@ -26,7 +26,7 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
 
         private void TestTermSearch(IFullTextIndex index)
         {
-            var postings = index.GetPostingList("this").ToString();
+            var postings = TestHelper.GetPostingList(index, "this").ToString();
             Assert.Equal("[3,1,1], [4,1,1], [5,1,1], [6,1,8]", postings);
         }
     }

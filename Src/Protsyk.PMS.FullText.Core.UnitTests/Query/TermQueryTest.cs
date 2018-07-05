@@ -28,7 +28,7 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
         {
             using (var index = TestHelper.PrepareIndexForSearch(new PersistentIndexName(TestFolder)))
             {
-                using (var query = new TermQuery(index.GetPostingList("this")))
+                using (var query = new TermQuery(TestHelper.GetPostingList(index, "this")))
                 {
                     var result = query.ExecuteToString();
                     var expected = "{[3,1,1]}, {[4,1,1]}, {[5,1,1]}, {[6,1,8]}";

@@ -1,4 +1,6 @@
-﻿
+﻿using System.Linq;
+using Protsyk.PMS.FullText.Core.Automata;
+
 namespace Protsyk.PMS.FullText.Core.UnitTests
 {
     class TestHelper
@@ -18,6 +20,12 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             }
 
             return IndexFactory.OpenIndex(indexName);
+        }
+
+        public static IPostingList GetPostingList(IFullTextIndex index, string term)
+        {
+            var dictionaryTerm = index.Dictionary.GetTerms(new DfaTermMatcher(new WildcardMatcher(term, index.Header.MaxTokenSize))).Single();
+            return index.PostingLists.Get(dictionaryTerm.Value);
         }
     }
 }

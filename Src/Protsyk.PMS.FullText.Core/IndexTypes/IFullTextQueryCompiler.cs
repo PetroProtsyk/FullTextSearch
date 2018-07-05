@@ -8,5 +8,7 @@ namespace Protsyk.PMS.FullText.Core
     public interface IFullTextQueryCompiler : IDisposable
     {
         ISearchQuery Compile(string query);
+
+        IEnumerable<DictionaryTerm> CompilePattern(string pattern);
     }
 }

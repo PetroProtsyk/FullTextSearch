@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Protsyk.PMS.FullText.Core.Automata;
 using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core
@@ -20,13 +21,25 @@ namespace Protsyk.PMS.FullText.Core
 
         public ISearchQuery Compile(string query)
         {
-            var parser = new QueryParser();
-            var ast = parser.Parse(query);
+            var ast = Parse(query);
             return Compile(ast);
+        }
+
+        public IEnumerable<DictionaryTerm> CompilePattern(string pattern)
+        {
+            var ast = Parse(pattern);
+            return LookupPattern(ast);
         }
 
         public void Dispose()
         {
+        }
+
+        private static AstQuery Parse(string query)
+        {
+            var parser = new QueryParser();
+            var ast = parser.Parse(query);
+            return ast;
         }
 
         private ISearchQuery Compile(AstQuery ast)
@@ -36,22 +49,11 @@ namespace Protsyk.PMS.FullText.Core
                 throw new ArgumentNullException(nameof(ast));
             }
 
-            var wordQuery = ast as WordAstQuery;
-            if (wordQuery != null)
+            if ((ast is WordAstQuery) ||
+                (ast is WildcardAstQuery) ||
+                (ast is EditAstQuery))
             {
-                return CompileWord(wordQuery);
-            }
-
-            var wildQuery = ast as WildcardAstQuery;
-            if (wildQuery != null)
-            {
-                return CompileWildcard(wildQuery);
-            }
-
-            var editQuery = ast as EditAstQuery;
-            if (editQuery != null)
-            {
-                return CompileEdit(editQuery);
+                return CompilePattern(LookupPattern(ast));
             }
 
             var func = ast as FunctionAstQuery;
@@ -74,6 +76,51 @@ namespace Protsyk.PMS.FullText.Core
             throw new NotSupportedException($"Query {ast.Name} is not supported");
         }
 
+        private ISearchQuery CompilePattern(IEnumerable<DictionaryTerm> terms)
+        {
+            var termQueries = terms.Select(t => new TermQuery(index.PostingLists.Get(t.Value))).ToArray();
+
+            if (termQueries.Length == 0)
+            {
+                return NullQuery.Instance;
+            }
+            else if (termQueries.Length == 1)
+            {
+                return termQueries[0];
+            }
+            else if (termQueries.Length == 2)
+            {
+                return new OrQuery(termQueries[0], termQueries[1]);
+            }
+            else
+            {
+                return new OrMultiQuery(termQueries);
+            }
+        }
+
+        private IEnumerable<DictionaryTerm> LookupPattern(AstQuery ast)
+        {
+            var wordQuery = ast as WordAstQuery;
+            if (wordQuery != null)
+            {
+                return CompileWord(wordQuery);
+            }
+
+            var wildQuery = ast as WildcardAstQuery;
+            if (wildQuery != null)
+            {
+                return CompileWildcard(wildQuery);
+            }
+
+            var editQuery = ast as EditAstQuery;
+            if (editQuery != null)
+            {
+                return CompileEdit(editQuery);
+            }
+
+            throw new Exception("Not a terminal query");
+        }
+
         private ISearchQuery CompileOr(FunctionAstQuery func)
         {
             return new OrMultiQuery(func.Args.Select(Compile).ToArray());
@@ -85,29 +132,26 @@ namespace Protsyk.PMS.FullText.Core
             {
                 throw new Exception("Unexpected query take in phrase");
             }
+
             return new PhraseQuery(func.Args.Select(Compile).ToArray());
         }
 
-        private ISearchQuery CompileWord(WordAstQuery wordQuery)
+        private IEnumerable<DictionaryTerm> CompileWord(WordAstQuery wordQuery)
         {
             var matcher = new DfaTermMatcher(new SequenceMatcher<char>(wordQuery.Value, false));
-            var postingList = index.GetTerms(matcher).Select(p => index.PostingLists.Get(p.Value)).SingleOrDefault();
-            if (postingList == null)
-            {
-                return NullQuery.Instance;
-            }
-
-            return new TermQuery(postingList);
+            return index.GetTerms(matcher);
         }
 
-        private ISearchQuery CompileWildcard(WildcardAstQuery wildQuery)
+        private IEnumerable<DictionaryTerm> CompileWildcard(WildcardAstQuery wildQuery)
         {
-            return new OrMultiQuery(index.GetPostingLists(wildQuery.Value).Select(t => new TermQuery(t)).ToArray());
+            var matcher = new DfaTermMatcher(new WildcardMatcher(wildQuery.Value, index.Header.MaxTokenSize));
+            return index.GetTerms(matcher);
         }
 
-        private ISearchQuery CompileEdit(EditAstQuery editQuery)
+        private IEnumerable<DictionaryTerm> CompileEdit(EditAstQuery editQuery)
         {
-            return new OrMultiQuery(index.GetPostingLists(editQuery.Value, editQuery.Distance).Select(t => new TermQuery(t)).ToArray());
+            var matcher = new DfaTermMatcher(new LevenshteinMatcher(editQuery.Value, editQuery.Distance));
+            return index.GetTerms(matcher);
         }
     }
 }

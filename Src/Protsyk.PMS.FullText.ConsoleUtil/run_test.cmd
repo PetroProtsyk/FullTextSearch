@@ -12,7 +12,7 @@ dotnet Protsyk.PMS.FullText.ConsoleUtil.dll print
 
 dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search --query "WORD(pms)"
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern pet*
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern projct~1
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern "WILD(pet*)"
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern "EDIT(projct, 1)"
 
 :EXIT
