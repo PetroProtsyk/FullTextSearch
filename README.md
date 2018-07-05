@@ -69,11 +69,11 @@ On Windows:
     Lookup in the dictionary using a pattern i.e. all terms matching pattern:
     
     ```txt
-    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern pet*
+    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern "WILD(pet*)"
     petro-mariya-sophie
     Terms found: 1, time: 00:00:00.0704173
 
-    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern projct~1
+    dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern "EDIT(projct, 1)"
     project
     Terms found: 1, time: 00:00:00.0847931
     ```
