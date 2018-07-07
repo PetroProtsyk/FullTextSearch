@@ -96,7 +96,7 @@ namespace Protsyk.PMS.FullText.Core
                 return true;
             }
 
-            if (c == '-')
+            if (c == '-' || c == '_')
             {
                 return true;
             }
