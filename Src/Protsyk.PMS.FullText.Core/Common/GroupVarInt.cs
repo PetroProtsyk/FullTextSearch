@@ -33,9 +33,9 @@ namespace Protsyk.PMS.FullText.Core
             return (r + 7) / 8;
         }
 
-        public static byte[] Encode(int[] input)
+        public static byte[] Encode(IList<int> input)
         {
-            for (int i = 0; i < input.Length; ++i)
+            for (int i = 0; i < input.Count; ++i)
             {
                 if (input[i] == 0)
                 {
@@ -45,7 +45,7 @@ namespace Protsyk.PMS.FullText.Core
 
             var result = new List<byte>();
 
-            for (int i = 0; i < input.Length / 4; ++i)
+            for (int i = 0; i < input.Count / 4; ++i)
             {
                 var offset = i << 2;
 
@@ -65,23 +65,23 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             // Encode remainder
-            if (input.Length % 4 > 0)
+            if (input.Count % 4 > 0)
             {
-                var offset = input.Length / 4;
+                var offset = input.Count / 4;
 
                 int n1 = GetNumOfBytes(input[offset + 0]);
-                int n2 = (offset + 1 < input.Length) ? GetNumOfBytes(input[offset + 1]) : 1;
-                int n3 = (offset + 2 < input.Length) ? GetNumOfBytes(input[offset + 2]) : 1;
-                int n4 = (offset + 3 < input.Length) ? GetNumOfBytes(input[offset + 3]) : 1;
+                int n2 = (offset + 1 < input.Count) ? GetNumOfBytes(input[offset + 1]) : 1;
+                int n3 = (offset + 2 < input.Count) ? GetNumOfBytes(input[offset + 2]) : 1;
+                int n4 = (offset + 3 < input.Count) ? GetNumOfBytes(input[offset + 3]) : 1;
 
                 int selector = ((n1 - 1) << 6) | ((n2 - 1) << 4) | ((n3 - 1) << 2) | (n4 - 1);
 
                 result.Add((byte)selector);
 
                 WriteInt(input[offset + 0], n1, result);
-                if (offset + 1 < input.Length) WriteInt(input[offset + 1], n2, result);
-                if (offset + 2 < input.Length) WriteInt(input[offset + 2], n3, result);
-                if (offset + 3 < input.Length) WriteInt(input[offset + 3], n4, result);
+                if (offset + 1 < input.Count) WriteInt(input[offset + 1], n2, result);
+                if (offset + 2 < input.Count) WriteInt(input[offset + 2], n3, result);
+                if (offset + 3 < input.Count) WriteInt(input[offset + 3], n4, result);
             }
 
             return result.ToArray();

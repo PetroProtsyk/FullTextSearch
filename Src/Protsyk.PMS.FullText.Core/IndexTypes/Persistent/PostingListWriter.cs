@@ -6,7 +6,7 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public class PostingListWriter : IDisposable
+    public class PostingListWriter : IOccurrenceWriter
     {
         #region Fields
         internal static readonly string EmptyContinuationAddress = " -> FFFFFFFF";
@@ -14,6 +14,8 @@ namespace Protsyk.PMS.FullText.Core
         private readonly IPersistentStorage persistentStorage;
         private readonly IDataSerializer<Occurrence> occurrenceSerializer;
         private readonly List<Occurrence> occurrences;
+
+        private PostingListAddress? currentList;
         #endregion
 
         public PostingListWriter(string folder, string fileNamePostingLists)
@@ -24,19 +26,34 @@ namespace Protsyk.PMS.FullText.Core
         }
 
         #region API
-        public long StartList(string token)
+        public void StartList(string token)
         {
+            if (currentList != null)
+            {
+                throw new InvalidOperationException("Previous list was not finished");
+            }
+
             occurrences.Clear();
-            return persistentStorage.Length;
+            currentList = new PostingListAddress(persistentStorage.Length);
         }
 
         public void AddOccurrence(Occurrence occurrence)
         {
+            if (currentList == null)
+            {
+                throw new InvalidOperationException("Previous list was started");
+            }
+
             occurrences.Add(occurrence);
         }
 
-        public long EndList()
+        public PostingListAddress EndList()
         {
+            if (currentList == null)
+            {
+                throw new InvalidOperationException("Previous list was started");
+            }
+
             var data = System.Text.Encoding.UTF8.GetBytes(string.Join(";", occurrences.Select(o => o.ToString())));
             persistentStorage.WriteAll(persistentStorage.Length, data, 0, data.Length);
 
@@ -49,8 +66,12 @@ namespace Protsyk.PMS.FullText.Core
             data = System.Text.Encoding.UTF8.GetBytes(Environment.NewLine);
             persistentStorage.WriteAll(persistentStorage.Length, data, 0, data.Length);
 
+            var result = currentList.Value;
+
+            currentList = null;
             occurrences.Clear();
-            return listEnd;
+
+            return result;
         }
 
         public void UpdateNextList(PostingListAddress address, PostingListAddress nextList)

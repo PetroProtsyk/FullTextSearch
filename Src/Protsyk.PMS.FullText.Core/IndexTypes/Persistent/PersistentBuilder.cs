@@ -11,7 +11,7 @@ namespace Protsyk.PMS.FullText.Core
 
         private readonly PersistentIndexName name;
         private IMetadataStorage<string> fields;
-        private PostingListWriter occurrenceWriter;
+        private IOccurrenceWriter occurrenceWriter;
         private PersistentDictionary dictionaryWriter;
         private PersistentIndexInfo indexInfo;
         private IUpdate dictionaryUpdate;
@@ -29,7 +29,7 @@ namespace Protsyk.PMS.FullText.Core
             base.DoStart();
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
             fields = PersistentMetadataFactory.CreateStorage(name.FieldsType, Folder, PersistentIndex.FileNameFields);
-            occurrenceWriter = new PostingListWriter(Folder, PersistentIndex.FileNamePostingLists);
+            occurrenceWriter = new PostingListBinaryWriter(Folder, PersistentIndex.FileNamePostingLists);
             dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, PersistentIndex.FileNamePostingLists);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
             updates = 0;
@@ -61,14 +61,12 @@ namespace Protsyk.PMS.FullText.Core
 
         protected override PostingListAddress AddOccurrences(string term, IEnumerable<Occurrence> occurrences)
         {
-            var offsetStart = occurrenceWriter.StartList(term);
+            occurrenceWriter.StartList(term);
             foreach (var occurrence in occurrences)
             {
                 occurrenceWriter.AddOccurrence(occurrence);
             }
-            var offsetEnd = occurrenceWriter.EndList();
-
-            return new PostingListAddress(offsetStart);
+            return occurrenceWriter.EndList();
         }
 
         protected override IFullTextIndexHeader GetIndexHeader()
