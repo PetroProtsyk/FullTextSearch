@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections.Generic;
+using System.Linq;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -13,6 +15,8 @@ namespace Protsyk.PMS.FullText.Core
         DateTime CreatedDate { get; set; }
 
         DateTime ModifiedDate { get; set; }
+
+        List<string> Settings { get; }
     }
 
     public class IndexHeaderData : IFullTextIndexHeader
@@ -22,6 +26,12 @@ namespace Protsyk.PMS.FullText.Core
         public ulong NextDocumentId { get; set; }
         public DateTime CreatedDate { get; set; }
         public DateTime ModifiedDate { get; set; }
+        public List<string> Settings { get; private set; }
+
+        public IndexHeaderData()
+        {
+            Settings = new List<string>();
+        }
 
         public IndexHeaderData Clone()
         {
@@ -36,7 +46,8 @@ namespace Protsyk.PMS.FullText.Core
                 MaxTokenSize = header.MaxTokenSize,
                 NextDocumentId = header.NextDocumentId,
                 CreatedDate = header.CreatedDate,
-                ModifiedDate = header.ModifiedDate
+                ModifiedDate = header.ModifiedDate,
+                Settings = new List<string>(header.Settings)
             };
         }
     }

@@ -9,7 +9,7 @@ namespace Protsyk.PMS.FullText.Core
     public class PostingListBinaryWriter : IOccurrenceWriter
     {
         #region Fields
-        internal static readonly string EmptyContinuationAddress = " -> FFFFFFFF";
+        public static readonly string Id = "Binary";
 
         private readonly IPersistentStorage persistentStorage;
         private readonly IDataSerializer<Occurrence> occurrenceSerializer;
@@ -36,7 +36,6 @@ namespace Protsyk.PMS.FullText.Core
                 occurrences.Add((int)occurrence.DocumentId);
                 occurrences.Add((int)occurrence.FieldId);
                 occurrences.Add((int)occurrence.TokenId);
-                occurrences.Add(1);
             }
         }
 

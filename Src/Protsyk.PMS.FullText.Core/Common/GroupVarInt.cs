@@ -44,11 +44,10 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             var result = new List<byte>();
+            var offset = 0;
 
             for (int i = 0; i < input.Count / 4; ++i)
             {
-                var offset = i << 2;
-
                 int n1 = GetNumOfBytes(input[offset + 0]);
                 int n2 = GetNumOfBytes(input[offset + 1]);
                 int n3 = GetNumOfBytes(input[offset + 2]);
@@ -62,13 +61,12 @@ namespace Protsyk.PMS.FullText.Core
                 WriteInt(input[offset + 1], n2, result);
                 WriteInt(input[offset + 2], n3, result);
                 WriteInt(input[offset + 3], n4, result);
+                offset += 4;
             }
 
             // Encode remainder
-            if (input.Count % 4 > 0)
+            if (offset < input.Count)
             {
-                var offset = input.Count / 4;
-
                 int n1 = GetNumOfBytes(input[offset + 0]);
                 int n2 = (offset + 1 < input.Count) ? GetNumOfBytes(input[offset + 1]) : 1;
                 int n3 = (offset + 2 < input.Count) ? GetNumOfBytes(input[offset + 2]) : 1;

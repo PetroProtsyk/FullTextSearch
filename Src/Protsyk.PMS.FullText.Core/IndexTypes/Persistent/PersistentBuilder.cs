@@ -29,10 +29,21 @@ namespace Protsyk.PMS.FullText.Core
             base.DoStart();
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
             fields = PersistentMetadataFactory.CreateStorage(name.FieldsType, Folder, PersistentIndex.FileNameFields);
-            occurrenceWriter = new PostingListBinaryWriter(Folder, PersistentIndex.FileNamePostingLists);
+            occurrenceWriter = CreateWriter();
             dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, PersistentIndex.FileNamePostingLists);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
             updates = 0;
+        }
+
+        private IOccurrenceWriter CreateWriter()
+        {
+            if (name.PostingType == PostingListBinaryWriter.Id)
+                return new PostingListBinaryWriter(Folder, PersistentIndex.FileNamePostingLists);
+
+            if (name.PostingType == PersistentIndexName.DefaultValue || name.PostingType == PostingListWriter.Id)
+                return new PostingListWriter(Folder, PersistentIndex.FileNamePostingLists);
+
+            throw new NotSupportedException($"Not supported Posting Type {name.PostingType}");
         }
 
         protected override void DoStop()
@@ -71,14 +82,44 @@ namespace Protsyk.PMS.FullText.Core
 
         protected override IFullTextIndexHeader GetIndexHeader()
         {
-            return indexInfo.Read() ?? new IndexHeaderData
+            var header = indexInfo.Read();
+            if (header == null)
             {
-                Type = $"{nameof(PersistentIndex)} {name.FieldsType}",
-                MaxTokenSize = MaxTokenSize,
-                NextDocumentId = 0,
-                CreatedDate = DateTime.UtcNow,
-                ModifiedDate = DateTime.UtcNow
-            };
+                var fieldsType = name.FieldsType == PersistentIndexName.DefaultValue ?
+                                    PersistentMetadataList.Id : name.FieldsType;
+
+                var postingType = name.PostingType == PersistentIndexName.DefaultValue ?
+                                    PostingListWriter.Id : name.PostingType;
+
+                header = new IndexHeaderData
+                {
+                    Type = $"{nameof(PersistentIndex)} {fieldsType} {postingType}",
+                    MaxTokenSize = MaxTokenSize,
+                    NextDocumentId = 0,
+                    CreatedDate = DateTime.UtcNow,
+                    ModifiedDate = DateTime.UtcNow,
+                };
+            }
+            else
+            {
+                var types = header.Type.Split(' ');
+                if (types[0] != nameof(PersistentIndex))
+                {
+                    throw new InvalidOperationException("Index type and name mismatch");
+                }
+
+                if (types[1] != name.FieldsType)
+                {
+                    throw new InvalidOperationException("Index type and name mismatch");
+                }
+
+                if (types[2] != name.PostingType)
+                {
+                    throw new InvalidOperationException("Index type and name mismatch");
+                }
+            }
+
+            return header;
         }
 
         protected override void UpdateIndexHeader(IFullTextIndexHeader header)

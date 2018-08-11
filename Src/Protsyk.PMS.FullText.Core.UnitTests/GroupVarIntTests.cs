@@ -16,6 +16,7 @@ namespace Protsyk.PMS.FullText.Core
         [Fact]
         public void EncodingDecoding()
         {
+            Test(new int[] { 1, 1, 2, 1, 1, 26 });
             Test(new int[] { 80, 320, 31, 255, int.MaxValue, 1000000, -1, 8 });
             Test(new int[] { 80 });
             Test(new int[] { 80, -2 });

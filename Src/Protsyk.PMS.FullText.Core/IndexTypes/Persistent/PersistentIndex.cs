@@ -27,10 +27,47 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException("No index");
             }
 
+            VerifyHeader(name);
+
             Dictionary = new PersistentDictionary(folder, FileNameDictionary, FileNamePostingLists);
-            PostingLists = new PostingListReader(folder, FileNamePostingLists);
+            PostingLists = CreateReader(folder);
             Fields = PersistentMetadataFactory.CreateStorage(Header.Type.Split(' ')[1], folder, FileNameFields);
             this.name = name;
+        }
+
+        private void VerifyHeader(PersistentIndexName name)
+        {
+            var types = Header.Type.Split(' ');
+            if (types[0] != nameof(PersistentIndex))
+            {
+                throw new InvalidOperationException("Index type and name mismatch");
+            }
+
+            if (name.FieldsType != PersistentIndexName.DefaultValue && types[1] != name.FieldsType)
+            {
+                throw new InvalidOperationException("Index type and name mismatch");
+            }
+
+            if (name.FieldsType != PersistentIndexName.DefaultValue && types[2] != name.PostingType)
+            {
+                throw new InvalidOperationException("Index type and name mismatch");
+            }
+        }
+
+        private IPostingLists CreateReader(string folder)
+        {
+            var readerType = Header.Type.Split(' ')[2];
+            if (readerType == PostingListWriter.Id)
+            {
+                return new PostingListReader(folder, FileNamePostingLists);
+            }
+
+            if (readerType == PostingListBinaryWriter.Id)
+            {
+                return new PostingListBinaryReader(folder, FileNamePostingLists);
+            }
+
+            throw new NotSupportedException($"Not supported Posting Type {readerType}");
         }
 
         private PersistentIndexInfo HeaderReader { get; }

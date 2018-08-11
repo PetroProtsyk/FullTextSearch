@@ -9,6 +9,8 @@ namespace Protsyk.PMS.FullText.Core
     public class PostingListWriter : IOccurrenceWriter
     {
         #region Fields
+        public static readonly string Id = "Text";
+
         internal static readonly string EmptyContinuationAddress = " -> FFFFFFFF";
 
         private readonly IPersistentStorage persistentStorage;

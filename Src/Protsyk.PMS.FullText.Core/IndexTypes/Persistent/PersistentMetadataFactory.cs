@@ -12,7 +12,7 @@ namespace Protsyk.PMS.FullText.Core
                 return new PersistentMetadataBtree(folder, fileName);
             }
 
-            if (fieldsType == PersistentMetadataList.Id)
+            if (fieldsType == PersistentIndexName.DefaultValue || fieldsType == PersistentMetadataList.Id)
             {
                 return new PersistentMetadataList(folder, fileName);
             }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -28,16 +29,28 @@ namespace Protsyk.PMS.FullText.Core
                 return null;
             }
 
-            using (var reader = new StringReader(System.Text.Encoding.UTF8.GetString(buffer)))
+            using (var reader = new StringReader(System.Text.Encoding.UTF8.GetString(buffer, 0, read)))
             {
-                return new IndexHeaderData
+                var result = new IndexHeaderData
                 {
                     Type = reader.ReadLine(),
                     MaxTokenSize = int.Parse(reader.ReadLine()),
                     NextDocumentId = ulong.Parse(reader.ReadLine()),
                     CreatedDate = DateTime.Parse(reader.ReadLine()),
-                    ModifiedDate = DateTime.Parse(reader.ReadLine())
+                    ModifiedDate = DateTime.Parse(reader.ReadLine()),
                 };
+
+                while (true)
+                {
+                    var line = reader.ReadLine();
+                    if (line == null)
+                    {
+                        break;
+                    }
+                    result.Settings.Add(line);
+                }
+
+                return result;
             }
         }
 
@@ -49,6 +62,11 @@ namespace Protsyk.PMS.FullText.Core
             headerText.AppendLine(header.NextDocumentId.ToString());
             headerText.AppendLine(header.CreatedDate.ToString("o"));
             headerText.AppendLine(header.ModifiedDate.ToString("o"));
+            foreach (var setting in header.Settings)
+            {
+                headerText.AppendLine(setting);
+            }
+
             var data = Encoding.UTF8.GetBytes(headerText.ToString());
             persistentStorage.WriteAll(0, data, 0, data.Length);
         }

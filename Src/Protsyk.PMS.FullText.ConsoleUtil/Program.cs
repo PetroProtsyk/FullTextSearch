@@ -17,6 +17,9 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('f', "fieldsType", Required = false, Default = "List", HelpText = "Type of metadata storage. List or BTree")]
         public string FieldsType { get; set; }
 
+        [Option('p', "postingType", Required = false, Default = "Text", HelpText = "Type of posting list. Text or Binary")]
+        public string PostingType { get; set; }
+
         [Option('f', "filter", Required = false, Default = "*.txt", HelpText = "File name filter")]
         public string Filter { get; set; }
     }
@@ -126,7 +129,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
         private static int DoIndex(IndexOptions opts)
         {
-            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.FieldsType)))
+            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.FieldsType, opts.PostingType)))
             {
                 builder.Start();
 
