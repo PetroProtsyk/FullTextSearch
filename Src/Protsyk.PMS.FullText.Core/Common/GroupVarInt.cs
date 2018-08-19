@@ -21,9 +21,13 @@ namespace Protsyk.PMS.FullText.Core
 
         private static int GetNumOfBytes(int value)
         {
-            //TODO: BSRL Processor Command
-            var r = 0;
-            var v = (uint)value;
+            return GetNumOfBytesFast(value);
+        }
+
+        private static int GetNumOfBytesSlow(int value)
+        {
+            var r = 8;
+            var v = (uint)(value >> 8);
             while (v > 0)
             {
                 v >>= 8;
@@ -33,16 +37,13 @@ namespace Protsyk.PMS.FullText.Core
             return (r + 7) / 8;
         }
 
+        private static int GetNumOfBytesFast(int value)
+        {
+            return (value > 0xFFFFFF || value < 0) ? 4 : (value < 0x10000) ? (value < 0x100) ? 1 : 2 : 3;
+        }
+
         public static byte[] Encode(IList<int> input)
         {
-            for (int i = 0; i < input.Count; ++i)
-            {
-                if (input[i] == 0)
-                {
-                    throw new ArgumentException("Input contains zero");
-                }
-            }
-
             var result = new List<byte>();
             var offset = 0;
 
@@ -187,5 +188,4 @@ namespace Protsyk.PMS.FullText.Core
             return result.ToString();
         }
     }
-
 }

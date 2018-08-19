@@ -2,7 +2,7 @@
 using System.Linq;
 using Xunit;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core.UnitTests
 {
     public class GroupVarIntTests
     {
@@ -17,6 +17,7 @@ namespace Protsyk.PMS.FullText.Core
         public void EncodingDecoding()
         {
             Test(new int[] { 1, 1, 2, 1, 1, 26 });
+            Test(new int[] { 0, 1, 244, 101234, 0, int.MaxValue, 34895000, 10000000, 80, 320, 31, 255, 256, 65535, 65536 });
             Test(new int[] { 80, 320, 31, 255, int.MaxValue, 1000000, -1, 8 });
             Test(new int[] { 80 });
             Test(new int[] { 80, -2 });
