@@ -104,6 +104,7 @@ Examples of queries:
 
 * Approximate term matching is based on [Levenshtein automaton](http://blog.notdot.net/2010/07/Damn-Cool-Algorithms-Levenshtein-Automata).
 * Query Language parser is implemented using [recursive descent parser](https://en.wikipedia.org/wiki/Recursive_descent_parser) technique.
+* A method for encoding/decoding occurrences uses [Group VarInt encoding](http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html).
 
 # References
 
