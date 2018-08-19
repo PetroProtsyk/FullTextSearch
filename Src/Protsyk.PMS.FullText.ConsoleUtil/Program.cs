@@ -20,7 +20,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('p', "postingType", Required = false, Default = "Text", HelpText = "Type of posting list. Text or Binary")]
         public string PostingType { get; set; }
 
-        [Option('f', "filter", Required = false, Default = "*.txt", HelpText = "File name filter")]
+        [Option('m', "mask", Required = false, Default = "*.txt", HelpText = "File name filter")]
         public string Filter { get; set; }
     }
 
