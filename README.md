@@ -116,6 +116,10 @@ Examples of queries:
 
   ![alt text](https://upload.wikimedia.org/wikipedia/en/a/a3/Purple_dragon_book_b.jpg "Compilers: Principles, Techniques, and Tools")
 
+* [Information Retrieval: Implementing and Evaluating Search Engines](http://www.ir.uwaterloo.ca/book/)
+
+  ![alt text](http://www.ir.uwaterloo.ca/book/title3.jpg "Information Retrieval: Implementing and Evaluating Search Engines")
+
 # Links
 
 * [Project Website](http://www.protsyk.com/pms)
