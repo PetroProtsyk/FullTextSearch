@@ -65,6 +65,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
     {
         public byte[] GetBytes(string value)
         {
+            // TODO: Save string length?
             return Encoding.UTF8.GetBytes(value);
         }
 

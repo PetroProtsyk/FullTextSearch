@@ -38,12 +38,12 @@ namespace Protsyk.PMS.FullText.Core
                 persistentStorage.ReadAll(offset + sizeof(long) + sizeof(int), dataBuffer, 0, dataBuffer.Length);
 
                 var numbers = GroupVarint.Decode(dataBuffer);
-                if (numbers.Length % 3 != 0)
+                if (numbers.Count % 3 != 0)
                 {
                     throw new InvalidDataException();
                 }
 
-                for (int i = 0; i < numbers.Length; i += 3)
+                for (int i = 0; i < numbers.Count; i += 3)
                 {
                     occurrences.Add(new Occurrence((ulong)numbers[i],
                                                    (ulong)numbers[i + 1],

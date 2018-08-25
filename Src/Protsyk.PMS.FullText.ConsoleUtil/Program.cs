@@ -17,7 +17,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('f', "fieldsType", Required = false, Default = "List", HelpText = "Type of metadata storage. List or BTree")]
         public string FieldsType { get; set; }
 
-        [Option('p', "postingType", Required = false, Default = "Text", HelpText = "Type of posting list. Text or Binary")]
+        [Option('p', "postingType", Required = false, Default = "Text", HelpText = "Type of posting list. Text, Binary or BinaryCompressed")]
         public string PostingType { get; set; }
 
         [Option('m', "mask", Required = false, Default = "*.txt", HelpText = "File name filter")]

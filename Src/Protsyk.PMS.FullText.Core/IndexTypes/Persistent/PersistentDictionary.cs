@@ -15,7 +15,7 @@ namespace Protsyk.PMS.FullText.Core
 
         #region Constructor
 
-        public PersistentDictionary(string folder, string fileNameDictionary, string fileNameOccurrences)
+        public PersistentDictionary(string folder, string fileNameDictionary)
         {
             dictionary = new TernaryDictionary<char, long>(new FileStorage(Path.Combine(folder, fileNameDictionary)));
         }

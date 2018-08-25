@@ -6,7 +6,7 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public class PostingListReader : IPostingLists
+    public class PostingListReader : IOccurrenceReader
     {
         #region Fields
         internal static readonly int ReadBufferSize = 256;

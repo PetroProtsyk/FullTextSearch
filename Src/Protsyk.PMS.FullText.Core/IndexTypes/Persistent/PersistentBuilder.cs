@@ -29,21 +29,10 @@ namespace Protsyk.PMS.FullText.Core
             base.DoStart();
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
             fields = PersistentMetadataFactory.CreateStorage(name.FieldsType, Folder, PersistentIndex.FileNameFields);
-            occurrenceWriter = CreateWriter();
-            dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, PersistentIndex.FileNamePostingLists);
+            occurrenceWriter = PostingListReaderFactory.CreateWriter(name.PostingType, Folder, PersistentIndex.FileNamePostingLists);
+            dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
             updates = 0;
-        }
-
-        private IOccurrenceWriter CreateWriter()
-        {
-            if (name.PostingType == PostingListBinaryWriter.Id)
-                return new PostingListBinaryWriter(Folder, PersistentIndex.FileNamePostingLists);
-
-            if (name.PostingType == PersistentIndexName.DefaultValue || name.PostingType == PostingListWriter.Id)
-                return new PostingListWriter(Folder, PersistentIndex.FileNamePostingLists);
-
-            throw new NotSupportedException($"Not supported Posting Type {name.PostingType}");
         }
 
         protected override void DoStop()
@@ -85,11 +74,8 @@ namespace Protsyk.PMS.FullText.Core
             var header = indexInfo.Read();
             if (header == null)
             {
-                var fieldsType = name.FieldsType == PersistentIndexName.DefaultValue ?
-                                    PersistentMetadataList.Id : name.FieldsType;
-
-                var postingType = name.PostingType == PersistentIndexName.DefaultValue ?
-                                    PostingListWriter.Id : name.PostingType;
+                var fieldsType = PersistentMetadataFactory.GetName(name.FieldsType);
+                var postingType = PostingListReaderFactory.GetName(name.PostingType);
 
                 header = new IndexHeaderData
                 {

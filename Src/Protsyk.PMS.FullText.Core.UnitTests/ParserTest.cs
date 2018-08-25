@@ -21,5 +21,22 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             Assert.NotNull(query);
             Assert.Equal(expected, query.ToString());
         }
+
+        [Theory]
+        [InlineData("WORD(petro) and apple", 11)]
+        public void TestQueryParserForWrongInput(string input, int position)
+        {
+            bool error = false;
+            try
+            {
+                new QueryParser().Parse(input);
+            }
+            catch(QueryParserException e)
+            {
+                error = true;
+                Assert.Equal(position, e.Position);
+            }
+            Assert.True(error);
+        }
     }
 }

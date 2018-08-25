@@ -19,5 +19,14 @@ namespace Protsyk.PMS.FullText.Core
 
             throw new NotSupportedException($"Fields type {fieldsType} is not supported");
         }
+
+        public static string GetName(string fieldsType)
+        {
+            if (fieldsType == PersistentIndexName.DefaultValue)
+            {
+                return PersistentMetadataList.Id;
+            }
+            return fieldsType;
+        }
     }
 }

@@ -22,12 +22,13 @@ namespace Protsyk.PMS.FullText.Core
         private static int GetNumOfBytes(int value)
         {
             return GetNumOfBytesFast(value);
+            //return GetNumOfBytesSlow((uint)value);
         }
 
-        private static int GetNumOfBytesSlow(int value)
+        private static int GetNumOfBytesSlow(uint value)
         {
             var r = 8;
-            var v = (uint)(value >> 8);
+            var v = (value >> 8);
             while (v > 0)
             {
                 v >>= 8;
@@ -42,9 +43,15 @@ namespace Protsyk.PMS.FullText.Core
             return (value > 0xFFFFFF || value < 0) ? 4 : (value < 0x10000) ? (value < 0x100) ? 1 : 2 : 3;
         }
 
-        public static byte[] Encode(IList<int> input)
+        public static IList<byte> Encode(IList<int> input)
         {
             var result = new List<byte>();
+            EncodeTo(input, result);
+            return result;
+        }
+
+        public static void EncodeTo(IList<int> input, IList<byte> result)
+        {
             var offset = 0;
 
             for (int i = 0; i < input.Count / 4; ++i)
@@ -82,16 +89,14 @@ namespace Protsyk.PMS.FullText.Core
                 if (offset + 2 < input.Count) WriteInt(input[offset + 2], n3, result);
                 if (offset + 3 < input.Count) WriteInt(input[offset + 3], n4, result);
             }
-
-            return result.ToArray();
         }
 
-        public static int[] Decode(byte[] input)
+        public static IList<int> Decode(IList<byte> input)
         {
             var result = new List<int>();
 
             int index = 0;
-            while (index < input.Length)
+            while (index < input.Count)
             {
                 int selector = (int)input[index++];
 
@@ -102,15 +107,15 @@ namespace Protsyk.PMS.FullText.Core
 
                 result.Add(ReadInt(input, index, selector1));
                 index += selector1;
-                if (index >= input.Length) break;
+                if (index >= input.Count) break;
 
                 result.Add(ReadInt(input, index, selector2));
                 index += selector2;
-                if (index >= input.Length) break;
+                if (index >= input.Count) break;
 
                 result.Add(ReadInt(input, index, selector3));
                 index += selector3;
-                if (index >= input.Length) break;
+                if (index >= input.Count) break;
 
                 result.Add(ReadInt(input, index, selector4));
                 index += selector4;
@@ -119,7 +124,7 @@ namespace Protsyk.PMS.FullText.Core
             return result.ToArray();
         }
 
-        private static int ReadInt(byte[] input, int index, int selector)
+        private static int ReadInt(IList<byte> input, int index, int selector)
         {
             if (selector > 2)
             {
@@ -145,7 +150,7 @@ namespace Protsyk.PMS.FullText.Core
             }
         }
 
-        private static void WriteInt(int value, int selector, List<byte> result)
+        private static void WriteInt(int value, int selector, IList<byte> result)
         {
             if (selector > 2)
             {
@@ -177,10 +182,10 @@ namespace Protsyk.PMS.FullText.Core
         {
             var code = Encode(input);
             var result = new StringBuilder();
-            for (int i = 0; i < code.Length; ++i)
+            for (int i = 0; i < code.Count; ++i)
             {
                 result.Append(Convert.ToString(code[i], 2).PadLeft(8, '0'));
-                if (i != code.Length - 1)
+                if (i != code.Count - 1)
                 {
                     result.Append(" ");
                 }

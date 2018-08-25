@@ -12,14 +12,12 @@ namespace Protsyk.PMS.FullText.Core
         public static readonly string Id = "Binary";
 
         private readonly IPersistentStorage persistentStorage;
-        private readonly IDataSerializer<Occurrence> occurrenceSerializer;
         private readonly List<int> occurrences;
         #endregion
 
         public PostingListBinaryWriter(string folder, string fileNamePostingLists)
         {
             this.persistentStorage = new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists));
-            this.occurrenceSerializer = new TextOccurrenceSerializer();
             this.occurrences = new List<int>();
         }
 
@@ -31,6 +29,8 @@ namespace Protsyk.PMS.FullText.Core
 
         public void AddOccurrence(Occurrence occurrence)
         {
+            // TODO: Use write buffer and flush periodically
+
             checked
             {
                 occurrences.Add((int)occurrence.DocumentId);
@@ -49,10 +49,10 @@ namespace Protsyk.PMS.FullText.Core
             persistentStorage.WriteAll(listStart, BitConverter.GetBytes(0L), 0, sizeof(long));
 
             // Write length of the list
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(data.Length), 0, sizeof(int));
+            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(data.Count), 0, sizeof(int));
 
             // Write data
-            persistentStorage.WriteAll(listStart + sizeof(long) + sizeof(int), data, 0, data.Length);
+            persistentStorage.WriteAll(listStart + sizeof(long) + sizeof(int), data.ToArray(), 0, data.Count);
 
             var listEnd = persistentStorage.Length;
             occurrences.Clear();
@@ -61,7 +61,23 @@ namespace Protsyk.PMS.FullText.Core
 
         public void UpdateNextList(PostingListAddress address, PostingListAddress nextList)
         {
-            persistentStorage.WriteAll(address.Offset, BitConverter.GetBytes(nextList.Offset), 0, sizeof(long));
+            var buffer = new byte[sizeof(long)];
+            var offset = address.Offset;
+            while (true)
+            {
+                persistentStorage.ReadAll(offset, buffer, 0, buffer.Length);
+                long continuationOffset = BitConverter.ToInt64(buffer, 0);
+
+                if (continuationOffset == 0)
+                {
+                    persistentStorage.WriteAll(offset, BitConverter.GetBytes(nextList.Offset), 0, sizeof(long));
+                    break;
+                }
+                else
+                {
+                    offset = continuationOffset;
+                }
+            }
         }
         #endregion
 

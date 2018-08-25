@@ -39,7 +39,12 @@ namespace Protsyk.PMS.FullText.Core
 
         public AstQuery Parse(string s)
         {
-            return Parse(s, 0).query;
+            var result = Parse(s, 0);
+            if (result.position != s.Length)
+            {
+                throw new QueryParserException("Unexpected text", result.position);
+            }
+            return result.query;
         }
 
         private static ParseResult Parse(string s, int startIndex)
