@@ -39,6 +39,34 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return HashCombine.Combine(start, end);
         }
 
+        public override string ToString()
+        {
+            if (start == end)
+            {
+                return FormatChar(start);
+            }
+            else
+            {
+                return $"[{FormatChar(start)}-{FormatChar(end)}]";
+            }
+        }
+
+        private static string FormatChar(int code)
+        {
+            if (code > 32 && code < 127)
+            {
+                return $"{(char)code}";
+            }
+
+            if (code == char.MaxValue)
+            {
+                // Infinity sign
+                return "\u221E";
+            }
+
+            return $"U+{code,4:X4}";
+        }
+
         public bool Intersects(CharRange other)
         {
             return (start >= other.start && start <= other.end)

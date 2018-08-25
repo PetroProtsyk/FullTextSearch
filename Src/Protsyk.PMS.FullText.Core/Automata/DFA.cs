@@ -81,7 +81,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 foreach (var t in transitions[i])
                 {
-                    result.AppendFormat("{0}->{1} [label = \"{2}\", fontsize = 14];", i, t.Item2, $"[{t.Item1.start},{t.Item1.end}]");
+                    result.AppendFormat("{0}->{1} [label = \"{2}\", fontsize = 14];", i, t.Item2, t.Item1);
                     result.AppendLine();
                 }
             }

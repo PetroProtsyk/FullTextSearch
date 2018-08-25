@@ -1048,7 +1048,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     node.Count++;
                 }
 
-                ulong result = (((ulong)firstNodeId) << 32 | (ulong)nodeOffset);
+                ulong result = (ulong)((((long)firstNodeId) << 32) | (long)nodeOffset);
 
                 Array.Copy(BitConverter.GetBytes(data.Length), 0, node.Data, nodeOffset, sizeof(int));
                 nodeOffset += sizeof(int);
