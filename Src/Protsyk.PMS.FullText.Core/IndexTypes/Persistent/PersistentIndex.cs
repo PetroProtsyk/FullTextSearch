@@ -30,7 +30,7 @@ namespace Protsyk.PMS.FullText.Core
             VerifyHeader(name);
 
             Dictionary = new PersistentDictionary(folder, FileNameDictionary);
-            PostingLists = PostingListReaderFactory.CreateReader(Header.Type.Split(' ')[2], folder, FileNamePostingLists);
+            PostingLists = PostingListIOFactory.CreateReader(Header.Type.Split(' ')[2], folder, FileNamePostingLists);
             Fields = PersistentMetadataFactory.CreateStorage(Header.Type.Split(' ')[1], folder, FileNameFields);
             this.name = name;
         }

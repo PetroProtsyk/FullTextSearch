@@ -1,6 +1,5 @@
 ﻿using System;
 using System.IO;
-using System.Collections.Generic;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
@@ -10,42 +9,55 @@ namespace Protsyk.PMS.FullText.Core
         #region Fields
         public static readonly string Id = "BinaryCompressed";
 
-        private static readonly int flushThershold = 4096;
+        private static readonly int BlocksInMemory = 128;
+        internal static readonly int FlushThershold = 3 /* Remainder from encoding 1,2,3 bytes */ + 3 /* full occurrence */ + BlocksInMemory * (1 /* deltaSelector */ + 16 /* 16 deltas in one block */ * 3 /* delta can take up to 3 bytes */);
 
-        private readonly List<int> buffer;
-        private readonly List<int> deltaBuffer;
-        private readonly List<byte> resultBuffer;
-        private readonly FileStorage persistentStorage;
-        private int deltaSelector;
+        private readonly int[] buffer;
+        private readonly byte[] flushBuffer;
+        private readonly IPersistentStorage persistentStorage;
         private Occurrence previous;
+        private int deltaSelector;
         private int deltaSelectorOffset;
+        private int deltaSelectorIndex;
         private bool first;
+        private int bufferIndex;
+        private long listStart;
+        private long totalSize;
+
+        private int remainingBlocks;
         #endregion
 
         public PostingListBinaryDeltaWriter(string folder, string fileNamePostingLists)
+            : this(new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists)))
         {
-            this.buffer = new List<int>(flushThershold * 2);
-            this.deltaBuffer = new List<int>(16 /* number of deltas encoded in deltaSelector 32bit/2 */ * 3 /* Size of delta - max 3 */);
-            this.resultBuffer = new List<byte>();
-            this.persistentStorage = new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists));
+        }
+
+        public PostingListBinaryDeltaWriter(IPersistentStorage storage)
+        {
+            this.buffer = new int[FlushThershold * 2];
+            this.flushBuffer = new byte[GroupVarint.GetMaxEncodedSize(buffer.Length)];
+            this.persistentStorage = storage;
         }
 
         #region API
         public void StartList(string token)
         {
-            buffer.Clear();
-            deltaBuffer.Clear();
+            bufferIndex = 0;
+            totalSize = 0;
+            first = true;
+            deltaSelector = 0;
+            deltaSelectorOffset = 0;
+            deltaSelectorIndex = 0;
+            previous = Occurrence.Empty;
+            remainingBlocks = BlocksInMemory;
+
+            listStart = persistentStorage.Length;
 
             // Reserve space for continuation offset
-            resultBuffer.AddRange(BitConverter.GetBytes(0L));
+            persistentStorage.WriteAll(listStart, BitConverter.GetBytes(0L), 0, sizeof(long));
 
-            // Reserve space for length of the list
-            resultBuffer.AddRange(BitConverter.GetBytes(0));
-
-            first = true;
-            deltaSelectorOffset = 0;
-            deltaSelector = 0;
-            previous = Occurrence.Empty;
+            // Reserve space for the length of the list
+            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(0), 0, sizeof(int));
         }
 
         public void AddOccurrence(Occurrence occurrence)
@@ -54,13 +66,15 @@ namespace Protsyk.PMS.FullText.Core
             {
                 checked
                 {
-                    buffer.Add((int)occurrence.DocumentId);
-                    buffer.Add((int)occurrence.FieldId);
-                    buffer.Add((int)occurrence.TokenId);
+                    buffer[bufferIndex++] = (int)occurrence.DocumentId;
+                    buffer[bufferIndex++] = (int)occurrence.FieldId;
+                    buffer[bufferIndex++] = (int)occurrence.TokenId;
                 }
 
                 previous = occurrence;
                 first = false;
+                deltaSelectorIndex = bufferIndex;
+                bufferIndex++;
             }
             else
             {
@@ -72,7 +86,7 @@ namespace Protsyk.PMS.FullText.Core
                         n = 1;
                         checked
                         {
-                            deltaBuffer.Add((int)occurrence.TokenId - (int)previous.TokenId);
+                            buffer[bufferIndex++] = (int)occurrence.TokenId - (int)previous.TokenId;
                         }
 
                         // NOTE: Removed zero value as it will lead to extra trailing occurrences
@@ -86,7 +100,7 @@ namespace Protsyk.PMS.FullText.Core
                         //     n = 1;
                         //     checked
                         //     {
-                        //         deltaBuffer.Add((int)occurrence.TokenId - (int)previous.TokenId);
+                        //         buffer[bufferIndex++] = (int)occurrence.TokenId - (int)previous.TokenId;
                         //     }
                         // }
                     }
@@ -95,8 +109,8 @@ namespace Protsyk.PMS.FullText.Core
                         n = 2;
                         checked
                         {
-                            deltaBuffer.Add((int)occurrence.FieldId - (int)previous.FieldId);
-                            deltaBuffer.Add((int)occurrence.TokenId);
+                            buffer[bufferIndex++] = (int)occurrence.FieldId - (int)previous.FieldId;
+                            buffer[bufferIndex++] = (int)occurrence.TokenId;
                         }
                     }
                 }
@@ -105,9 +119,9 @@ namespace Protsyk.PMS.FullText.Core
                     n = 3;
                     checked
                     {
-                        deltaBuffer.Add((int)occurrence.DocumentId - (int)previous.DocumentId);
-                        deltaBuffer.Add((int)occurrence.FieldId);
-                        deltaBuffer.Add((int)occurrence.TokenId);
+                        buffer[bufferIndex++] = (int)occurrence.DocumentId - (int)previous.DocumentId;
+                        buffer[bufferIndex++] = (int)occurrence.FieldId;
+                        buffer[bufferIndex++] = (int)occurrence.TokenId;
                     }
                 }
 
@@ -117,63 +131,61 @@ namespace Protsyk.PMS.FullText.Core
 
                 if (deltaSelectorOffset == 32)
                 {
-                    buffer.Add(deltaSelector);
-                    buffer.AddRange(deltaBuffer);
-
-                    deltaBuffer.Clear();
+                    buffer[deltaSelectorIndex] = deltaSelector;
                     deltaSelector = 0;
                     deltaSelectorOffset = 0;
 
-                    if (buffer.Count > flushThershold)
+                    if (remainingBlocks == 1)
                     {
-                        // Time to flush buffer
-                        // GroupVar int encodes groups of 4 integers
-                        while (buffer.Count % 4 != 0)
-                        {
-                            deltaBuffer.Add(buffer[buffer.Count - 1]);
-                            buffer.RemoveAt(buffer.Count - 1);
-                        }
+                        // Write data
+                        var toKeep = bufferIndex % 4;
+                        var toEncode = bufferIndex - toKeep;
 
-                        GroupVarint.EncodeTo(buffer, resultBuffer);
-                        buffer.Clear();
+                        var encodedSize = GroupVarint.Encode(buffer, 0, toEncode, flushBuffer, 0);
+                        persistentStorage.WriteAll(persistentStorage.Length, flushBuffer, 0, encodedSize);
+                        totalSize += encodedSize;
 
-                        deltaBuffer.Reverse();
-                        buffer.AddRange(deltaBuffer);
-                        deltaBuffer.Clear();
+                        // Copy not encoded bytes (0,1,2,3)
+                        Array.Copy(buffer, bufferIndex - toKeep, buffer, 0, toKeep);
+                        bufferIndex = toKeep;
+
+                        deltaSelectorIndex = bufferIndex;
+                        bufferIndex++;
+                        remainingBlocks = BlocksInMemory;
                     }
-
+                    else
+                    {
+                        // Reserve space for delta selector
+                        deltaSelectorIndex = bufferIndex;
+                        bufferIndex++;
+                        remainingBlocks--;
+                    }
                 }
             }
         }
 
         public PostingListAddress EndList()
         {
-            if (deltaSelectorOffset > 0)
+            if (bufferIndex > 0)
             {
-                buffer.Add(deltaSelector);
-                buffer.AddRange(deltaBuffer);
+                buffer[deltaSelectorIndex] = deltaSelector;
 
-                deltaBuffer.Clear();
-                deltaSelector = 0;
-                deltaSelectorOffset = 0;
+                var encodedSize = GroupVarint.Encode(buffer, 0, bufferIndex, flushBuffer, 0);
+                persistentStorage.WriteAll(persistentStorage.Length, flushBuffer, 0, encodedSize);
+
+                totalSize += encodedSize;
             }
 
-            GroupVarint.EncodeTo(buffer, resultBuffer);
-
             // Write length of the list
-            var lengthBytes = BitConverter.GetBytes(resultBuffer.Count-sizeof(long)-sizeof(int));
-            resultBuffer[sizeof(long) + 0] = lengthBytes[0];
-            resultBuffer[sizeof(long) + 1] = lengthBytes[1];
-            resultBuffer[sizeof(long) + 2] = lengthBytes[2];
-            resultBuffer[sizeof(long) + 3] = lengthBytes[3];
-
-            var listStart = persistentStorage.Length;
-
-            persistentStorage.WriteAll(listStart, resultBuffer.ToArray(), 0, resultBuffer.Count);
+            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize), 0, sizeof(int));
 
             var listEnd = persistentStorage.Length;
 
-            resultBuffer.Clear();
+            if (listEnd - listStart != totalSize + sizeof(long) + sizeof(int))
+            {
+                throw new InvalidOperationException();
+            }
+
             return new PostingListAddress(listStart);
         }
 

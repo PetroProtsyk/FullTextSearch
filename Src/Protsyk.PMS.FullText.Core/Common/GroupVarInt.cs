@@ -22,13 +22,12 @@ namespace Protsyk.PMS.FullText.Core
         private static int GetNumOfBytes(int value)
         {
             return GetNumOfBytesFast(value);
-            //return GetNumOfBytesSlow((uint)value);
         }
 
-        private static int GetNumOfBytesSlow(uint value)
+        private static int GetNumOfBytesSlow(int value)
         {
             var r = 8;
-            var v = (value >> 8);
+            var v = (uint)(value >> 8);
             while (v > 0)
             {
                 v >>= 8;
@@ -41,6 +40,79 @@ namespace Protsyk.PMS.FullText.Core
         private static int GetNumOfBytesFast(int value)
         {
             return (value > 0xFFFFFF || value < 0) ? 4 : (value < 0x10000) ? (value < 0x100) ? 1 : 2 : 3;
+        }
+
+        public static int GetMaxEncodedSize(int count)
+        {
+            return 17 * (count + 3) / 4;
+        }
+
+        public static int Encode(int[] source, int sourceOffset, int count, byte[] buffer, int offset)
+        {
+            if (GetMaxEncodedSize(count) > buffer.Length - offset)
+            {
+                throw new Exception($"Make sure {nameof(buffer)} is big enough");
+            }
+
+            var encodedSize = 0;
+            var encodedCount = 0;
+            for (int i = 0; i < count / 4; ++i)
+            {
+                int chunkSize = Encode(source[sourceOffset + 0],
+                                       source[sourceOffset + 1],
+                                       source[sourceOffset + 2],
+                                       source[sourceOffset + 3],
+                                       buffer,
+                                       offset);
+                offset += chunkSize;
+                encodedSize += chunkSize;
+                sourceOffset += 4;
+                encodedCount += 4;
+            }
+
+            // Encode remainder
+            if (encodedCount < count)
+            {
+                int n1 = source[sourceOffset];
+                int n2 = (encodedCount + 1 < count) ? source[sourceOffset + 1] : 0;
+                int n3 = (encodedCount + 2 < count) ? source[sourceOffset + 2] : 0;
+                int n4 = (encodedCount + 3 < count) ? source[sourceOffset + 3] : 0;
+
+                int chunkSize = Encode(n1,
+                                       n2,
+                                       n3,
+                                       n4,
+                                       buffer,
+                                       offset);
+
+                encodedSize += chunkSize - (4 - (count - encodedCount));
+            }
+
+            return encodedSize;
+        }
+
+        public static int Encode(int n1, int n2, int n3, int n4, byte[] buffer, int offset)
+        {
+            int i = offset;
+            int s1 = GetNumOfBytes(n1);
+            int s2 = GetNumOfBytes(n2);
+            int s3 = GetNumOfBytes(n3);
+            int s4 = GetNumOfBytes(n4);
+
+            int selector = ((s1 - 1) << 6) | ((s2 - 1) << 4) | ((s3 - 1) << 2) | (s4 - 1);
+
+            buffer[i++] = (byte)selector;
+
+            WriteInt(n1, s1, buffer, i);
+            i += s1;
+            WriteInt(n2, s2, buffer, i);
+            i += s2;
+            WriteInt(n3, s3, buffer, i);
+            i += s3;
+            WriteInt(n4, s4, buffer, i);
+            i += s4;
+
+            return i - offset;
         }
 
         public static IList<byte> Encode(IList<int> input)
@@ -121,10 +193,10 @@ namespace Protsyk.PMS.FullText.Core
                 index += selector4;
             }
 
-            return result.ToArray();
+            return result;
         }
 
-        private static int ReadInt(IList<byte> input, int index, int selector)
+        public static int ReadInt(IList<byte> input, int index, int selector)
         {
             if (selector > 2)
             {
@@ -149,6 +221,35 @@ namespace Protsyk.PMS.FullText.Core
                 return (int)input[index];
             }
         }
+
+        private static void WriteInt(int value, int selector, byte[] result, int i)
+        {
+            if (selector > 2)
+            {
+                // 4 or 3
+
+                if (selector == 4)
+                {
+                    result[i++] = (byte)(value >> 24);
+                }
+
+                result[i++] = (byte)(value >> 16);
+                result[i++] = (byte)(value >> 8);
+                result[i++] = (byte)(value);
+            }
+            else
+            {
+                // 2 or 1
+
+                if (selector == 2)
+                {
+                    result[i++] = (byte)(value >> 8);
+                }
+
+                result[i++] = (byte)(value);
+            }
+        }
+
 
         private static void WriteInt(int value, int selector, IList<byte> result)
         {

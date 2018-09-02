@@ -3,6 +3,7 @@ using System.IO;
 using System.Collections.Generic;
 using System.Linq;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
+using System.Text;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -13,18 +14,25 @@ namespace Protsyk.PMS.FullText.Core
 
         internal static readonly string EmptyContinuationAddress = " -> FFFFFFFF";
 
-        private readonly IPersistentStorage persistentStorage;
-        private readonly IDataSerializer<Occurrence> occurrenceSerializer;
-        private readonly List<Occurrence> occurrences;
+        private static readonly int MemoryBufferThreshold = 65536;
 
+        private readonly IPersistentStorage persistentStorage;
+        private readonly StringBuilder buffer;
+
+        private long count;
         private PostingListAddress? currentList;
         #endregion
 
         public PostingListWriter(string folder, string fileNamePostingLists)
+            : this(new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists)))
         {
-            this.persistentStorage = new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists));
-            this.occurrenceSerializer = new TextOccurrenceSerializer();
-            this.occurrences = new List<Occurrence>();
+        }
+
+        public PostingListWriter(IPersistentStorage storage)
+        {
+            this.persistentStorage = storage;
+            this.buffer = new StringBuilder();
+            this.buffer.EnsureCapacity(MemoryBufferThreshold);
         }
 
         #region API
@@ -35,7 +43,8 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException("Previous list was not finished");
             }
 
-            occurrences.Clear();
+            count = 0;
+            buffer.Clear();
             currentList = new PostingListAddress(persistentStorage.Length);
         }
 
@@ -46,7 +55,20 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException("Previous list was started");
             }
 
-            occurrences.Add(occurrence);
+            if (count != 0)
+            {
+                buffer.Append(";");
+            }
+
+            buffer.AppendFormat("[{0},{1},{2}]", occurrence.DocumentId, occurrence.FieldId, occurrence.TokenId);
+            ++count;
+
+            if (buffer.Length + 128 >= MemoryBufferThreshold)
+            {
+                var bufferData = System.Text.Encoding.UTF8.GetBytes(buffer.ToString());
+                persistentStorage.WriteAll(persistentStorage.Length, bufferData, 0, bufferData.Length);
+                buffer.Clear();
+            }
         }
 
         public PostingListAddress EndList()
@@ -56,11 +78,15 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException("Previous list was started");
             }
 
-            var data = System.Text.Encoding.UTF8.GetBytes(string.Join(";", occurrences.Select(o => o.ToString())));
-            persistentStorage.WriteAll(persistentStorage.Length, data, 0, data.Length);
+            if (buffer.Length > 0)
+            {
+                var bufferData = System.Text.Encoding.UTF8.GetBytes(buffer.ToString());
+                persistentStorage.WriteAll(persistentStorage.Length, bufferData, 0, bufferData.Length);
+                buffer.Clear();
+            }
 
             // This posting list does not have continuation
-            data = System.Text.Encoding.UTF8.GetBytes(EmptyContinuationAddress);
+            var data = System.Text.Encoding.UTF8.GetBytes(EmptyContinuationAddress);
             persistentStorage.WriteAll(persistentStorage.Length, data, 0, data.Length);
 
             var listEnd = persistentStorage.Length;
@@ -71,7 +97,7 @@ namespace Protsyk.PMS.FullText.Core
             var result = currentList.Value;
 
             currentList = null;
-            occurrences.Clear();
+            count = 0;
 
             return result;
         }

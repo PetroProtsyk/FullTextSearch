@@ -1,4 +1,6 @@
 ﻿using System;
+using System.Collections;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
@@ -9,65 +11,244 @@ namespace Protsyk.PMS.FullText.Core
     public class PostingListReader : IOccurrenceReader
     {
         #region Fields
-        internal static readonly int ReadBufferSize = 256;
+        internal static readonly int ReadBufferSize = 4096;
 
         private readonly IPersistentStorage persistentStorage;
-        private readonly IDataSerializer<Occurrence> occurrenceSerializer;
         #endregion
 
         public PostingListReader(string folder, string fileNamePostingLists)
+            : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
         {
-            this.persistentStorage = new FileStorage(Path.Combine(folder, fileNamePostingLists));
-            this.occurrenceSerializer = new TextOccurrenceSerializer();
+        }
+
+        public PostingListReader(IPersistentStorage storage)
+        {
+            this.persistentStorage = storage;
         }
 
         #region API
         public IPostingList Get(PostingListAddress address)
         {
-            var offset = address.Offset;
-            var line = new StringBuilder();
-            var buffer = new byte[ReadBufferSize];
-            var done = false;
+            return new PostingListReaderImpl(persistentStorage, address);
+        }
+        #endregion
 
-            while (!done)
+        #region ReaderEnumerator
+        private class PostingListReaderImpl : IPostingList
+        {
+            private readonly IPersistentStorage storage;
+            private readonly PostingListAddress address;
+
+            public PostingListReaderImpl(IPersistentStorage storage, PostingListAddress address)
             {
-                int read = persistentStorage.Read(offset, buffer, 0, buffer.Length);
-                if (read == 0)
+                this.storage = storage;
+                this.address = address;
+            }
+
+            public IEnumerator<Occurrence> GetEnumerator()
+            {
+                return new ReaderEnumerator(storage, address);
+            }
+
+            IEnumerator IEnumerable.GetEnumerator()
+            {
+                return GetEnumerator();
+            }
+        }
+
+        private class ReaderEnumerator : IEnumerator<Occurrence>
+        {
+            private readonly IPersistentStorage persistentStorage;
+            private readonly PostingListAddress address;
+            private long readOffset;
+
+            private readonly byte[] buffer;
+            private int dataInBuffer;
+            private int indxInBuffer;
+            private bool isEof;
+
+            private Occurrence current;
+
+            public ReaderEnumerator(IPersistentStorage storage, PostingListAddress address)
+            {
+                this.persistentStorage = storage;
+                this.address = address;
+                this.buffer = new byte[ReadBufferSize];
+                Reset();
+            }
+
+            public Occurrence Current => current;
+
+            object IEnumerator.Current => current;
+
+            public void Dispose()
+            {
+            }
+
+            private char PeekChar()
+            {
+                if (isEof)
                 {
-                    break;
+                    return '\0';
                 }
 
-                offset += read;
+                return (char)buffer[indxInBuffer];
+            }
 
-                for (int i=0; i<read; ++i)
+            private bool NextChar()
+            {
+                if (indxInBuffer + 1 >= dataInBuffer)
                 {
-                    if (buffer[i] == PostingListWriter.EmptyContinuationAddress[0])
+                    int read = persistentStorage.Read(readOffset, buffer, 0, buffer.Length);
+                    if (read == 0)
                     {
-                        read = persistentStorage.Read(offset - read + i, buffer, 0, PostingListWriter.EmptyContinuationAddress.Length);
-                        var nextOffsetText = System.Text.Encoding.UTF8.GetString(buffer, 4, 8);
-                        var nextOffset = Convert.ToInt32(nextOffsetText, 16);
-                        if (nextOffset < 0)
-                        {
-                            done = true;
-                            break;
-                        }
+                        isEof = true;
+                        return false;
+                    }
 
-                        line.Append(';');
-                        offset = nextOffset;
+                    readOffset += read;
+                    dataInBuffer = read;
+                    indxInBuffer = 0;
+                    return true;
+                }
+
+                indxInBuffer++;
+                return true;
+            }
+
+            private ulong ParseNumber()
+            {
+                var r = 0UL;
+                var c = PeekChar();
+                while (char.IsDigit(c))
+                {
+                    r = r * 10 + (ulong)((int)c - (int)'0');
+
+                    if (!NextChar())
+                    {
                         break;
                     }
 
-                    //if (buffer[i] == '\r' || buffer[i] == '\n')
-                    //{
-                    //    done = true;
-                    //    break;
-                    //}
+                    c = PeekChar();
+                }
+                return r;
+            }
 
-                    line.Append((char)buffer[i]);
+            public bool MoveNext()
+            {
+                if (isEof)
+                {
+                    return false;
+                }
+
+                while (true)
+                {
+                    if (!NextChar())
+                    {
+                        throw new Exception("Wrong data");
+                    }
+
+                    if (PeekChar() != '[')
+                    {
+                        throw new Exception("Wrong data");
+                    }
+                    else
+                    {
+                        NextChar();
+                    }
+
+                    ulong docId = ParseNumber();
+
+                    if (PeekChar() != ',')
+                    {
+                        throw new Exception("Wrong data");
+                    }
+                    else
+                    {
+                        NextChar();
+                    }
+
+                    ulong fieldId = ParseNumber();
+
+                    if (PeekChar() != ',')
+                    {
+                        throw new Exception("Wrong data");
+                    }
+                    else
+                    {
+                        NextChar();
+                    }
+
+                    ulong tokenId = ParseNumber();
+
+                    if (PeekChar() != ']')
+                    {
+                        throw new Exception("Wrong data");
+                    }
+                    else
+                    {
+                        NextChar();
+                    }
+
+                    if (PeekChar() == ';')
+                    {
+                        // There are should be more occurrences
+                    }
+                    else if (PeekChar() == PostingListWriter.EmptyContinuationAddress[0])
+                    {
+                        bool empty = true;
+                        long nextOffset = 0;
+                        for (int i = 0; i < PostingListWriter.EmptyContinuationAddress.Length; ++i)
+                        {
+                            var c = PeekChar();
+                            if (c != PostingListWriter.EmptyContinuationAddress[i])
+                            {
+                                empty = false;
+                            }
+
+                            if (char.IsDigit(c))
+                            {
+                                nextOffset = (nextOffset << 4) | (long)((int)c - (int)'0');
+                            }
+                            else if (c >= 'A' && c <= 'F')
+                            {
+                                nextOffset = (nextOffset << 4) | (long)(10 + (int)c - (int)'A');
+                            }
+
+                            if (!NextChar() && (i + 1) != PostingListWriter.EmptyContinuationAddress.Length)
+                            {
+                                throw new Exception("Wrong data");
+                            }
+                        }
+
+                        if (empty)
+                        {
+                            isEof = true;
+                        }
+                        else
+                        {
+                            readOffset = nextOffset;
+                            dataInBuffer = 0;
+                            indxInBuffer = 0;
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception("Wrong data");
+                    }
+
+                    current = Occurrence.O(docId, fieldId, tokenId);
+                    return true;
                 }
             }
 
-            return new PostingListArray(line.ToString().Split(';').Select(Occurrence.Parse).ToArray());
+            public void Reset()
+            {
+                dataInBuffer = 0;
+                indxInBuffer = 0;
+                readOffset = address.Offset;
+                isEof = false;
+            }
         }
         #endregion
 

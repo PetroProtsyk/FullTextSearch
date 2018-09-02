@@ -1,9 +1,8 @@
 ﻿using System;
-using System.IO;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal static class PostingListReaderFactory
+    internal static class PostingListIOFactory
     {
         public static IOccurrenceWriter CreateWriter(string readerType, string folder, string fileName)
         {
