@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Text;
+using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
@@ -26,5 +27,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
         public int GetMaxEncodedLength(int maxTokenLength)
             => encoding.GetMaxByteCount(maxTokenLength);
 
+        public IDfaMatcher<byte> CreateMatcher(IDfaMatcher<char> charMatcher, int maxLength)
+            => encoding == Encoding.UTF8 ?
+                (IDfaMatcher<byte>)new DecodingMatcherForUTF8(charMatcher, GetMaxEncodedLength(maxLength)) :
+                (IDfaMatcher<byte>)new DecodingMatcher(charMatcher, GetMaxEncodedLength(maxLength), this);
     }
 }

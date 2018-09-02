@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Text;
+using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
@@ -13,6 +13,8 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
         IEnumerable<byte> GetBytes(string text, int index, int count);
 
         int GetMaxEncodedLength(int maxTokenLength);
+
+        IDfaMatcher<byte> CreateMatcher(IDfaMatcher<char> charMatcher, int maxLength);
     }
 
     public static class TextEncodingExtensions

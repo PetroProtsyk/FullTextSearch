@@ -40,7 +40,7 @@ namespace Protsyk.PMS.FullText.Core
         #region ITermDictionary
         public IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher)
         {
-            var decodingMatcher = new DecodingMatcher(matcher.ToDfaMatcher(), maxTokenByteLength, encoding);
+            var decodingMatcher = encoding.CreateMatcher(matcher.ToDfaMatcher(), maxTokenByteLength);
 
             foreach (var term in dictionary.Match(decodingMatcher)
                                            .Select(p=>encoding.GetString(p.ToArray())))

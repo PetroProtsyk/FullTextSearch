@@ -4,7 +4,7 @@ using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
-    public class DecodingMatcher : IDfaMatcher<byte>
+    internal class DecodingMatcher : IDfaMatcher<byte>
     {
         private readonly IDfaMatcher<char> matcher;
         private readonly int maxLength;
