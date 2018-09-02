@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Protsyk.PMS.FullText.Core.Collections;
+using Protsyk.PMS.FullText.Core.Common.Compression;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
@@ -10,22 +11,39 @@ namespace Protsyk.PMS.FullText.Core
     public class PersistentDictionary : ITermDictionary, IDisposable
     {
         #region Fields
-        private readonly TernaryDictionary<char, long> dictionary;
+        private readonly TernaryDictionary<byte, long> dictionary;
+        private readonly int maxTokenByteLength;
+        private readonly ITextEncoding encoding;
         #endregion
 
         #region Constructor
-
-        public PersistentDictionary(string folder, string fileNameDictionary)
+        public PersistentDictionary(string folder,
+                                    string fileNameDictionary,
+                                    int maxTokenLength,
+                                    ITextEncoding encoding)
+            : this(new FileStorage(Path.Combine(folder, fileNameDictionary)),
+                   maxTokenLength,
+                   encoding)
         {
-            dictionary = new TernaryDictionary<char, long>(new FileStorage(Path.Combine(folder, fileNameDictionary)));
+        }
+
+        public PersistentDictionary(IPersistentStorage storage,
+                                    int maxTokenLength,
+                                    ITextEncoding encoding)
+        {
+            this.maxTokenByteLength = encoding.GetMaxEncodedLength(maxTokenLength);
+            this.encoding = encoding;
+            this.dictionary = new TernaryDictionary<byte, long>(storage);
         }
         #endregion
 
         #region ITermDictionary
         public IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher)
         {
-            foreach (var term in dictionary.Match(matcher.ToDfaMatcher())
-                                           .Select(p=>new string(p.ToArray())))
+            var decodingMatcher = new DecodingMatcher(matcher.ToDfaMatcher(), maxTokenByteLength, encoding);
+
+            foreach (var term in dictionary.Match(decodingMatcher)
+                                           .Select(p=>encoding.GetString(p.ToArray())))
             {
                 yield return GetTerm(term);
             }
@@ -34,7 +52,7 @@ namespace Protsyk.PMS.FullText.Core
         public DictionaryTerm GetTerm(string term)
         {
             long offset = 0;
-            if (!dictionary.TryGet(term, out offset))
+            if (!dictionary.TryGet(encoding.GetBytes(term), out offset))
             {
                 throw new InvalidOperationException();
             }
@@ -52,7 +70,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public void AddTerm(string term, PostingListAddress address, Action<PostingListAddress> onDuplicate)
         {
-            if (!dictionary.AddOrGet(term, address.Offset, out long previosOffset))
+            if (!dictionary.AddOrGet(encoding.GetBytes(term), address.Offset, out long previosOffset))
             {
                 onDuplicate?.Invoke(new PostingListAddress(previosOffset));
             }

@@ -14,11 +14,14 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('i', "input", Required = true, HelpText = "Folder with files that should be indexed")]
         public string InputPath { get; set; }
 
-        [Option('f', "fieldsType", Required = false, Default = "List", HelpText = "Type of metadata storage. List or BTree")]
+        [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List or BTree")]
         public string FieldsType { get; set; }
 
-        [Option('p', "postingType", Required = false, Default = "Text", HelpText = "Type of posting list. Text, Binary or BinaryCompressed")]
+        [Option('p', "postingType", Required = false, Default = "Default", HelpText = "Type of posting list. Text, Binary or BinaryCompressed")]
         public string PostingType { get; set; }
+
+        [Option('e', "textEncoding", Required = false, Default = "Default", HelpText = "Type of dictionary encoding")]
+        public string TextEncoding { get; set; }
 
         [Option('m', "mask", Required = false, Default = "*.txt", HelpText = "File name filter")]
         public string Filter { get; set; }
@@ -129,7 +132,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
         private static int DoIndex(IndexOptions opts)
         {
-            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.FieldsType, opts.PostingType)))
+            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.FieldsType, opts.PostingType, opts.TextEncoding)))
             {
                 builder.Start();
 
@@ -191,7 +194,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
             public bool VisitTerm(DictionaryTerm term)
             {
-                PrintConsole(ConsoleColor.Gray, $"{term.Key} -> {index.PostingLists.Get(term.Value).ToString()}");
+                PrintConsole(ConsoleColor.Gray, $"{term.Key} -> {string.Join(", ", index.PostingLists.Get(term.Value))}");
                 return true;
             }
         }

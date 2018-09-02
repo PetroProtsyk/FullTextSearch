@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using Protsyk.PMS.FullText.Core.Common.Compression;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -29,7 +30,7 @@ namespace Protsyk.PMS.FullText.Core
 
             VerifyHeader(name);
 
-            Dictionary = new PersistentDictionary(folder, FileNameDictionary);
+            Dictionary = new PersistentDictionary(folder, FileNameDictionary, Header.MaxTokenSize, TextEncoding.Default);
             PostingLists = PostingListIOFactory.CreateReader(Header.Type.Split(' ')[2], folder, FileNamePostingLists);
             Fields = PersistentMetadataFactory.CreateStorage(Header.Type.Split(' ')[1], folder, FileNameFields);
             this.name = name;

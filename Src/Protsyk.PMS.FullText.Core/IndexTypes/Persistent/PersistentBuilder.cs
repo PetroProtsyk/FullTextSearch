@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using Protsyk.PMS.FullText.Core.Collections;
+using Protsyk.PMS.FullText.Core.Common.Compression;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -30,7 +31,7 @@ namespace Protsyk.PMS.FullText.Core
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
             fields = PersistentMetadataFactory.CreateStorage(name.FieldsType, Folder, PersistentIndex.FileNameFields);
             occurrenceWriter = PostingListIOFactory.CreateWriter(name.PostingType, Folder, PersistentIndex.FileNamePostingLists);
-            dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary);
+            dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, MaxTokenSize, TextEncodingFactory.GetByName(name.TextEncoding));
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
             updates = 0;
         }
@@ -72,14 +73,16 @@ namespace Protsyk.PMS.FullText.Core
         protected override IFullTextIndexHeader GetIndexHeader()
         {
             var header = indexInfo.Read();
+
+            var fieldsType = PersistentMetadataFactory.GetName(name.FieldsType);
+            var postingType = PostingListIOFactory.GetName(name.PostingType);
+            var textEncoding = TextEncodingFactory.GetName(name.TextEncoding);
+
             if (header == null)
             {
-                var fieldsType = PersistentMetadataFactory.GetName(name.FieldsType);
-                var postingType = PostingListIOFactory.GetName(name.PostingType);
-
                 header = new IndexHeaderData
                 {
-                    Type = $"{nameof(PersistentIndex)} {fieldsType} {postingType}",
+                    Type = $"{nameof(PersistentIndex)} {fieldsType} {postingType} {textEncoding}",
                     MaxTokenSize = MaxTokenSize,
                     NextDocumentId = 0,
                     CreatedDate = DateTime.UtcNow,
@@ -94,14 +97,19 @@ namespace Protsyk.PMS.FullText.Core
                     throw new InvalidOperationException("Index type and name mismatch");
                 }
 
-                if (types[1] != name.FieldsType)
+                if (types[1] != fieldsType)
                 {
-                    throw new InvalidOperationException("Index type and name mismatch");
+                    throw new InvalidOperationException("Field type and name mismatch");
                 }
 
-                if (types[2] != name.PostingType)
+                if (types[2] != postingType)
                 {
-                    throw new InvalidOperationException("Index type and name mismatch");
+                    throw new InvalidOperationException("Posting type and name mismatch");
+                }
+
+                if (types[3] != textEncoding)
+                {
+                    throw new InvalidOperationException("Text encoding type and name mismatch");
                 }
             }
 

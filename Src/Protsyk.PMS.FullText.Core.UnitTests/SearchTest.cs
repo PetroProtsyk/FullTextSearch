@@ -9,20 +9,20 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
     public class SearchTest
     {
         [Theory]
-        [InlineData("BTree", "Text")]
-        [InlineData("BTree", "Binary")]
-        [InlineData("BTree", "BinaryCompressed")]
-        [InlineData("List", "Text")]
-        [InlineData("List", "Binary")]
-        [InlineData("List", "BinaryCompressed")]
-        public void TestTermSearchPersistentIndex(string fieldsType, string postingType)
+        [InlineData("BTree", "Text", "UTF-8")]
+        [InlineData("BTree", "Binary", "UTF-8")]
+        [InlineData("BTree", "BinaryCompressed", "UTF-8")]
+        [InlineData("List", "Text", "UTF-8")]
+        [InlineData("List", "Binary", "UTF-8")]
+        [InlineData("List", "BinaryCompressed", "UTF-8")]
+        public void TestTermSearchPersistentIndex(string fieldsType, string postingType, string textEncoding)
         {
             var testFolder = Path.Combine(Path.GetTempPath(), "PMS_FullText_Tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(testFolder);
 
             try
             {
-                var indexName = new PersistentIndexName(testFolder, fieldsType, postingType);
+                var indexName = new PersistentIndexName(testFolder, fieldsType, postingType, textEncoding);
 
                 using (var index = TestHelper.PrepareIndexForSearch(indexName))
                 {

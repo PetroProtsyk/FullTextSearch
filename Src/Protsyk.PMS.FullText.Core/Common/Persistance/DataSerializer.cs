@@ -28,7 +28,8 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
     public static class DataSerializer
     {
         private static readonly Dictionary<Type, Func<object>> factories = new Dictionary<Type, Func<object>>()
-                                                                           {
+                                                                            {
+                                                                               {typeof(byte), () => new ByteDataSerializer() },
                                                                                {typeof(char), () => new CharDataSerializer()},
                                                                                {typeof(int), () => new IntDataSerializer()},
                                                                                {typeof(long), () => new LongDataSerializer()},
@@ -36,7 +37,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
                                                                                {typeof(string), () => new StringDataSerializer()},
                                                                                {typeof(Guid), () => new GuidDataSerializer()},
                                                                                {typeof(NoValue), () => new NoValueSerializer()}
-                                                                           };
+                                                                            };
 
         public static IDataSerializer<T> GetDefault<T>()
         {
@@ -60,6 +61,25 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
+    internal class ByteDataSerializer : IFixedSizeDataSerializer<byte>
+    {
+        public int Size => 1;
+
+        public byte[] GetBytes(byte value)
+        {
+            return new byte[1] { value };
+        }
+
+        public byte GetValue(byte[] bytes)
+        {
+            return bytes[0];
+        }
+
+        public byte GetValue(byte[] bytes, int startIndex)
+        {
+            return bytes[startIndex];
+        }
+    }
 
     internal class StringDataSerializer : IDataSerializer<string>
     {
