@@ -15,6 +15,9 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
         [InlineData("List", "Text", "UTF-8")]
         [InlineData("List", "Binary", "UTF-8")]
         [InlineData("List", "BinaryCompressed", "UTF-8")]
+        [InlineData("List", "BinaryCompressed", "LatinHuffman")]
+        [InlineData("List", "BinaryCompressed", "LatinHuTucker")]
+        [InlineData("List", "BinaryCompressed", "LatinBalanced")]
         public void TestTermSearchPersistentIndex(string fieldsType, string postingType, string textEncoding)
         {
             var testFolder = Path.Combine(Path.GetTempPath(), "PMS_FullText_Tests", Guid.NewGuid().ToString("N"));

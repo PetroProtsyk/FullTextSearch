@@ -30,9 +30,10 @@ namespace Protsyk.PMS.FullText.Core
 
             VerifyHeader(name);
 
-            Dictionary = new PersistentDictionary(folder, FileNameDictionary, Header.MaxTokenSize, TextEncoding.Default);
-            PostingLists = PostingListIOFactory.CreateReader(Header.Type.Split(' ')[2], folder, FileNamePostingLists);
-            Fields = PersistentMetadataFactory.CreateStorage(Header.Type.Split(' ')[1], folder, FileNameFields);
+            var indexType = Header.Type.Split(' ');
+            Dictionary = new PersistentDictionary(folder, FileNameDictionary, Header.MaxTokenSize, TextEncodingFactory.GetByName(indexType[3]));
+            PostingLists = PostingListIOFactory.CreateReader(indexType[2], folder, FileNamePostingLists);
+            Fields = PersistentMetadataFactory.CreateStorage(indexType[1], folder, FileNameFields);
             this.name = name;
         }
 
@@ -50,6 +51,11 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             if (name.PostingType != PersistentIndexName.DefaultValue && types[2] != name.PostingType)
+            {
+                throw new InvalidOperationException("Index type and name mismatch");
+            }
+
+            if (name.TextEncoding != PersistentIndexName.DefaultValue && types[3] != name.TextEncoding)
             {
                 throw new InvalidOperationException("Index type and name mismatch");
             }

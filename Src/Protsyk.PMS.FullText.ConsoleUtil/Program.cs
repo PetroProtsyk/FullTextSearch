@@ -50,7 +50,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
     {
         static int Main(string[] args)
         {
-            //PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2018");
+            PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2018");
 
             return Parser.Default.ParseArguments<IndexOptions, SearchOptions, PrintOptions, LookupOptions>(args)
               .MapResult(
