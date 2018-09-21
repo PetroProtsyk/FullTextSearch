@@ -23,12 +23,12 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             => encoding.EncodeBits(text);
 
         public string GetString(byte[] bytes, int index, int count)
-            => encoding.DecodeBits(bytes.Skip(index).Take(count));
+            => encoding.DecodeUsingTable(bytes.Skip(index).Take(count));
 
         public int GetMaxEncodedLength(int maxTokenLength)
             => 4 * maxTokenLength;
 
         public IDfaMatcher<byte> CreateMatcher(IDfaMatcher<char> charMatcher, int maxLength)
-            => (IDfaMatcher<byte>)new DecodingMatcher(charMatcher, GetMaxEncodedLength(maxLength), this);
+            => (IDfaMatcher<byte>)new DecodingMatcherForVarLenCharEncoding(charMatcher, encoding);
     }
 }

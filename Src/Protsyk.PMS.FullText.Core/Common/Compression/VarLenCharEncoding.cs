@@ -24,16 +24,20 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
     public class VarLenCharEncoding
     {
+        private const byte LeftValue = 0;
+        private const byte RightValue = 1;
+
         private readonly IEncodingNode root;
         private readonly Dictionary<char, byte[]> codes;
+        private readonly List<DecodeSymbol> decodingTable;
         public const char TerminalChar = '\0';
 
         internal VarLenCharEncoding(IEncodingNode root)
         {
             this.root = root;
             this.codes = new Dictionary<char, byte[]>();
-
             Traverse(root, codes, new List<byte>());
+            this.decodingTable = BuildDecodingTable();
         }
 
         private void Traverse(IEncodingNode root, Dictionary<char, byte[]> codes, List<byte> current)
@@ -48,11 +52,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             var node = root as IEncodingTreeNode;
             if (node != null)
             {
-                current.Add(1);
+                current.Add(LeftValue);
                 Traverse(node.Left, codes, current);
                 current.RemoveAt(current.Count - 1);
 
-                current.Add(0);
+                current.Add(RightValue);
                 Traverse(node.Right, codes, current);
                 current.RemoveAt(current.Count - 1);
                 return;
@@ -82,12 +86,84 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             var codes = new Dictionary<char, byte[]>();
             Traverse(root, codes, new List<byte>());
 
-            foreach (var code in codes.Keys.OrderBy(x=>x))
+            foreach (var code in codes.Keys.OrderBy(x => x))
             {
-                result.AppendLine($"{RenderChar(code)} = { string.Join("", codes[code].Select(b=>$"{b}"))}");
+                result.AppendLine($"{RenderChar(code)} = { string.Join("", codes[code].Select(b => $"{b}"))}");
             }
 
             return result.ToString();
+        }
+
+        // Build decoding table for prefix codes (Huffman, HuTucker, etc)
+        // No code, can be prefix of other code, i.e. code ends in leaf node of encoding tree.
+        //
+        // Each code will occupy higher bits of integral type. I.e. the code 0110010 will 
+        // be represented by the following pair of uint in binary representation:
+        // code  : 0110_0100_0000_0000_0000_0000_0000_0000
+        // mask  : 1111_1110_0000_0000_0000_0000_0000_0000
+        //
+        // The codes can be sorted, to use binary search over decoding table during decoding
+        private List<DecodeSymbol> BuildDecodingTable()
+        {
+            var result = new List<DecodeSymbol>();
+            foreach (var symbol in codes)
+            {
+                if (symbol.Value.Length > 8 * sizeof(uint))
+                {
+                    throw new Exception($"Code is longer then {nameof(DecodeSymbol.Code)} can fit");
+                }
+
+                uint code = 0;
+                uint mask = 0;
+
+                for (int i = 0; i < 8 * sizeof(uint); ++i)
+                {
+                    if (i < symbol.Value.Length)
+                    {
+                        if (symbol.Value[i] != 0)
+                        {
+                            code = (code << 1) | 1;
+                        }
+                        else
+                        {
+                            code = (code << 1) | 0;
+                        }
+
+                        mask = (mask << 1) | 1;
+                    }
+                    else
+                    {
+                        code <<= 1;
+                        mask <<= 1;
+                    }
+                }
+
+                result.Add(new DecodeSymbol
+                {
+                    Code = code,
+                    Mask = mask,
+                    Length = symbol.Value.Length,
+                    Symbol = symbol.Key
+                });
+            }
+
+            result.Sort((x, y) =>
+            {
+                if (x.Code > y.Code)
+                {
+                    return 1;
+                }
+                else if (x.Code == y.Code)
+                {
+                    return 0;
+                }
+                else
+                {
+                    return -1;
+                }
+            });
+
+            return result;
         }
 
         public byte[] Encode(string value)
@@ -141,7 +217,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
                     if (ic == 7)
                     {
-                        result[jc] = (byte) current;
+                        result[jc] = (byte)current;
                         ++jc;
 
                         current = 0;
@@ -156,7 +232,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
             if (ic > 0)
             {
-                result[jc] = (byte) (current << (8 - ic));
+                result[jc] = (byte)(current << (8 - ic));
                 ++jc;
             }
 
@@ -171,6 +247,188 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
         public string DecodeBits(IEnumerable<byte> data)
         {
             return Decode(new ByteToBit(data));
+        }
+
+        public string DecodeUsingTable(IEnumerable<byte> data)
+        {
+            var result = new StringBuilder();
+            var encoded = default(uint);
+            var encodedLength = default(int);
+            using (var bytes = data.GetEnumerator())
+            {
+                var left = 0;
+                var hasBytes = true;
+                var current = default(byte);
+                while (true)
+                {
+                    while (hasBytes && encodedLength < 32)
+                    {
+                        if (left > 0)
+                        {
+                            var take = Math.Min(32 - encodedLength, left);
+                            var toCopy = (uint)current;
+
+                            if (take != 8)
+                            {
+                                toCopy >>= (8 - take);
+                            }
+
+                            if (encodedLength + take < 32)
+                            {
+                                toCopy <<= (32 - (encodedLength + take));
+                            }
+
+                            encoded |= toCopy;
+                            encodedLength += take;
+
+                            left -= take;
+                            current <<= take;
+                        }
+                        else if (bytes.MoveNext())
+                        {
+                            current = bytes.Current;
+                            left = 8;
+                        }
+                        else
+                        {
+                            hasBytes = false;
+                        }
+                    }
+
+                    if (encodedLength > 0)
+                    {
+                        var i = -1;
+                        var a = 0;
+                        var b = decodingTable.Count;
+                        while (a != b)
+                        {
+                            var mid = (a + b) / 2;
+                            var d = decodingTable[mid];
+                            var masked = encoded & d.Mask;
+                            if (masked > d.Code)
+                            {
+                                a = mid + 1;
+                            }
+                            else if (masked < d.Code)
+                            {
+                                b = mid;
+                            }
+                            else
+                            {
+                                i = mid;
+                                break;
+                            }
+                        }
+
+                        if (i < 0)
+                        {
+                            throw new Exception("Symbol not found. Different encoding or bad input");
+                        }
+
+                        var sym = decodingTable[i];
+                        encodedLength -= sym.Length;
+                        encoded <<= sym.Length;
+
+                        if (sym.Symbol != TerminalChar)
+                        {
+                            result.Append(sym.Symbol);
+                        }
+                        else
+                        {
+                            break;
+                        }
+                    }
+                    else
+                    {
+                        break;
+                    }
+                }
+            }
+
+            return result.ToString();
+        }
+
+        public static VarLenCharEncoding FromCodes(IEnumerable<CodeSymbol> codes)
+        {
+            var root = new BaseNode();
+            foreach (var code in codes)
+            {
+                Reconstruct(code, 0, root);
+            }
+            return new VarLenCharEncoding(root);
+        }
+
+        private static void Reconstruct(CodeSymbol c, int index, BaseNode parent)
+        {
+            if (index == c.Code.Length - 1)
+            {
+                if (c.Code[index] == LeftValue)
+                {
+                    if (parent.Left != null)
+                    {
+                        throw new Exception("Bad code");
+                    }
+                    parent.Left = new BaseLeafNode { V = c.Symbol };
+                }
+                else
+                {
+                    if (parent.Right != null)
+                    {
+                        throw new Exception("Bad code");
+                    }
+                    parent.Right = new BaseLeafNode { V = c.Symbol };
+                }
+            }
+            else
+            {
+                if (c.Code[index] == LeftValue)
+                {
+                    parent.Left = parent.Left != null ? parent.Left : new BaseNode();
+                    if (parent.Left is IEncodingLeafNode)
+                    {
+                        throw new Exception("Bad code");
+                    }
+                    Reconstruct(c, index + 1, (BaseNode)parent.Left);
+                }
+                else
+                {
+                    parent.Right = parent.Right != null ? parent.Right : new BaseNode();
+                    if (parent.Right is IEncodingLeafNode)
+                    {
+                        throw new Exception("Bad code");
+                    }
+                    Reconstruct(c, index + 1, (BaseNode)parent.Right);
+                }
+            }
+        }
+
+        private class BaseLeafNode : IEncodingLeafNode
+        {
+            public char V { get; set; }
+        }
+
+        private class BaseNode : IEncodingTreeNode
+        {
+            public IEncodingNode Left { get; set; }
+            public IEncodingNode Right { get; set; }
+        }
+
+        public struct DecodeSymbol
+        {
+            public uint Code { get; set; }
+
+            public uint Mask { get; set; }
+
+            public int Length { get; set; }
+
+            public char Symbol { get; set; }
+        }
+
+        public class CodeSymbol
+        {
+            public byte[] Code { get; set; }
+
+            public char Symbol { get; set; }
         }
 
         public class ByteToBit : IEnumerable<byte>
@@ -270,7 +528,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
                 var node = current as IEncodingTreeNode;
                 if (node != null)
                 {
-                    if (bit == 1)
+                    if (bit == LeftValue)
                     {
                         current = node.Left;
                     }
@@ -304,6 +562,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             return result.ToString();
         }
 
+        public IBitDecoder GetDecoder()
+        {
+            return new BitDecoder(root);
+        }
+
         public static VarLenCharEncoding FromFrequency<T>(IDictionary<char, int> charFrequencies, bool extend = false)
                          where T : VarLenCharEncodingBuilder, new()
         {
@@ -328,7 +591,6 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             return builder.Build();
         }
 
-
         public static VarLenCharEncoding FromText<T>(string text, bool extend = false)
                          where T : VarLenCharEncodingBuilder, new()
         {
@@ -348,6 +610,67 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
             return FromFrequency<T>(charFrequencies, extend);
         }
+
+        private class BitDecoder : IBitDecoder
+        {
+            private readonly IEncodingNode root;
+            private IEncodingNode current;
+
+            private Stack<IEncodingNode> states = new Stack<IEncodingNode>();
+
+            public BitDecoder(IEncodingNode root)
+            {
+                this.root = root;
+                this.current = root;
+            }
+
+            public char Next(bool p)
+            {
+                states.Push(current);
+
+                var node = current as IEncodingTreeNode;
+                if (node != null)
+                {
+                    if (p == (LeftValue == 1))
+                    {
+                        current = node.Left;
+                    }
+                    else
+                    {
+                        current = node.Right;
+                    }
+                }
+
+                var leaf = current as IEncodingLeafNode;
+                if (leaf != null)
+                {
+                    current = root;
+
+                    if (leaf.V == TerminalChar)
+                    {
+                        return TerminalChar;
+                    }
+                    else
+                    {
+                        return leaf.V;
+                    }
+                }
+
+                return TerminalChar;
+            }
+
+            public void Pop()
+            {
+                current = states.Pop();
+            }
+        }
+    }
+
+    public interface IBitDecoder
+    {
+        char Next(bool bit);
+
+        void Pop();
     }
 
     public abstract class VarLenCharEncodingBuilder

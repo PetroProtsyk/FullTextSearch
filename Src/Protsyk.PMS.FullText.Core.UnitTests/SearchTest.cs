@@ -40,6 +40,8 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
                 using (var index = TestHelper.AddToIndex(indexName, "Really, this is not a joke"))
                 {
                     TestTermSearch(index, "WORD(this)", "{[3,1,1]}, {[4,1,1]}, {[5,1,1]}, {[6,1,8]}, {[7,1,1]}, {[8,1,2]}");
+                    TestTermSearch(index, "WILD(th?s)", "{[3,1,1]}, {[4,1,1]}, {[5,1,1]}, {[6,1,8]}, {[7,1,1]}, {[8,1,2]}");
+                    TestTermSearch(index, "EDIT(these,2)", "{[3,1,1]}, {[3,1,3]}, {[4,1,1]}, {[4,1,2]}, {[5,1,1]}, {[6,1,8]}, {[7,1,1]}, {[8,1,2]}");
                 }
             }
             finally
