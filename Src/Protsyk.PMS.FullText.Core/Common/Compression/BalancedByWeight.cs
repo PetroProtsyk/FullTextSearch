@@ -3,6 +3,8 @@ using System.Collections.Generic;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
+    // Variation of Shannon Fano coding
+    // https://en.wikipedia.org/wiki/Shannon%E2%80%93Fano_coding
     public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
     {
         private readonly int optimiziationType;
