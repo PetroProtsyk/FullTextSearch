@@ -14,7 +14,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('i', "input", Required = true, HelpText = "Folder with files that should be indexed")]
         public string InputPath { get; set; }
 
-        [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List or BTree")]
+        [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List, BTree or HashTable")]
         public string FieldsType { get; set; }
 
         [Option('p', "postingType", Required = false, Default = "Default", HelpText = "Type of posting list. Text, Binary or BinaryCompressed")]

@@ -12,6 +12,7 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
         [InlineData("BTree", "Text", "UTF-8")]
         [InlineData("BTree", "Binary", "UTF-8")]
         [InlineData("BTree", "BinaryCompressed", "UTF-8")]
+        [InlineData("HashTable", "BinaryCompressed", "UTF-8")]
         [InlineData("List", "Text", "UTF-8")]
         [InlineData("List", "Binary", "UTF-8")]
         [InlineData("List", "BinaryCompressed", "UTF-8")]

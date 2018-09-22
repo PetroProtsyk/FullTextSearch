@@ -7,7 +7,7 @@ IF "%1"=="" (
 	goto EXIT
 )
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index --input "%1" --fieldsType BTree --postingType BinaryCompressed --textEncoding UTF-8
+dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index --fieldsType BTree --postingType BinaryCompressed --textEncoding UTF-8 --input "%1"
 dotnet Protsyk.PMS.FullText.ConsoleUtil.dll print
 
 dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search --query "WORD(pms)"
