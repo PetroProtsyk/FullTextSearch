@@ -9,24 +9,24 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
     public class SearchTest
     {
         [Theory]
-        [InlineData("BTree", "Text", "UTF-8")]
-        [InlineData("BTree", "Binary", "UTF-8")]
-        [InlineData("BTree", "BinaryCompressed", "UTF-8")]
-        [InlineData("HashTable", "BinaryCompressed", "UTF-8")]
-        [InlineData("List", "Text", "UTF-8")]
-        [InlineData("List", "Binary", "UTF-8")]
-        [InlineData("List", "BinaryCompressed", "UTF-8")]
-        [InlineData("List", "BinaryCompressed", "LatinHuffman")]
-        [InlineData("List", "BinaryCompressed", "LatinHuTucker")]
-        [InlineData("List", "BinaryCompressed", "LatinBalanced")]
-        public void TestTermSearchPersistentIndex(string fieldsType, string postingType, string textEncoding)
+        [InlineData("TTD", "BTree", "Text", "UTF-8")]
+        [InlineData("TTD", "BTree", "Binary", "UTF-8")]
+        [InlineData("TTD", "BTree", "BinaryCompressed", "UTF-8")]
+        [InlineData("TTD", "HashTable", "BinaryCompressed", "UTF-8")]
+        [InlineData("TTD", "List", "Text", "UTF-8")]
+        [InlineData("TTD", "List", "Binary", "UTF-8")]
+        [InlineData("TTD", "List", "BinaryCompressed", "UTF-8")]
+        [InlineData("TTD", "List", "BinaryCompressed", "LatinHuffman")]
+        [InlineData("TTD", "List", "BinaryCompressed", "LatinHuTucker")]
+        [InlineData("TTD", "List", "BinaryCompressed", "LatinBalanced")]
+        public void TestTermSearchPersistentIndex(string dictionaryType, string fieldsType, string postingType, string textEncoding)
         {
             var testFolder = Path.Combine(Path.GetTempPath(), "PMS_FullText_Tests", Guid.NewGuid().ToString("N"));
             Directory.CreateDirectory(testFolder);
 
             try
             {
-                var indexName = new PersistentIndexName(testFolder, fieldsType, postingType, textEncoding);
+                var indexName = new PersistentIndexName(testFolder, dictionaryType, fieldsType, postingType, textEncoding);
 
                 using (var index = TestHelper.PrepareIndexForSearch(indexName))
                 {

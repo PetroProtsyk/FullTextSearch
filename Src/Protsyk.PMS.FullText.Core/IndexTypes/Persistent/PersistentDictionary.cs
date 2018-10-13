@@ -8,9 +8,11 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public class PersistentDictionary : ITermDictionary, IDisposable
+    public class PersistentDictionary : ITermDictionary, IUpdateTermDictionary, IDisposable
     {
         #region Fields
+        public static string Id = "TTD";
+
         private readonly TernaryDictionary<byte, long> dictionary;
         private readonly int maxTokenByteLength;
         private readonly ITextEncoding encoding;

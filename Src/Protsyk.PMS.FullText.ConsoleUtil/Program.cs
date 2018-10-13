@@ -14,6 +14,9 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('i', "input", Required = true, HelpText = "Folder with files that should be indexed")]
         public string InputPath { get; set; }
 
+        [Option('d', "dictionaryType", Required = false, Default = "Default", HelpText = "Type of dictionary storage. TTD or FST")]
+        public string DictionaryType { get; set; }
+
         [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List, BTree or HashTable")]
         public string FieldsType { get; set; }
 
@@ -132,7 +135,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
         private static int DoIndex(IndexOptions opts)
         {
-            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.FieldsType, opts.PostingType, opts.TextEncoding)))
+            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.DictionaryType, opts.FieldsType, opts.PostingType, opts.TextEncoding)))
             {
                 builder.Start();
 

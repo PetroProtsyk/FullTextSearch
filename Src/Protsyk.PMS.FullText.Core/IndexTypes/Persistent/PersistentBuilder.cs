@@ -13,7 +13,7 @@ namespace Protsyk.PMS.FullText.Core
         private readonly PersistentIndexName name;
         private IMetadataStorage<string> fields;
         private IOccurrenceWriter occurrenceWriter;
-        private PersistentDictionary dictionaryWriter;
+        private IUpdateTermDictionary dictionaryWriter;
         private PersistentIndexInfo indexInfo;
         private IUpdate dictionaryUpdate;
         private long updates;
@@ -31,7 +31,7 @@ namespace Protsyk.PMS.FullText.Core
             indexInfo = new PersistentIndexInfo(Folder, PersistentIndex.FileNameInfo);
             fields = PersistentMetadataFactory.CreateStorage(name.FieldsType, Folder, PersistentIndex.FileNameFields);
             occurrenceWriter = PostingListIOFactory.CreateWriter(name.PostingType, Folder, PersistentIndex.FileNamePostingLists);
-            dictionaryWriter = new PersistentDictionary(Folder, PersistentIndex.FileNameDictionary, MaxTokenSize, TextEncodingFactory.GetByName(name.TextEncoding));
+            dictionaryWriter = PersistentDictionaryFactory.CreateWriter(name.DictionaryType, Folder, PersistentIndex.FileNameDictionary, MaxTokenSize, name.TextEncoding);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
             updates = 0;
         }
@@ -74,6 +74,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             var header = indexInfo.Read();
 
+            var dictionaryType = PersistentDictionaryFactory.GetName(name.DictionaryType);
             var fieldsType = PersistentMetadataFactory.GetName(name.FieldsType);
             var postingType = PostingListIOFactory.GetName(name.PostingType);
             var textEncoding = TextEncodingFactory.GetName(name.TextEncoding);
@@ -82,7 +83,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 header = new IndexHeaderData
                 {
-                    Type = $"{nameof(PersistentIndex)} {fieldsType} {postingType} {textEncoding}",
+                    Type = $"{nameof(PersistentIndex)} {dictionaryType} {fieldsType} {postingType} {textEncoding}",
                     MaxTokenSize = MaxTokenSize,
                     NextDocumentId = 0,
                     CreatedDate = DateTime.UtcNow,
@@ -97,17 +98,22 @@ namespace Protsyk.PMS.FullText.Core
                     throw new InvalidOperationException("Index type and name mismatch");
                 }
 
-                if (types[1] != fieldsType)
+                if (types[1] != dictionaryType)
                 {
                     throw new InvalidOperationException("Field type and name mismatch");
                 }
 
-                if (types[2] != postingType)
+                if (types[2] != fieldsType)
+                {
+                    throw new InvalidOperationException("Field type and name mismatch");
+                }
+
+                if (types[3] != postingType)
                 {
                     throw new InvalidOperationException("Posting type and name mismatch");
                 }
 
-                if (types[3] != textEncoding)
+                if (types[4] != textEncoding)
                 {
                     throw new InvalidOperationException("Text encoding type and name mismatch");
                 }

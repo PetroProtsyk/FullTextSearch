@@ -18,7 +18,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public void Start()
         {
-            temp = new SortedDictionary<string, List<Occurrence>>();
+            temp = new SortedDictionary<string, List<Occurrence>>(StringComparer.Ordinal);
             DoStart();
 
             header = GetIndexHeader();
