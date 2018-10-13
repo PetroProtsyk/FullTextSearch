@@ -8,10 +8,10 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public class PersistentDictionary : ITermDictionary, IUpdateTermDictionary, IDisposable
+    public class PersistentDictionaryTst : ITermDictionary, IUpdateTermDictionary, IDisposable
     {
         #region Fields
-        public static string Id = "TTD";
+        public static string Id = "TST";
 
         private readonly TernaryDictionary<byte, long> dictionary;
         private readonly int maxTokenByteLength;
@@ -19,7 +19,7 @@ namespace Protsyk.PMS.FullText.Core
         #endregion
 
         #region Constructor
-        public PersistentDictionary(string folder,
+        public PersistentDictionaryTst(string folder,
                                     string fileNameDictionary,
                                     int maxTokenLength,
                                     ITextEncoding encoding)
@@ -29,7 +29,7 @@ namespace Protsyk.PMS.FullText.Core
         {
         }
 
-        public PersistentDictionary(IPersistentStorage storage,
+        public PersistentDictionaryTst(IPersistentStorage storage,
                                     int maxTokenLength,
                                     ITextEncoding encoding)
         {

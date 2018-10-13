@@ -12,9 +12,9 @@ namespace Protsyk.PMS.FullText.Core
                                     int maxTokenLength,
                                     string encodingName)
         {
-            if (dictionaryType == PersistentIndexName.DefaultValue || dictionaryType == PersistentDictionary.Id)
+            if (dictionaryType == PersistentIndexName.DefaultValue || dictionaryType == PersistentDictionaryTst.Id)
             {
-                return new PersistentDictionary(folder, PersistentIndex.FileNameDictionary, maxTokenLength, TextEncodingFactory.GetByName(encodingName));
+                return new PersistentDictionaryTst(folder, PersistentIndex.FileNameDictionary, maxTokenLength, TextEncodingFactory.GetByName(encodingName));
             }
 
             if (dictionaryType == PersistentDictionaryFst.Id)
@@ -38,7 +38,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             if (fieldsType == PersistentIndexName.DefaultValue)
             {
-                return PersistentDictionary.Id;
+                return PersistentDictionaryTst.Id;
             }
             return fieldsType;
         }

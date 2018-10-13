@@ -89,7 +89,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     foreach (var otherArc in other.Arcs)
                     {
                         if (arc.To == otherArc.To &&
-                            arc.Input == otherArc.Input)
+                            arc.Input == otherArc.Input &&
+                            arc.Output == otherArc.Output)
                         {
                             found = true;
                             break;
@@ -342,9 +343,22 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 {
                     var output = GetOutput(tempState[i - 1], currentWord[i - 1]);
                     var commonOutput = Math.Min(output, currentOutput);
-                    var suffixOutput = output - commonOutput;
-                    SetOutput(tempState[i - 1], currentWord[i - 1], commonOutput);
-                    PropagateOutput(tempState[i], suffixOutput);
+                    if (commonOutput != output)
+                    {
+                        var suffixOutput = output - commonOutput;
+                        SetOutput(tempState[i - 1], currentWord[i - 1], commonOutput);
+                        if (suffixOutput != 0)
+                        {
+                            if (tempState[i].IsFinal || tempState[i].Arcs.Count == 0)
+                            {
+                                throw new Exception("What?");
+                            }
+                            else
+                            {
+                                PropagateOutput(tempState[i], suffixOutput);
+                            }
+                        }
+                    }
                     currentOutput -= commonOutput;
                 }
 

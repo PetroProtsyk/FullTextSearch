@@ -9,16 +9,16 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
     public class SearchTest
     {
         [Theory]
-        [InlineData("TTD", "BTree", "Text", "UTF-8")]
-        [InlineData("TTD", "BTree", "Binary", "UTF-8")]
-        [InlineData("TTD", "BTree", "BinaryCompressed", "UTF-8")]
-        [InlineData("TTD", "HashTable", "BinaryCompressed", "UTF-8")]
-        [InlineData("TTD", "List", "Text", "UTF-8")]
-        [InlineData("TTD", "List", "Binary", "UTF-8")]
-        [InlineData("TTD", "List", "BinaryCompressed", "UTF-8")]
-        [InlineData("TTD", "List", "BinaryCompressed", "LatinHuffman")]
-        [InlineData("TTD", "List", "BinaryCompressed", "LatinHuTucker")]
-        [InlineData("TTD", "List", "BinaryCompressed", "LatinBalanced")]
+        [InlineData("TST", "BTree", "Text", "UTF-8")]
+        [InlineData("TST", "BTree", "Binary", "UTF-8")]
+        [InlineData("TST", "BTree", "BinaryCompressed", "UTF-8")]
+        [InlineData("TST", "HashTable", "BinaryCompressed", "UTF-8")]
+        [InlineData("TST", "List", "Text", "UTF-8")]
+        [InlineData("TST", "List", "Binary", "UTF-8")]
+        [InlineData("TST", "List", "BinaryCompressed", "UTF-8")]
+        [InlineData("TST", "List", "BinaryCompressed", "LatinHuffman")]
+        [InlineData("TST", "List", "BinaryCompressed", "LatinHuTucker")]
+        [InlineData("TST", "List", "BinaryCompressed", "LatinBalanced")]
         public void TestTermSearchPersistentIndex(string dictionaryType, string fieldsType, string postingType, string textEncoding)
         {
             var testFolder = Path.Combine(Path.GetTempPath(), "PMS_FullText_Tests", Guid.NewGuid().ToString("N"));

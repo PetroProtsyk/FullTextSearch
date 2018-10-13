@@ -69,11 +69,16 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException();
             }
 
+            if (offset < 0)
+            {
+                throw new InvalidOperationException();
+            }
+
             return new DictionaryTerm(term, new PostingListAddress(offset));
         }
         #endregion
 
-        #region Methods
+        #region IUpdateTermDictionary
 
         class Update : IUpdate
         {
@@ -94,10 +99,32 @@ namespace Protsyk.PMS.FullText.Core
             {
                 if (input != null)
                 {
-                    var fstData = FSTExt.FromList(input.ToArray(), output.ToArray()).GetBytesCompressed(_ => _);
-                    storage.WriteAll(0, fstData, 0, fstData.Length);
+                    var fst = FSTExt.FromList(input.ToArray(), output.ToArray());
+                    Validate(fst);
+                    {
+                        var fstData = fst.GetBytesCompressed(_ => _);
+                        storage.WriteAll(0, fstData, 0, fstData.Length);
+                    }
                     input = null;
                     output = null;
+                }
+            }
+
+            private void Validate(FST<int> fst)
+            {
+                for (int i = 0; i < input.Count; ++i)
+                {
+                    if (fst.TryMatch(input[i], (int s, int o) => s + o, out var offset))
+                    {
+                        if (offset != output[i])
+                        {
+                            throw new Exception($"Bad output {input[i]} {offset} != {output[i]}");
+                        }
+                    }
+                    else
+                    {
+                        throw new Exception($"No match {input[i]}");
+                    }
                 }
             }
 
