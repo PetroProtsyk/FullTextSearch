@@ -44,7 +44,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 var buffer = new byte[storage.Length];
                 storage.ReadAll(0, buffer, 0, buffer.Length);
-                this.fst = FST<int>.FromBytesCompressed(buffer, _ => _);
+                this.fst = FST<int>.FromBytesCompressed(buffer, FSTVarIntOutput.Instance);
             }
         }
         #endregion
@@ -64,7 +64,7 @@ namespace Protsyk.PMS.FullText.Core
         public DictionaryTerm GetTerm(string term)
         {
             int offset = 0;
-            if (!fst.TryMatch(term, (int s, int o) => s + o, out offset))
+            if (!fst.TryMatch(term, out offset))
             {
                 throw new InvalidOperationException();
             }
@@ -99,10 +99,10 @@ namespace Protsyk.PMS.FullText.Core
             {
                 if (input != null)
                 {
-                    var fst = FSTExt.FromList(input.ToArray(), output.ToArray());
-                    Validate(fst);
+                    var fst = new FSTBuilder<int>(FSTVarIntOutput.Instance).FromList(input.ToArray(), output.ToArray());
+                    Validate(fst); //TODO: Optional
                     {
-                        var fstData = fst.GetBytesCompressed(_ => _);
+                        var fstData = fst.GetBytesCompressed();
                         storage.WriteAll(0, fstData, 0, fstData.Length);
                     }
                     input = null;
@@ -114,7 +114,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 for (int i = 0; i < input.Count; ++i)
                 {
-                    if (fst.TryMatch(input[i], (int s, int o) => s + o, out var offset))
+                    if (fst.TryMatch(input[i], out var offset))
                     {
                         if (offset != output[i])
                         {

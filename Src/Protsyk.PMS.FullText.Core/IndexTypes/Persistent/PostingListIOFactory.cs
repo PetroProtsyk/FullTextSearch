@@ -21,6 +21,11 @@ namespace Protsyk.PMS.FullText.Core
                 return new PostingListBinaryDeltaWriter(folder, fileName);
             }
 
+            if (readerType == PostingListVarIntDeltaWriter.Id)
+            {
+                return new PostingListVarIntDeltaWriter(folder, fileName);
+            }
+
             throw new NotSupportedException($"Not supported Posting Type {readerType}");
         }
 
@@ -39,6 +44,11 @@ namespace Protsyk.PMS.FullText.Core
             if (readerType == PostingListBinaryDeltaWriter.Id)
             {
                 return new PostingListBinaryDeltaReader(folder, fileName);
+            }
+
+            if (readerType == PostingListVarIntDeltaWriter.Id)
+            {
+                return new PostingListVarIntDeltaReader(folder, fileName);
             }
 
             throw new NotSupportedException($"Not supported Posting Type {readerType}");

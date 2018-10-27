@@ -8,6 +8,8 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
     {
         byte[] GetBytes(T value);
 
+        int GetByteSize(T value);
+
         T GetValue(byte[] bytes);
 
         T GetValue(byte[] bytes, int startIndex);
@@ -70,6 +72,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return new byte[1] { value };
         }
 
+        public int GetByteSize(byte value)
+        {
+            return Size;
+        }
+
         public byte GetValue(byte[] bytes)
         {
             return bytes[0];
@@ -87,6 +94,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         {
             // TODO: Save string length?
             return Encoding.UTF8.GetBytes(value);
+        }
+
+        public int GetByteSize(string value)
+        {
+            return Encoding.UTF8.GetByteCount(value);
         }
 
         public string GetValue(byte[] bytes)
@@ -109,6 +121,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return BitConverter.GetBytes(value);
         }
 
+        public int GetByteSize(int value)
+        {
+            return Size;
+        }
+
         public int GetValue(byte[] bytes)
         {
             return GetValue(bytes, 0);
@@ -127,6 +144,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         public byte[] GetBytes(long value)
         {
             return BitConverter.GetBytes(value);
+        }
+
+        public int GetByteSize(long value)
+        {
+            return Size;
         }
 
         public long GetValue(byte[] bytes)
@@ -149,6 +171,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return BitConverter.GetBytes(value);
         }
 
+        public int GetByteSize(ulong value)
+        {
+            return Size;
+        }
+
         public ulong GetValue(byte[] bytes)
         {
             return GetValue(bytes, 0);
@@ -168,6 +195,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         {
             var result =  value.ToByteArray();
             return result;
+        }
+
+        public int GetByteSize(Guid value)
+        {
+            return Size;
         }
 
         public Guid GetValue(byte[] bytes)
@@ -200,6 +232,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return BitConverter.GetBytes(value);
         }
 
+        public int GetByteSize(char value)
+        {
+            return Size;
+        }
+
         public char GetValue(byte[] bytes)
         {
             return GetValue(bytes, 0);
@@ -216,6 +253,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         public byte[] GetBytes(NoValue value)
         {
             return new byte[0];
+        }
+
+        public int GetByteSize(NoValue value)
+        {
+            return Size;
         }
 
         public NoValue GetValue(byte[] bytes)

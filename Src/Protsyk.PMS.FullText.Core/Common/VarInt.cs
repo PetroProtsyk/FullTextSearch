@@ -3,33 +3,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
-namespace PMS.Common.Encodings
+namespace Protsyk.PMS.FullText.Core.Common
 {
     public static class VarInt
     {
-        private static int[] values = { 2, 3, 4, 5, 6, 7, 8, 10 };
-
-        public static int GetMaxByteLength(int bytesInValue)
-        {
-            if (bytesInValue <= 0 || bytesInValue > sizeof(ulong))
-                throw new ArgumentOutOfRangeException(nameof(bytesInValue));
-
-            return values[bytesInValue - 1];
-        }
-
-        public static int CalculateMaxByteLength(int bytesInValue)
-        {
-            if (bytesInValue <= 0 || bytesInValue > sizeof(ulong))
-                throw new ArgumentOutOfRangeException(nameof(bytesInValue));
-
-            ulong maxValue = Numeric.MaxValue(bytesInValue);
-            return GetByteLength(maxValue);
-        }
-
-        public static int GetByteLength(ulong value)
+        public static int GetByteSize(ulong value)
         {
             int result = 1;
-            while (value >= 0x80)
+            while (value > 0x7F)
             {
                 value >>= 7;
                 result++;
@@ -37,165 +18,91 @@ namespace PMS.Common.Encodings
             return result;
         }
 
-        public static int WriteUInt64Checked(ulong value, byte[] output, int offset)
+        public static int GetByteSize(uint value)
         {
-            int index = offset;
-            while (value >= 0x80)
-            {
-                if (index >= output.Length) return 0;
-                output[index++] = ((byte)(value | 0x80));
-                value >>= 7;
-            }
-            if (index >= output.Length) return 0;
-            output[index++] = (byte)value;
-            return index - offset;
-        }
-
-        public static int WriteUInt32(uint value, byte[] output, int index)
-        {
-            var i = 0;
+            int result = 1;
             while (value > 0x7F)
             {
-                output[index++] = (byte)(value | 0x80);
                 value >>= 7;
-                ++i;
+                result++;
             }
-            if ((value > 0) || (i == 0))
-            {
-                output[index] = (byte)value;
-                ++i;
-            }
-            return i;
+            return result;
         }
 
-        public static int WriteUInt32Checked(uint x, byte[] output, int index)
+        public static int WriteVUInt64(ulong value, byte[] buffer, int startIndex)
         {
-            if (x < (1u << 7))
+            var index = startIndex;
+            while (value > 0x7F)
             {
-                output[index] = (byte)x;
-                return 1;
-            }
-            else
-            {
-                if (x < (1 << 21))
-                {
-                    if (x < (1 << 14))
-                    {
-                        output[index] = (byte)(x | 0x80);
-                        output[index + 1] = (byte)(x >> 7);
-                        return 2;
-                    }
-                    else
-                    {
-                        output[index] = (byte)(x | 0x80);
-                        output[index + 1] = (byte)((x >> 7) | 0x80);
-                        output[index + 2] = (byte)(x >> 14);
-                        return 3;
-                    }
-                }
-                else
-                {
-                    if (x < (1 << 28))
-                    {
-                        output[index] = (byte)(x | 0x80);
-                        output[index + 1] = (byte)((x >> 7) | 0x80);
-                        output[index + 2] = (byte)((x >> 14) | 0x80);
-                        output[index + 3] = (byte)(x >> 21);
-                        return 4;
-                    }
-                    else
-                    {
-                        output[index] = (byte)(x | 0x80);
-                        output[index + 1] = (byte)((x >> 7) | 0x80);
-                        output[index + 2] = (byte)((x >> 14) | 0x80);
-                        output[index + 3] = (byte)((x >> 21) | 0x80);
-                        output[index + 4] = (byte)(x >> 28);
-                        return 5;
-                    }
-                }
-            }
-        }
-
-        public static byte[] GetBytes(uint x)
-        {
-            if (x < (1u << 7))
-            {
-                return new byte[] { (byte)x };
-            }
-            else
-            {
-                if (x < (1 << 21))
-                {
-                    if (x < (1 << 14))
-                    {
-                        return new byte[] { (byte)(x | 0x80), (byte)(x >> 7) };
-                    }
-                    else
-                    {
-                        return new byte[] { (byte)(x | 0x80), (byte)((x >> 7) | 0x80), (byte)(x >> 14) };
-                    }
-                }
-                else
-                {
-                    if (x < (1 << 28))
-                    {
-                        return new byte[] { (byte)(x | 0x80), (byte)((x >> 7) | 0x80), (byte)((x >> 14) | 0x80), (byte)(x >> 21) };
-                    }
-                    else
-                    {
-                        return new byte[] { (byte)(x | 0x80), (byte)((x >> 7) | 0x80), (byte)((x >> 14) | 0x80), (byte)((x >> 21) | 0x80), (byte)(x >> 28) };
-                    }
-                }
-            }
-        }
-
-        public static byte[] GetBytes(ulong value)
-        {
-            var bytes = new List<byte>(2 * sizeof(long));
-            while (value >= 0x80)
-            {
-                bytes.Add((byte)(value | 0x80));
+                buffer[index++] = (byte)(value | 0x80);
                 value >>= 7;
             }
-            bytes.Add((byte)value);
-            return bytes.ToArray();
+            buffer[index++] = (byte)value;
+            return index - startIndex;
         }
 
-        public static ulong ReadUInt64(this BinaryReader reader)
+        public static int WriteVInt32(long value, byte[] buffer, int startIndex)
         {
-            checked
+            return WriteVUInt64((ulong)value, buffer, startIndex);
+        }
+
+        public static int WriteVUInt32(uint value, byte[] buffer, int startIndex)
+        {
+            var index = startIndex;
+            while (value > 0x7F)
             {
-                int shift = 0;
-                ulong result = 0;
-                byte next = reader.ReadByte();
-                while ((next & 0x80) != 0)
-                {
-                    result |= (((ulong)next) & 0x7FL) << shift;
-                    shift += 7;
-                    next = reader.ReadByte();
-                }
-                result |= ((ulong)next) << shift;
-                return result;
+                buffer[index++] = (byte)(value | 0x80);
+                value >>= 7;
             }
+            buffer[index++] = (byte)value;
+            return index - startIndex;
         }
 
-        public static int ToUInt64(byte[] buffer, int offset, out ulong result)
+        public static int WriteVInt32(int value, byte[] buffer, int startIndex)
         {
-            int index = offset;
+            return WriteVUInt32((uint)value, buffer, startIndex);
+        }
+
+        public static int ReadVUInt64(byte[] buffer, int startIndex, out ulong result)
+        {
+            int index = startIndex;
             int shift = 0;
             result = 0;
-            while ((index < buffer.Length) && ((buffer[index] & 0x80) != 0))
+            while ((buffer[index] & 0x80) != 0)
             {
-                result |= (((ulong)buffer[index]) & 0x7FL) << shift;
+                result |= (((ulong)buffer[index++]) & 0x7FL) << shift;
                 shift += 7;
-                ++index;
-            }
-            if (index >= buffer.Length)
-            {
-                return 0;
             }
             result |= ((ulong)buffer[index++]) << shift;
-            return index - offset;
+            return index - startIndex;
+        }
+
+        public static int ReadVInt64(byte[] buffer, int startIndex, out long result)
+        {
+            var count = ReadVUInt64(buffer, startIndex, out var value);
+            result = (long)value;
+            return count;
+        }
+
+        public static int ReadVUInt32(byte[] buffer, int startIndex, out uint result)
+        {
+            var index = startIndex;
+            var shift = 0;
+            result = 0;
+            while ((buffer[index] & 0x80) > 0)
+            {
+                result |= (uint)((buffer[index++] & 0x7F) << shift);
+                shift += 7;
+            }
+            result |= (uint)(buffer[index++] << shift);
+            return index - startIndex;
+        }
+
+        public static int ReadVInt32(byte[] buffer, int startIndex, out int result)
+        {
+            var count = ReadVUInt32(buffer, startIndex, out var value);
+            result = (int)value;
+            return count;
         }
     }
 }

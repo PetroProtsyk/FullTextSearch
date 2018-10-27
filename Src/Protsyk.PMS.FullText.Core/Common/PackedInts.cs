@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace PMS.Common.Encodings
+namespace Protsyk.PMS.FullText.Core.Common
 {
     public static class PackedInts
     {

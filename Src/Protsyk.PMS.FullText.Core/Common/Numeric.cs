@@ -1,6 +1,6 @@
 ﻿using System;
 
-namespace PMS.Common.Encodings
+namespace Protsyk.PMS.FullText.Core.Common
 {
     public static class Numeric
     {
@@ -25,12 +25,37 @@ namespace PMS.Common.Encodings
             }
         }
 
-        public static int WriteUint(uint x, byte[] output, int index)
+        public static int GetByteSize(int value) => sizeof(int);
+
+        public static int GetByteSize(uint value) => sizeof(uint);
+
+        public static int ReadInt(byte[] buffer, int startIndex, out int value)
         {
-            output[index] = (byte)x;
-            output[index + 1] = (byte)(x >> 8);
-            output[index + 2] = (byte)(x >> 16);
-            output[index + 3] = (byte)(x >> 24);
+            value = BitConverter.ToInt32(buffer, startIndex);
+            return sizeof(int);
+        }
+
+        public static int ReadUInt(byte[] buffer, int startIndex, out uint value)
+        {
+            value = BitConverter.ToUInt32(buffer, startIndex);
+            return sizeof(uint);
+        }
+
+        public static int WriteInt(int value, byte[] buffer, int startIndex)
+        {
+            buffer[startIndex] = (byte)value;
+            buffer[startIndex + 1] = (byte)(value >> 8);
+            buffer[startIndex + 2] = (byte)(value >> 16);
+            buffer[startIndex + 3] = (byte)(value >> 24);
+            return 4;
+        }
+
+        public static int WriteUInt(uint x, byte[] buffer, int startIndex)
+        {
+            buffer[startIndex] = (byte)x;
+            buffer[startIndex + 1] = (byte)(x >> 8);
+            buffer[startIndex + 2] = (byte)(x >> 16);
+            buffer[startIndex + 3] = (byte)(x >> 24);
             return 4;
         }
     }

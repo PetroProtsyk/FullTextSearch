@@ -87,14 +87,12 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         private static int DoPrint(PrintOptions opts)
         {
             var timer = Stopwatch.StartNew();
-            var terms = 0;
             using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
             {
-                index.Visit(new PrintVisitor(index));
-                ++terms;
+                var visitor = new PrintVisitor(index);
+                index.Visit(visitor);
+                PrintConsole(ConsoleColor.White, $"Terms: {visitor.Terms}, time: {timer.Elapsed}");
             }
-
-            PrintConsole(ConsoleColor.White, $"Terms: {terms}, time: {timer.Elapsed}");
             return 0;
         }
 
@@ -190,14 +188,18 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         {
             private readonly IFullTextIndex index;
 
+            public long Terms {get; private set;}
+
             public PrintVisitor(IFullTextIndex index)
             {
                 this.index = index;
+                this.Terms = 0;
             }
 
             public bool VisitTerm(DictionaryTerm term)
             {
                 PrintConsole(ConsoleColor.Gray, $"{term.Key} -> {string.Join(", ", index.PostingLists.Get(term.Value))}");
+                ++Terms;
                 return true;
             }
         }
