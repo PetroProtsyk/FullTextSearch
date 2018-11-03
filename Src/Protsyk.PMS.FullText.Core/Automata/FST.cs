@@ -728,7 +728,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private void MatchRecursive(IDfaMatcher<char> matcher, int s, List<string> result, List<char> prefix)
         {
-            if (IsFinal(s))
+            if (IsFinal(s) && matcher.IsFinal())
             {
                 result.Add(new string(prefix.ToArray()));
             }
