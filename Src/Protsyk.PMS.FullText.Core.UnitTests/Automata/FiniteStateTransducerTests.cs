@@ -43,6 +43,36 @@ namespace Protsyk.PMS.FullText.Core.Automata.UnitTests
         }
 
         [Fact]
+        public void ConstructionWithIntOutputs()
+        {
+            var inputs = new string[]
+            {
+                "a",
+                "ab",
+                "abilities",
+                "ability",
+            };
+
+            var outputs = new int[]
+            {
+                4,
+                3134,
+                7488,
+                1580,
+            };
+
+            var fst = new FSTBuilder<int>(FSTVarIntOutput.Instance).FromList(inputs, outputs);
+            Verify(fst, inputs, outputs);
+
+            var fst1 = FST<int>.FromBytes(fst.GetBytes(), FSTVarIntOutput.Instance);
+            Verify(fst1, inputs, outputs);
+
+            var fst2 = FST<int>.FromBytesCompressed(fst.GetBytesCompressed(), FSTVarIntOutput.Instance);
+            Verify(fst2, inputs, outputs);
+        }
+
+
+        [Fact]
         public void SimpleConstructionWithStringOutputs()
         {
             var inputs = new string[]
