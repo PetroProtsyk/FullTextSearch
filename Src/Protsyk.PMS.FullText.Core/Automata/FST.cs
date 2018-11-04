@@ -345,24 +345,31 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 for (int i = 1; i < prefixLengthPlusOne; ++i)
                 {
                     var output = GetOutput(tempState[i - 1], currentWord[i - 1]);
-                    var commonOutput = outputType.Min(output, currentOutput);
-                    if (!commonOutput.Equals(output))
+                    if (tempState[i].IsFinal)
                     {
-                        var suffixOutput = outputType.Sub(output, commonOutput);
-                        SetOutput(tempState[i - 1], currentWord[i - 1], commonOutput);
-                        if (!suffixOutput.Equals(outputType.Zero()))
+                        currentOutput = outputType.Sub(currentOutput, output);
+                    }
+                    else
+                    {
+                        var commonOutput = outputType.Min(output, currentOutput);
+                        if (!commonOutput.Equals(output))
                         {
-                            if (tempState[i].IsFinal || tempState[i].Arcs.Count == 0)
+                            var suffixOutput = outputType.Sub(output, commonOutput);
+                            SetOutput(tempState[i - 1], currentWord[i - 1], commonOutput);
+                            if (!suffixOutput.Equals(outputType.Zero()))
                             {
-                                throw new Exception("What?");
-                            }
-                            else
-                            {
-                                PropagateOutput(tempState[i], suffixOutput, outputType);
+                                if (tempState[i].IsFinal || tempState[i].Arcs.Count == 0)
+                                {
+                                    throw new Exception($"What? {previousWord}->{outputs[j-1]} {currentWord}->{outputs[j]}");
+                                }
+                                else
+                                {
+                                    PropagateOutput(tempState[i], suffixOutput, outputType);
+                                }
                             }
                         }
+                        currentOutput = outputType.Sub(currentOutput, commonOutput);
                     }
-                    currentOutput = outputType.Sub(currentOutput, commonOutput);
                 }
 
                 SetOutput(tempState[prefixLengthPlusOne - 1], currentWord[prefixLengthPlusOne - 1], currentOutput);
