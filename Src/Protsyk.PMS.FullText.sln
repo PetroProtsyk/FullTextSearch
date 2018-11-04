@@ -18,6 +18,7 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Shared", "Shared", "{8627F877-DA8D-4533-B1F1-64549D775640}"
 	ProjectSection(SolutionItems) = preProject
 		AssemblyVersionInfo.cs = AssemblyVersionInfo.cs
+		Publish.cmd = Publish.cmd
 	EndProjectSection
 EndProject
 Global
