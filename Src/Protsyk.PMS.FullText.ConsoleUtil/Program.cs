@@ -154,28 +154,6 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             return 0;
         }
 
-        private static void PrintHelp()
-        {
-            PrintConsole(ConsoleColor.Gray, "Commands:");
-
-            PrintConsole(ConsoleColor.Gray, "\tIndex folder:");
-            PrintConsole(ConsoleColor.Gray, "\tindex FOLDERNAME");
-            PrintConsole(ConsoleColor.Gray, "\t--fieldsType List|BTree");
-            PrintConsole(ConsoleColor.Gray, "");
-
-            PrintConsole(ConsoleColor.Gray, "\tSearch:");
-            PrintConsole(ConsoleColor.Gray, "\tsearch QUERY");
-            PrintConsole(ConsoleColor.Gray, "");
-
-            PrintConsole(ConsoleColor.Gray, "\tPrint index:");
-            PrintConsole(ConsoleColor.Gray, "\tprint");
-            PrintConsole(ConsoleColor.Gray, "");
-
-            PrintConsole(ConsoleColor.Gray, "\tMatch terms in the dictionary:");
-            PrintConsole(ConsoleColor.Gray, "\tlookup PATTERN");
-            PrintConsole(ConsoleColor.Gray, "");
-        }
-
         private static void PrintConsole(ConsoleColor color, string text)
         {
             var old = Console.ForegroundColor;
