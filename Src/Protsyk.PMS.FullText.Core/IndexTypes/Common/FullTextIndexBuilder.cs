@@ -87,16 +87,29 @@ namespace Protsyk.PMS.FullText.Core
             }
         }
 
-        public void StopAndWait()
+        public IndexBuilderStatistics StopAndWait()
         {
+            long termCount = 0;
+            long occCount = 0;
+
             foreach (var term in temp)
             {
                 var postingListAddress = AddOccurrences(term.Key, term.Value.OrderBy(o => o));
                 AddTerm(term.Key, postingListAddress);
+                ++termCount;
+                occCount += term.Value.Count;
+
+                // TODO: Term and occurrences can be released from memory now
             }
             UpdateIndexHeader();
 
             DoStop();
+
+            return new IndexBuilderStatistics
+            {
+                Terms = termCount,
+                Occurrences = occCount
+            };
         }
 
         private void UpdateIndexHeader()

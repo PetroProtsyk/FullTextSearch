@@ -7,6 +7,13 @@ namespace Protsyk.PMS.FullText.Core
         void Start();
         void AddText(string text, string metadata);
         void AddFile(string fileName, string metadata);
-        void StopAndWait();
+        IndexBuilderStatistics StopAndWait();
+    }
+
+    public class IndexBuilderStatistics
+    {
+        public long Terms { get; set; }
+
+        public long Occurrences { get; set; }
     }
 }

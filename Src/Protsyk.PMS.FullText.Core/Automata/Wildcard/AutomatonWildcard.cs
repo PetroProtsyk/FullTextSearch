@@ -4,7 +4,9 @@ using System.Linq;
 namespace Protsyk.PMS.FullText.Core.Automata
 {
     /// <summary>
-    /// Automaton for matching agains wildcard pattern (* and ?)
+    /// Automaton for matching patterns with wildcards (* and ?)
+    /// * (star) - should be substituted by any number of any character(s), including no character at all
+    /// ? (any)  - should be substituted by any single character.
     /// </summary>
     public static class AutomatonWildcard
     {

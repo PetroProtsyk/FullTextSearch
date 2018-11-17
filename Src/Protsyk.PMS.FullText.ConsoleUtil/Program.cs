@@ -147,8 +147,8 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                         "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
                     ++documents;
                 }
-                builder.StopAndWait();
-                PrintConsole(ConsoleColor.White, $"Indexed documents: {documents}, time: {timer.Elapsed}");
+                var stat = builder.StopAndWait();
+                PrintConsole(ConsoleColor.White, $"Indexed documents: {documents}, terms: {stat.Terms}, occurrences: {stat.Occurrences}, time: {timer.Elapsed}");
             }
 
             return 0;

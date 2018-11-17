@@ -95,10 +95,10 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
         }
 
         // Build decoding table for prefix codes (Huffman, HuTucker, etc)
-        // No code, can be prefix of other code, i.e. code ends in leaf node of encoding tree.
+        // No code can be prefix of other code, i.e. a code ends in a leaf node of the encoding tree.
         //
         // Each code will occupy higher bits of integral type. I.e. the code 0110010 will 
-        // be represented by the following pair of uint in binary representation:
+        // be represented by the following pair of uint in a binary representation:
         // code  : 0110_0100_0000_0000_0000_0000_0000_0000
         // mask  : 1111_1110_0000_0000_0000_0000_0000_0000
         //
