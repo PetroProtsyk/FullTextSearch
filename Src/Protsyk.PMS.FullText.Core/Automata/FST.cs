@@ -1,10 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Text;
 using System.Threading;
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common;
+using Protsyk.PMS.FullText.Core.Common.Persistance;
+using StringComparer = System.StringComparer;
 
 namespace Protsyk.PMS.FullText.Core.Automata
 {
@@ -34,16 +35,60 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
-    public class FSTBuilder<T>
+    public class FSTBuilder<T> : IDisposable
     {
-        private readonly IDictionary<int, List<StateWithTransitions>> minimalTransducerStatesDictionary;
+        #region Fields
+        private const int InitialWordSize = 64;
+
+        private int minimizedStateCacheSize = 65000;
+
+        private readonly IDictionary<int, StateWithTransitions> frozenStates;
+
+        private readonly IDictionary<int, List<LinkedListNode<int>>> minimalTransducerStatesDictionary;
+
+        private readonly LinkedList<int> usageQueue;
 
         private readonly IFSTOutput<T> outputType;
 
+        private IPersistentStorage storage;
+
+        private int maxWordSize;
+
+        private StateWithTransitions[] tempState;
+
+        private string previousWord;
+
+        private byte[] writeBuffer;
+
+        private FSTBuilderStat stat;
+        #endregion
+
         public FSTBuilder(IFSTOutput<T> outputType)
+            : this(outputType, 65000, new MemoryStorage())
+        { }
+
+        public FSTBuilder(IFSTOutput<T> outputType, int cacheSize, IPersistentStorage storage)
         {
-            this.minimalTransducerStatesDictionary = new Dictionary<int, List<StateWithTransitions>>();
+            if (outputType == null)
+            {
+                throw new ArgumentNullException(nameof(outputType));
+            }
+            if (storage == null)
+            {
+                throw new ArgumentNullException(nameof(storage));
+            }
+            if (storage.Length != 0)
+            {
+                throw new InvalidOperationException("Storage is not empty");
+            }
+
+            this.frozenStates = new Dictionary<int, StateWithTransitions>();
+            this.minimalTransducerStatesDictionary = new Dictionary<int, List<LinkedListNode<int>>>();
+            this.usageQueue = new LinkedList<int>();
+            this.minimizedStateCacheSize = cacheSize;
             this.outputType = outputType;
+            this.storage = storage;
+            this.writeBuffer = new byte[4096];
         }
 
         private class StateWithTransitions
@@ -52,9 +97,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             public int Id { get; private set; }
 
-            public bool IsFinal { get; set; }
+            // When state is fronzen. Offset in the output file.
+            public long Offset { get; set; }
 
             public bool IsFronzen { get; set; }
+
+            public bool IsFinal { get; set; }
 
             public List<Transition> Arcs { get; private set; }
 
@@ -62,6 +110,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
             {
                 Id = Interlocked.Increment(ref NextId);
                 IsFronzen = false;
+                Offset = 0;
+
                 IsFinal = false;
                 Arcs = new List<Transition>();
             }
@@ -72,7 +122,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 for (int i = 0; i < Arcs.Count; ++i)
                 {
                     result = HashCombine.Combine(result,
-                                                 Arcs[i].To.Id.GetHashCode(),
+                                                 Arcs[i].ToId.GetHashCode(),
                                                  Arcs[i].Input.GetHashCode(),
                                                  Arcs[i].Output.GetHashCode());
                 }
@@ -92,7 +142,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     bool found = false;
                     foreach (var otherArc in other.Arcs)
                     {
-                        if (arc.To == otherArc.To &&
+                        if (arc.ToId == otherArc.ToId &&
                             arc.Input == otherArc.Input &&
                             arc.Output.Equals(otherArc.Output))
                         {
@@ -112,7 +162,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private struct Transition
         {
-            public StateWithTransitions To { get; set; }
+            public int ToId { get; set; }
+
+            public long ToOffset { get; set; }
 
             public char Input { get; set; }
 
@@ -127,35 +179,185 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return t;
         }
 
+        private StateWithTransitions FreezeState(StateWithTransitions s)
+        {
+            //TODO: Frozen state should only have toStateOffset in Arcs
+            //      therefore other type
+            var r = CopyOf(s);
+            r.IsFronzen = true;
+            r.Offset = WriteState(r);
+            frozenStates.Add(r.Id, r);
+            return r;
+        }
+
+        private long WriteState(StateWithTransitions s)
+        {
+            if (!s.IsFronzen) throw new Exception("What?");
+
+            var startOffset = storage.Length;
+            var size = 0;
+            var ts = s.Arcs;
+
+            if (ts.Count > 0)
+            {
+                size += VarInt.GetByteSize(((uint)ts.Count << 1) | (s.IsFinal ? 1u : 0u));
+                var prev = 0;
+                for (int j = 0; j < ts.Count; ++j)
+                {
+                    var next = (int)ts[j].Input;
+                    size += VarInt.GetByteSize((uint)(next - prev));
+                    size += outputType.GetByteSize(ts[j].Output);
+                    // NOTE: All "To" states should have been written earlier. Therefore
+                    //       their offset should be smaller than start offset.
+                    //       Most of these offsets should be close to current offset.
+                    var toStateOffset = ts[j].ToOffset;
+                    if (startOffset - toStateOffset < toStateOffset)
+                    {
+                        size += VarInt.GetByteSize((ulong)(((startOffset - toStateOffset) << 1) | 0));
+                    }
+                    else
+                    {
+                        size += VarInt.GetByteSize((ulong)(((toStateOffset) << 1) | 1));
+                    }
+                    prev = next;
+                }
+            }
+            else
+            {
+                size += VarInt.GetByteSize(s.IsFinal ? 1u : 0u);
+            }
+
+            var toWrite = size;
+            var writeIndex = 0;
+
+            if (outputType.MaxByteSize() > 64)
+            {
+                toWrite += VarInt.GetByteSize((ulong)size);
+            }
+
+            if (toWrite > writeBuffer.Length)
+            {
+                writeBuffer = new byte[((4095 + toWrite) / 4096) * 4096];
+            }
+
+            if (outputType.MaxByteSize() > 64)
+            {
+                // TODO: This is not required, but makes it easier to read state.
+                //       can reduce size of FST by ~10%
+                writeIndex += VarInt.WriteVInt32(size, writeBuffer, writeIndex);
+            }
+
+            if (ts.Count > 0)
+            {
+                writeIndex += VarInt.WriteVInt32((ts.Count << 1) | (s.IsFinal ? 1 : 0), writeBuffer, writeIndex);
+                var prev = 0;
+                for (int j = 0; j < ts.Count; ++j)
+                {
+                    var toStateOffset = ts[j].ToOffset;
+                    if (toStateOffset <= 0) throw new Exception("What?");
+
+                    var next = (int)ts[j].Input;
+                    writeIndex += VarInt.WriteVInt32((next - prev), writeBuffer, writeIndex);
+                    writeIndex += outputType.WriteTo(ts[j].Output, writeBuffer, writeIndex);
+                    if (startOffset - toStateOffset < toStateOffset)
+                    {
+                        writeIndex += VarInt.WriteVInt64(((startOffset - toStateOffset) << 1) | 0, writeBuffer, writeIndex);
+                    }
+                    else
+                    {
+                        writeIndex += VarInt.WriteVInt64(((toStateOffset) << 1) | 1, writeBuffer, writeIndex);
+                    }
+                    prev = next;
+                }
+            }
+            else
+            {
+                writeIndex += VarInt.WriteVInt32(s.IsFinal ? 1 : 0, writeBuffer, writeIndex);
+            }
+
+            if (writeIndex != toWrite)
+            {
+                throw new Exception($"What is going on? {writeIndex} != {toWrite}");
+            }
+
+            storage.WriteAll(startOffset, writeBuffer, 0, toWrite);
+            stat.States++;
+            return startOffset;
+        }
+
         private StateWithTransitions FindMinimized(StateWithTransitions s)
         {
             bool minimize = true;
             if (!minimize)
             {
-                var r = CopyOf(s);
-                r.IsFronzen = true;
+                var r = FreezeState(s);
                 return r;
             }
             else
             {
-                var h = s.GetDedupHash();
-                if (!minimalTransducerStatesDictionary.TryGetValue(h, out var l))
-                {
-                    l = new List<StateWithTransitions>();
-                    minimalTransducerStatesDictionary.Add(h, l);
-                }
+                var dedupHash = s.GetDedupHash();
 
-                for (int i = 0; i < l.Count; ++i)
+                // Try get cached state
                 {
-                    if (l[i].IsEquivalent(s))
+                    if (!minimalTransducerStatesDictionary.TryGetValue(dedupHash, out var statesWithSameHash))
                     {
-                        return l[i];
+                        statesWithSameHash = new List<LinkedListNode<int>>();
+                        minimalTransducerStatesDictionary.Add(dedupHash, statesWithSameHash);
+                    }
+
+                    for (int i = 0; i < statesWithSameHash.Count; ++i)
+                    {
+                        var frozenState = frozenStates[statesWithSameHash[i].Value];
+                        if (frozenState.IsEquivalent(s))
+                        {
+                            usageQueue.Remove(statesWithSameHash[i]);
+                            usageQueue.AddFirst(statesWithSameHash[i]);
+                            return frozenState;
+                        }
                     }
                 }
 
-                var r = CopyOf(s);
-                r.IsFronzen = true;
-                l.Add(r);
+                // Clean cache
+                if (usageQueue.Count >= minimizedStateCacheSize)
+                {
+                    while (usageQueue.Count >= 1 + (0.75 * minimizedStateCacheSize)) // Clear 20% of cache
+                    {
+                        var last = usageQueue.Last;
+                        var frozenState = frozenStates[last.Value];
+                        var lastHash = frozenState.GetDedupHash();
+
+                        if (!minimalTransducerStatesDictionary.TryGetValue(lastHash, out var listToRemove))
+                        {
+                            throw new Exception();
+                        }
+
+                        if (!listToRemove.Remove(last))
+                        {
+                            throw new Exception();
+                        }
+
+                        if (listToRemove.Count == 0)
+                        {
+                            minimalTransducerStatesDictionary.Remove(lastHash);
+                        }
+
+                        frozenStates.Remove(last.Value);
+                        usageQueue.RemoveLast();
+                    }
+                }
+
+                var r = FreezeState(s);
+
+                // Create new frozen state and cache it
+                {
+                    if (!minimalTransducerStatesDictionary.TryGetValue(dedupHash, out var listToAdd))
+                    {
+                        listToAdd = new List<LinkedListNode<int>>();
+                        minimalTransducerStatesDictionary.Add(dedupHash, listToAdd);
+                    }
+                    listToAdd.Add(usageQueue.AddFirst(r.Id));
+                }
+
                 return r;
             }
         }
@@ -168,12 +370,24 @@ namespace Protsyk.PMS.FullText.Core.Automata
             {
                 if (from.Arcs[i].Input == c)
                 {
-                    from.Arcs[i] = new Transition { Output = from.Arcs[i].Output, Input = c, To = to };
+                    from.Arcs[i] = new Transition
+                    {
+                        Output = from.Arcs[i].Output,
+                        Input = c,
+                        ToId = to.Id,
+                        ToOffset = to.Offset
+                    };
                     return;
                 }
             }
 
-            from.Arcs.Add(new Transition { Output = outputType.Zero(), Input = c, To = to });
+            from.Arcs.Add(new Transition
+            {
+                Output = outputType.Zero(),
+                Input = c,
+                ToId = to.Id,
+                ToOffset = to.Offset
+            });
         }
 
         private static T GetOutput(StateWithTransitions from, char c)
@@ -200,7 +414,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     {
                         Output = output,
                         Input = from.Arcs[i].Input,
-                        To = from.Arcs[i].To
+                        ToId = from.Arcs[i].ToId,
+                        ToOffset = from.Arcs[i].ToOffset
                     };
                     return;
                 }
@@ -218,7 +433,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 {
                     Output = outputType.Sum(from.Arcs[i].Output, output),
                     Input = from.Arcs[i].Input,
-                    To = from.Arcs[i].To
+                    ToId = from.Arcs[i].ToId,
+                    ToOffset = from.Arcs[i].ToOffset
                 };
             }
         }
@@ -231,63 +447,6 @@ namespace Protsyk.PMS.FullText.Core.Automata
             s.Arcs.Clear();
         }
 
-        private void Print(StateWithTransitions initial)
-        {
-            var visited = new HashSet<StateWithTransitions>();
-            visited.Add(initial);
-            Print(initial, visited);
-        }
-
-        private void Print(StateWithTransitions s, HashSet<StateWithTransitions> v)
-        {
-            foreach (var arc in s.Arcs)
-            {
-                Console.WriteLine(s.Id + " --- " + arc.Input + ((!arc.Output.Equals(outputType.Zero())) ? $"({arc.Output})" : "") + " --> " + arc.To.Id + (arc.To.IsFinal ? " (F)" : ""));
-            }
-
-            foreach (var arc in s.Arcs)
-            {
-                if (!v.Contains(arc.To))
-                {
-                    v.Add(arc.To);
-                    Print(arc.To, v);
-                }
-            }
-        }
-
-        private static void Build(FST<T> output, StateWithTransitions s, Dictionary<int, int> map, HashSet<StateWithTransitions> visited)
-        {
-            if (!s.IsFronzen) throw new Exception("What? What are you doing? This state can still change");
-
-            if (!map.TryGetValue(s.Id, out var fromFstState))
-            {
-                fromFstState = output.AddState().Id;
-                output.SetFinal(fromFstState, s.IsFinal);
-                map.Add(s.Id, fromFstState);
-            }
-
-            foreach (var arc in s.Arcs.OrderBy(a => a.Input))
-            {
-                if (!map.TryGetValue(arc.To.Id, out var toFstState))
-                {
-                    toFstState = output.AddState().Id;
-                    output.SetFinal(toFstState, arc.To.IsFinal);
-                    map.Add(arc.To.Id, toFstState);
-                }
-
-                output.AddTransition(fromFstState, arc.Input, toFstState, arc.Output);
-            }
-
-            foreach (var arc in s.Arcs)
-            {
-                if (!visited.Contains(arc.To))
-                {
-                    visited.Add(arc.To);
-                    Build(output, arc.To, map, visited);
-                }
-            }
-        }
-
         private static void SetFinal(StateWithTransitions s)
         {
             if (s.IsFronzen) throw new Exception("What?");
@@ -297,87 +456,121 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public FST<T> FromList(string[] inputs, T[] outputs)
         {
-            var maxWordSize = 1 + inputs.Max(x => x.Length);
-            var tempState = new StateWithTransitions[maxWordSize];
+            Begin();
+            for (int j = 0; j < inputs.Length; ++j)
+            {
+                Add(inputs[j], outputs[j]);
+            }
+            End();
+
+            var data = new byte[storage.Length];
+            storage.ReadAll(0, data, 0, data.Length);
+            return FST<T>.FromBytesCompressed(data, outputType);
+        }
+
+        public void Begin()
+        {
+            stat = new FSTBuilderStat();
+            maxWordSize = InitialWordSize;
+            tempState = new StateWithTransitions[maxWordSize];
             for (int i = 0; i < maxWordSize; ++i)
             {
                 tempState[i] = new StateWithTransitions();
             }
-            var previousWord = string.Empty;
-            var currentWord = default(string);
-            for (int j = 0; j < inputs.Length; ++j)
+            previousWord = string.Empty;
+            UpdateHeader(long.MinValue, stat);
+        }
+
+        public void Add(string currentWord, T currentOutput)
+        {
+            if (currentWord.Length + 1 > tempState.Length)
             {
-                currentWord = inputs[j];
-
-                if (System.StringComparer.Ordinal.Compare(currentWord, previousWord) <= 0)
+                var newTemp = new StateWithTransitions[currentWord.Length + 1];
+                for (int i = 0; i < maxWordSize; ++i)
                 {
-                    throw new Exception($"Input should be ordered and each item should be unique");
+                    newTemp[i] = tempState[i];
                 }
-
-                var currentOutput = outputs[j];
-                var prefixLengthPlusOne = 1 + Utils.LCP(previousWord, currentWord);
-
-                if (prefixLengthPlusOne == 1 + currentWord.Length)
+                for (int i = maxWordSize; i < newTemp.Length; ++i)
                 {
-                    throw new Exception($"Duplicate input {currentWord}");
+                    newTemp[i] = new StateWithTransitions();
                 }
-
-                // Minimize the states from suffix of the previous word
-                for (int i = previousWord.Length; i >= prefixLengthPlusOne; --i)
-                {
-                    SetTransition(tempState[i - 1],
-                                  previousWord[i - 1],
-                                  FindMinimized(tempState[i]));
-                }
-
-                // Initialize tail the states for the current word
-                for (int i = prefixLengthPlusOne; i < currentWord.Length + 1; ++i)
-                {
-                    ClearState(tempState[i]);
-                    SetTransition(tempState[i - 1],
-                                  currentWord[i - 1],
-                                  tempState[i]);
-                }
-
-                SetFinal(tempState[currentWord.Length]);
-
-                // Set outputs
-                for (int i = 1; i < prefixLengthPlusOne; ++i)
-                {
-                    var output = GetOutput(tempState[i - 1], currentWord[i - 1]);
-                    if (tempState[i].IsFinal)
-                    {
-                        currentOutput = outputType.Sub(currentOutput, output);
-                    }
-                    else
-                    {
-                        var commonOutput = outputType.Min(output, currentOutput);
-                        if (!commonOutput.Equals(output))
-                        {
-                            var suffixOutput = outputType.Sub(output, commonOutput);
-                            SetOutput(tempState[i - 1], currentWord[i - 1], commonOutput);
-                            if (!suffixOutput.Equals(outputType.Zero()))
-                            {
-                                if (tempState[i].IsFinal || tempState[i].Arcs.Count == 0)
-                                {
-                                    throw new Exception($"What? {previousWord}->{outputs[j-1]} {currentWord}->{outputs[j]}");
-                                }
-                                else
-                                {
-                                    PropagateOutput(tempState[i], suffixOutput, outputType);
-                                }
-                            }
-                        }
-                        currentOutput = outputType.Sub(currentOutput, commonOutput);
-                    }
-                }
-
-                SetOutput(tempState[prefixLengthPlusOne - 1], currentWord[prefixLengthPlusOne - 1], currentOutput);
-
-                previousWord = currentWord;
+                maxWordSize = currentWord.Length;
+                tempState = newTemp;
             }
 
-            for (int i = currentWord.Length; i > 0; --i)
+            if (StringComparer.Ordinal.Compare(currentWord, previousWord) <= 0)
+            {
+                throw new Exception($"Input should be ordered and each item should be unique: {previousWord} < {currentWord}");
+            }
+
+            var prefixLengthPlusOne = 1 + Utils.LCP(previousWord, currentWord);
+
+            if (prefixLengthPlusOne == 1 + currentWord.Length)
+            {
+                throw new Exception($"Duplicate input {currentWord}");
+            }
+
+            // Minimize states from the suffix of the previous word
+            for (int i = previousWord.Length; i >= prefixLengthPlusOne; --i)
+            {
+                SetTransition(tempState[i - 1],
+                              previousWord[i - 1],
+                              FindMinimized(tempState[i]));
+            }
+
+            // Initialize tail states for the current word
+            for (int i = prefixLengthPlusOne; i < currentWord.Length + 1; ++i)
+            {
+                ClearState(tempState[i]);
+                SetTransition(tempState[i - 1],
+                              currentWord[i - 1],
+                              tempState[i]);
+            }
+
+            SetFinal(tempState[currentWord.Length]);
+
+            // Set outputs
+            for (int i = 1; i < prefixLengthPlusOne; ++i)
+            {
+                var output = GetOutput(tempState[i - 1], currentWord[i - 1]);
+                if (tempState[i].IsFinal)
+                {
+                    currentOutput = outputType.Sub(currentOutput, output);
+                }
+                else
+                {
+                    var commonOutput = outputType.Min(output, currentOutput);
+                    if (!commonOutput.Equals(output))
+                    {
+                        var suffixOutput = outputType.Sub(output, commonOutput);
+                        SetOutput(tempState[i - 1], currentWord[i - 1], commonOutput);
+                        if (!suffixOutput.Equals(outputType.Zero()))
+                        {
+                            if (tempState[i].IsFinal || tempState[i].Arcs.Count == 0)
+                            {
+                                throw new Exception($"Unexpected final state");
+                            }
+                            else
+                            {
+                                PropagateOutput(tempState[i], suffixOutput, outputType);
+                            }
+                        }
+                    }
+                    currentOutput = outputType.Sub(currentOutput, commonOutput);
+                }
+            }
+
+            SetOutput(tempState[prefixLengthPlusOne - 1], currentWord[prefixLengthPlusOne - 1], currentOutput);
+
+            previousWord = currentWord;
+
+            stat.MaxLength = Math.Max(stat.MaxLength, currentWord.Length);
+            stat.TermCount++;
+        }
+
+        public void End()
+        {
+            for (int i = previousWord.Length; i > 0; --i)
             {
                 SetTransition(tempState[i - 1],
                               previousWord[i - 1],
@@ -385,20 +578,44 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
 
             var initial = FindMinimized(tempState[0]);
+            UpdateHeader(initial.Offset, stat);
+        }
 
-            // Reorder states, states that have more incoming transitions should have smaller ids
-            // see FromBytesCompressed
-            var result = new FST<T>(outputType);
-            result.Initial = result.AddState().Id;
-            var map = new Dictionary<int, int>();
-            map.Add(initial.Id, result.Initial);
-            var visited = new HashSet<StateWithTransitions>();
-            visited.Add(initial);
-            Build(result, initial, map, visited);
+        private void UpdateHeader(long initialOffset, FSTBuilderStat stat)
+        {
+            var data = new byte[64];
+            data[0] = (byte)'F';
+            data[1] = (byte)'S';
+            data[2] = (byte)'T';
+            data[3] = (byte)'-';
+            data[4] = (byte)'0';
+            data[5] = (byte)'2';
+            data[6] = (byte)'S'; // Compressed Stream
 
-            // Print(initial);
+            int offset = 7;
 
-            return result;
+            Array.Copy(BitConverter.GetBytes(initialOffset), 0, data, offset, sizeof(long));
+            offset += sizeof(long);
+
+            Array.Copy(BitConverter.GetBytes(stat.States), 0, data, offset, sizeof(long));
+            offset += sizeof(long);
+
+            Array.Copy(BitConverter.GetBytes(stat.TermCount), 0, data, offset, sizeof(long));
+            offset += sizeof(long);
+
+            Array.Copy(BitConverter.GetBytes(stat.MaxLength), 0, data, offset, sizeof(int));
+            offset += sizeof(int);
+
+            storage.WriteAll(0, data, 0, data.Length);
+        }
+
+        public void Dispose()
+        {
+            if (storage != null)
+            {
+                storage.Dispose();
+                storage = null;
+            }
         }
     }
 
@@ -415,6 +632,361 @@ namespace Protsyk.PMS.FullText.Core.Automata
         void AddTransition(int fromId, char c, int toId, T output);
 
         void SetFinal(int stateId, bool isFinal);
+    }
+
+    public class FSTBuilderStat
+    {
+        public long TermCount { get; set; }
+
+        public int MaxLength { get; set; }
+
+        public long States { get; set; }
+    }
+
+    public class PersistentFST<T> : IDisposable
+    {
+        #region Fields
+        private const int readAheadSize = 128;
+
+        private const int readCacheSize = 32000;
+
+        private static readonly int MaxSizeV32 = VarInt.GetByteSize(uint.MaxValue);
+
+        private static readonly int MaxSizeV64 = VarInt.GetByteSize(ulong.MaxValue);
+
+        private readonly IFSTOutput<T> outputType;
+
+        private IPersistentStorage storage;
+
+        private readonly long initial;
+
+        private byte[] stateData;
+
+        private long readOffset;
+
+        private int readSize;
+
+        private readonly Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>> cache = new Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>>();
+
+        private readonly LinkedList<(bool, ArcOffset<T>[], long)> cacheOrder = new LinkedList<(bool, ArcOffset<T>[], long)>();
+        #endregion
+
+        #region Properties
+        public IFSTOutput<T> OutputType => outputType;
+
+        public FSTBuilderStat Header { get; set; }
+        #endregion
+
+        #region Methods
+        public PersistentFST(IFSTOutput<T> outputType, IPersistentStorage storage)
+        {
+            if (outputType == null)
+            {
+                throw new ArgumentNullException(nameof(outputType));
+            }
+            if (storage == null)
+            {
+                throw new ArgumentNullException(nameof(storage));
+            }
+            if (storage.Length == 0)
+            {
+                throw new InvalidOperationException("Storage is empty");
+            }
+
+            this.outputType = outputType;
+            this.storage = storage;
+            this.stateData = new byte[readAheadSize];
+            this.initial = ReadHeader(storage);
+        }
+
+        private long ReadHeader(IPersistentStorage storage)
+        {
+            var data = new byte[7 + sizeof(long)];
+            storage.ReadAll(0, data, 0, data.Length);
+
+            if ((data[0] != (byte)'F') ||
+                (data[1] != (byte)'S') ||
+                (data[2] != (byte)'T') ||
+                (data[3] != (byte)'-') ||
+                (data[4] != (byte)'0') ||
+                ((data[5] != (byte)'1') && (data[5] != (byte)'2')) ||
+                (data[6] != (byte)'S'))
+            {
+                throw new Exception("Wrong header");
+            }
+
+            if (data[5] == (byte)'2')
+            {
+                data = new byte[64];
+                storage.ReadAll(0, data, 0, data.Length);
+
+                Header = new FSTBuilderStat
+                {
+                    States = BitConverter.ToInt64(data, 15),
+                    TermCount = BitConverter.ToInt64(data, 23),
+                    MaxLength = BitConverter.ToInt32(data, 31),
+                };
+            }
+
+            return BitConverter.ToInt64(data, 7);
+        }
+
+        private void Ensure(long offset, int size)
+        {
+            if (offset >= readOffset && offset <= (readOffset + readSize) && (offset + size) <= (readOffset + readSize))
+            {
+                // Have this data in buffer
+                return;
+            }
+
+            if (size > stateData.Length)
+            {
+                stateData = new byte[size];
+            }
+
+            readOffset = offset;
+            readSize = storage.Read(offset, stateData, 0, Math.Max(size, readAheadSize));
+            if (readSize == 0)
+            {
+                throw new Exception("What?");
+            }
+        }
+
+        private (bool isFinal, ArcOffset<T>[] arcs) ReadState(long offset)
+        {
+            if (cache.TryGetValue(offset, out var cached))
+            {
+                if (cacheOrder.First != cached)
+                {
+                    cacheOrder.Remove(cached);
+                    cacheOrder.AddFirst(cached);
+                }
+                return (cached.Value.Item1, cached.Value.Item2);
+            }
+
+            Ensure(offset, readAheadSize);
+
+            var readIndex = 0;
+            var hasSize = false;
+            if (outputType.MaxByteSize() > 64)
+            {
+                readIndex += VarInt.ReadVInt32(stateData, 0, out int size);
+                if (size == 0)
+                {
+                    throw new Exception("Incorrect size. Maybe in-memory format");
+                }
+                Ensure(offset, readIndex + size);
+                hasSize = true;
+            }
+
+            Ensure(offset, readIndex + MaxSizeV32);
+            readIndex += VarInt.ReadVInt32(stateData, readIndex, out var v);
+            bool isFinal = ((v & 1) == 1);
+
+            int tsCount = (int)(v >> 1);
+            if (tsCount == 0)
+            {
+                return (isFinal, null);
+            }
+
+            var arcs = new ArcOffset<T>[tsCount];
+            if (tsCount > 0)
+            {
+                int prev = 0;
+                if (!hasSize)
+                {
+                    //NOTE: Guess how many bytes to read ahead for a better performance. Nothing more
+                    Ensure(offset, readIndex + 2 * tsCount * MaxSizeV32);
+                }
+
+                for (int i = 0; i < tsCount; ++i)
+                {
+                    if (!hasSize) Ensure(offset, readIndex + MaxSizeV32);
+                    readIndex += VarInt.ReadVInt32(stateData, readIndex, out var input);
+
+                    if (!hasSize) Ensure(offset, readIndex + outputType.MaxByteSize());
+                    readIndex += outputType.ReadFrom(stateData, readIndex, out var output);
+
+                    if (!hasSize) Ensure(offset, readIndex + MaxSizeV64);
+                    readIndex += VarInt.ReadVInt64(stateData, readIndex, out var toOffset);
+
+                    prev = (int)(input + prev);
+
+                    if ((toOffset & 1) == 1)
+                    {
+                        toOffset >>= 1;
+                    }
+                    else
+                    {
+                        toOffset = offset - (toOffset >> 1);
+                    }
+
+                    if (toOffset >= offset || offset < 0)
+                    {
+                        throw new Exception("We look only backwards by construction");
+                    }
+
+                    var arc = new ArcOffset<T>
+                    {
+                        Input = (char)(prev),
+                        ToOffset = toOffset,
+                        Output = output
+                    };
+                    arcs[i] = arc;
+                }
+            }
+
+            while (cache.Count >= readCacheSize)
+            {
+                cache.Remove(cacheOrder.Last.Value.Item3);
+                cacheOrder.RemoveLast();
+            }
+            cache.Add(offset, cacheOrder.AddFirst((isFinal, arcs, offset)));
+
+            return (isFinal, arcs);
+        }
+        #endregion
+
+        #region IFST
+        public bool TryMatch(IEnumerable<char> input, out T value)
+        {
+            var v = outputType.Zero();
+            var (isFinal, arcs) = ReadState(initial);
+            foreach (var c in input)
+            {
+                if (TryMove(arcs, c, out var toOffset, out var o))
+                {
+                    (isFinal, arcs) = ReadState(toOffset);
+                    v = outputType.Sum(v, o);
+                }
+                else
+                {
+                    value = outputType.Zero();
+                    return false;
+                }
+            }
+
+            value = v;
+            return isFinal;
+        }
+
+        public bool TryMove(ArcOffset<T>[] ts, char c, out long toOffset, out T o)
+        {
+            if (ts != null)
+            {
+                if (ts.Length < 8)
+                {
+                    foreach (var t in ts)
+                    {
+                        if (t.Input == c)
+                        {
+                            toOffset = t.ToOffset;
+                            o = t.Output;
+                            return true;
+                        }
+                    }
+                }
+                else
+                {
+                    var a = 0;
+                    var b = ts.Length;
+                    while (a != b)
+                    {
+                        var mid = (a + b) >> 1;
+                        var s = ts[mid];
+                        if (s.Input > c)
+                        {
+                            b = mid;
+                        }
+                        else if (s.Input < c)
+                        {
+                            a = mid;
+                        }
+                        else
+                        {
+                            toOffset = s.ToOffset;
+                            o = s.Output;
+                            return true;
+                        }
+                    }
+                }
+            }
+
+            toOffset = -1;
+            o = default(T);
+            return false;
+        }
+
+        public IEnumerable<string> Match(IDfaMatcher<char> matcher)
+        {
+            var stack = new Stack<ValueTuple<int, long, char>>();
+            var prefix = new List<char>();
+            stack.Push(new ValueTuple<int, long, char>(0, initial, '\0'));
+
+            while (stack.Count > 0)
+            {
+                var (ac, stateOffset, ch) = stack.Pop();
+
+                if (ac == 0)
+                {
+                    var (isFinal, ts) = ReadState(stateOffset);
+
+                    if (isFinal && matcher.IsFinal())
+                    {
+                        yield return new string(prefix.ToArray());
+                    }
+
+                    if (ts != null)
+                    {
+                        // Enumerate transitions in the reverse order because actions in
+                        // stack will reverse them again.
+                        for (int i = ts.Length - 1; i >= 0; --i)
+                        {
+                            var t = ts[i];
+                            if (matcher.Next(t.Input))
+                            {
+                                matcher.Pop();
+
+                                // Reverse order of actions
+                                // 1 - Add to prefix
+                                // 0 - Go to the state
+                                // 2 - Remove from prefix
+                                stack.Push(new ValueTuple<int, long, char>(2, 0, '\0'));
+                                stack.Push(new ValueTuple<int, long, char>(0, t.ToOffset, '\0'));
+                                stack.Push(new ValueTuple<int, long, char>(1, 0, t.Input));
+                            }
+                        }
+                    }
+                }
+                else if (ac == 1)
+                {
+                    prefix.Add(ch);
+                    if (!matcher.Next(ch))
+                    {
+                        throw new Exception("What?");
+                    }
+                }
+                else if (ac == 2)
+                {
+                    prefix.RemoveAt(prefix.Count - 1);
+                    matcher.Pop();
+                }
+                else
+                {
+                    throw new Exception("What?");
+                }
+            }
+        }
+
+        public void Dispose()
+        {
+            if (storage != null)
+            {
+                storage.Dispose();
+                storage = null;
+            }
+        }
+        #endregion
     }
 
     public class FST<T> : IFST<T>
@@ -458,7 +1030,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     foreach (var t in ts)
                     {
                         size += Numeric.GetByteSize(t.Input) +
-                                Numeric.GetByteSize(t.To) + 
+                                Numeric.GetByteSize(t.To) +
                                 outputType.GetByteSize(t.Output);
                     }
                 }
@@ -534,10 +1106,17 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public byte[] GetBytesCompressed()
         {
-            var size = 0;
-            size += VarInt.GetByteSize((uint)Initial);
+            var names = new Dictionary<int, long>();
+
+            var size = 7 + sizeof(long);
             for (int i = 0; i < states.Count; ++i)
             {
+                var startOffset = size;
+                names.Add(states[i].Id, startOffset);
+                if (outputType.MaxByteSize() > 64)
+                {
+                    size += VarInt.GetByteSize(0u);
+                }
                 if (trans.TryGetValue(states[i].Id, out var ts) && (ts.Count > 0))
                 {
                     size += VarInt.GetByteSize(((uint)ts.Count << 1) | (IsFinal(states[i].Id) ? 1u : 0u));
@@ -547,7 +1126,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
                         var next = (int)ts[j].Input;
                         size += VarInt.GetByteSize((uint)(next - prev));
                         size += outputType.GetByteSize(ts[j].Output);
-                        size += VarInt.GetByteSize((uint)ts[j].To);
+                        var toOffset = names[ts[j].To];
+                        if (startOffset - toOffset < toOffset)
+                        {
+                            size += VarInt.GetByteSize((ulong)(((startOffset - toOffset) << 1) | 0));
+                        }
+                        else
+                        {
+                            size += VarInt.GetByteSize((ulong)(((toOffset) << 1) | 1));
+                        }
                         prev = next;
                     }
                 }
@@ -558,10 +1145,23 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
 
             var result = new byte[size];
-            var writeIndex = 0;
-            writeIndex += VarInt.WriteVInt32(Initial, result, writeIndex);
+            result[0] = (byte)'F';
+            result[1] = (byte)'S';
+            result[2] = (byte)'T';
+            result[3] = (byte)'-';
+            result[4] = (byte)'0';
+            result[5] = (byte)'1';
+            result[6] = (byte)'M'; // This format is slightly different from S, for large output types node size is always zero
+            Array.Copy(BitConverter.GetBytes(names[Initial]), 0, result, 7, sizeof(long));
+            var writeIndex = 7 + sizeof(long);
+
             for (int i = 0; i < states.Count; ++i)
             {
+                var startOffset = names[states[i].Id];
+                if (outputType.MaxByteSize() > 64)
+                {
+                    writeIndex += VarInt.WriteVInt32(0, result, writeIndex);
+                }
                 if (trans.TryGetValue(states[i].Id, out var ts) && (ts.Count > 0))
                 {
                     writeIndex += VarInt.WriteVInt32((ts.Count << 1) | (IsFinal(states[i].Id) ? 1 : 0), result, writeIndex);
@@ -571,7 +1171,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
                         var next = (int)ts[j].Input;
                         writeIndex += VarInt.WriteVInt32((next - prev), result, writeIndex);
                         writeIndex += outputType.WriteTo(ts[j].Output, result, writeIndex);
-                        writeIndex += VarInt.WriteVInt32(ts[j].To, result, writeIndex);
+                        var toOffset = names[ts[j].To];
+                        if (startOffset - toOffset < toOffset)
+                        {
+                            writeIndex += VarInt.WriteVInt64(((startOffset - toOffset) << 1) | 0, result, writeIndex);
+                        }
+                        else
+                        {
+                            writeIndex += VarInt.WriteVInt64(((toOffset) << 1) | 1, result, writeIndex);
+                        }
                         prev = next;
                     }
                 }
@@ -589,24 +1197,86 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public static FST<T> FromBytesCompressed(byte[] data, IFSTOutput<T> outputType)
         {
+            var names = new Dictionary<long, int>(); // Maps offset to state id;
             var fst = new FST<T>(outputType);
             var readIndex = 0;
-            var sId = 0;
-            readIndex += VarInt.ReadVInt32(data, readIndex, out var initial);
-            fst.Initial = (int)initial;
+
+            if ((data[0] != (byte)'F') ||
+                (data[1] != (byte)'S') ||
+                (data[2] != (byte)'T') ||
+                (data[3] != (byte)'-') ||
+                (data[4] != (byte)'0') ||
+                ((data[5] != (byte)'1') && (data[5] != (byte)'2')) ||
+                ((data[6] != (byte)'S') && (data[6] != (byte)'M')))
+            {
+                throw new Exception("Wrong header");
+            }
+            readIndex += 7;
+
+            var initialOffset = BitConverter.ToInt64(data, readIndex);
+            readIndex += sizeof(long);
+
+            if (data[5] == (byte)'2')
+            {
+                readIndex = 64;
+            }
+
+            // First cycle - create states
+            var temp = readIndex;
+            var stateList = new List<int>();
+
             while (readIndex != data.Length)
             {
-                readIndex += VarInt.ReadVInt32(data, readIndex, out var v);
+                var sOffset = readIndex;
                 var s = fst.AddState();
-                if (s.Id != sId)
+                names.Add(sOffset, s.Id);
+                stateList.Add(s.Id);
+
+                if (outputType.MaxByteSize() > 64)
                 {
-                    throw new Exception("Read error");
+                    readIndex += VarInt.ReadVInt32(data, readIndex, out var nodeSize);
                 }
 
+                readIndex += VarInt.ReadVInt32(data, readIndex, out var v);
                 if ((v & 1) == 1)
                 {
-                    fst.SetFinal(sId, true);
+                    fst.SetFinal(s.Id, true);
                 }
+
+                int tsCount = (int)(v >> 1);
+                if (tsCount > 0)
+                {
+                    for (int i = 0; i < tsCount; ++i)
+                    {
+                        readIndex += VarInt.ReadVInt32(data, readIndex, out var input);
+                        readIndex += outputType.ReadFrom(data, readIndex, out var output);
+                        readIndex += VarInt.ReadVInt64(data, readIndex, out var toOffset);
+
+                        if ((toOffset & 1) == 1)
+                        {
+                            toOffset >>= 1;
+                        }
+                        else
+                        {
+                            toOffset = sOffset - (toOffset >> 1);
+                        }
+                    }
+                }
+            }
+
+            // First cycle - create transitions
+            readIndex = temp;
+            var stateIndex = 0;
+            while (readIndex != data.Length)
+            {
+                var sOffset = readIndex;
+
+                if (outputType.MaxByteSize() > 64)
+                {
+                    readIndex += VarInt.ReadVInt32(data, readIndex, out var nodeSize);
+                }
+
+                readIndex += VarInt.ReadVInt32(data, readIndex, out var v);
 
                 int tsCount = (int)(v >> 1);
                 if (tsCount > 0)
@@ -616,15 +1286,27 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     {
                         readIndex += VarInt.ReadVInt32(data, readIndex, out var input);
                         readIndex += outputType.ReadFrom(data, readIndex, out var output);
-                        readIndex += VarInt.ReadVInt32(data, readIndex, out var toId);
+                        readIndex += VarInt.ReadVInt64(data, readIndex, out var toOffset);
 
-                        fst.AddTransition(sId, (char)(input + prev), toId, output);
+                        if ((toOffset & 1) == 1)
+                        {
+                            toOffset >>= 1;
+                        }
+                        else
+                        {
+                            toOffset = sOffset - (toOffset >> 1);
+                        }
+
+                        fst.AddTransition(stateList[stateIndex], (char)(input + prev), names[toOffset], output);
                         prev = (int)(input + prev);
                     }
                 }
 
-                ++sId;
+                ++stateIndex;
             }
+
+            fst.Initial = names[initialOffset];
+
             return fst;
         }
         #endregion
@@ -725,7 +1407,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return false;
         }
 
-        public IEnumerable<IEnumerable<char>> Match(IDfaMatcher<char> matcher)
+        public IEnumerable<string> Match(IDfaMatcher<char> matcher)
         {
             var result = new List<string>();
             var prefix = new List<char>();
@@ -812,6 +1494,33 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
+    public struct ArcOffset<T> : IEquatable<ArcOffset<T>>
+    {
+        public long ToOffset { get; set; }
+
+        public char Input { get; set; }
+
+        public T Output { get; set; }
+
+        public override int GetHashCode()
+        {
+            return HashCombine.Combine(ToOffset.GetHashCode(), Input.GetHashCode(), Output.GetHashCode());
+        }
+
+        public bool Equals(ArcOffset<T> other)
+        {
+            return ToOffset.Equals(other.ToOffset) &&
+                   Input.Equals(other.Input) &&
+                   Output.Equals(other.Output);
+        }
+
+        public override bool Equals(object obj)
+        {
+            if (obj == null) return false;
+            return Equals((ArcOffset<T>)obj);
+        }
+    }
+
     public interface IFSTOutput<T>
     {
         T Zero();
@@ -824,6 +1533,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         int GetByteSize(T value);
 
+        int MaxByteSize();
+
         int ReadFrom(byte[] buffer, int startIndex, out T result);
 
         int WriteTo(T value, byte[] buffer, int startIndex);
@@ -831,7 +1542,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
     public abstract class FSTIntOutputBase : IFSTOutput<int>
     {
-        protected FSTIntOutputBase() {}
+        protected FSTIntOutputBase() { }
 
         public int Min(int a, int b) => Math.Min(a, b);
 
@@ -840,6 +1551,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
         public int Sum(int a, int b) => a + b;
 
         public int Zero() => 0;
+
+        public abstract int MaxByteSize();
 
         public abstract int GetByteSize(int value);
 
@@ -852,9 +1565,16 @@ namespace Protsyk.PMS.FullText.Core.Automata
     {
         public static readonly FSTVarIntOutput Instance = new FSTVarIntOutput();
 
+        private static int maxByteSize = VarInt.GetByteSize(uint.MaxValue);
+
         public override int GetByteSize(int value)
         {
             return VarInt.GetByteSize((uint)value);
+        }
+
+        public override int MaxByteSize()
+        {
+            return maxByteSize;
         }
 
         public override int ReadFrom(byte[] buffer, int startIndex, out int result)
@@ -877,6 +1597,11 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return Numeric.GetByteSize(value);
         }
 
+        public override int MaxByteSize()
+        {
+            return Numeric.GetByteSize(int.MaxValue);
+        }
+
         public override int ReadFrom(byte[] buffer, int startIndex, out int result)
         {
             return Numeric.ReadInt(buffer, startIndex, out result);
@@ -892,7 +1617,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
     {
         public static readonly FSTStringOutput Instance = new FSTStringOutput();
 
-        private FSTStringOutput() {}
+        private FSTStringOutput() { }
 
         public string Min(string a, string b)
         {
@@ -914,6 +1639,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public string Zero() => string.Empty;
 
+        public int MaxByteSize() => int.MaxValue;
+
         public int GetByteSize(string value)
         {
             var size = Encoding.UTF8.GetByteCount(value);
@@ -931,7 +1658,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         {
             var bytes = Encoding.UTF8.GetBytes(value);
             var size = VarInt.WriteVInt32(bytes.Length, buffer, startIndex);
-            Array.Copy(bytes, 0, buffer, startIndex+size, bytes.Length);
+            Array.Copy(bytes, 0, buffer, startIndex + size, bytes.Length);
             return size + bytes.Length;
         }
     }

@@ -41,7 +41,7 @@ namespace Protsyk.PMS.FullText.Core.Common
             return index - startIndex;
         }
 
-        public static int WriteVInt32(long value, byte[] buffer, int startIndex)
+        public static int WriteVInt64(long value, byte[] buffer, int startIndex)
         {
             return WriteVUInt64((ulong)value, buffer, startIndex);
         }
