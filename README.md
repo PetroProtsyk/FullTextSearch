@@ -98,8 +98,8 @@ Examples of queries:
 # Data Structures
 
 * Dictionary of the persistent index is implemented using either:
-** [Ternary Search Tree](http://www.protsyk.com/cms/?page_id=3004).
-** [Finite State Transducer (FST)] (http://www.protsyk.com/cms/?page_id=3017).
+    * [Ternary Search Tree](http://www.protsyk.com/cms/?page_id=3004).
+    * [Finite State Transducer (FST)](http://www.protsyk.com/cms/?page_id=3017).
 * Key-value storage for document metadata is based on persistent B-Tree implementation: [B-Tree](http://www.protsyk.com/cms/?page_id=3003).
 
 # Algorithms
