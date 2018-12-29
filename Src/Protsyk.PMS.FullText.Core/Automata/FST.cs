@@ -242,8 +242,6 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (outputType.MaxByteSize() > 64)
             {
-                // TODO: This is not required, but makes it easier to read state.
-                //       can reduce size of FST by ~10%
                 writeIndex += VarInt.WriteVInt32(size, writeBuffer, writeIndex);
             }
 
@@ -650,6 +648,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private const int readCacheSize = 32000;
 
+        private const int inMemorySize = 1024 * 1024;
+
+        private const int blockSize = 4096;
+
         private static readonly int MaxSizeV32 = VarInt.GetByteSize(uint.MaxValue);
 
         private static readonly int MaxSizeV64 = VarInt.GetByteSize(ulong.MaxValue);
@@ -657,6 +659,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
         private readonly IFSTOutput<T> outputType;
 
         private IPersistentStorage storage;
+
+        private long storageLength;
 
         private readonly long initial;
 
@@ -697,6 +701,11 @@ namespace Protsyk.PMS.FullText.Core.Automata
             this.storage = storage;
             this.stateData = new byte[readAheadSize];
             this.initial = ReadHeader(storage);
+            this.storageLength = storage.Length;
+            if (storageLength < inMemorySize)
+            {
+                Ensure(0, (int)storageLength);
+            }
         }
 
         private long ReadHeader(IPersistentStorage storage)
@@ -731,25 +740,41 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return BitConverter.ToInt64(data, 7);
         }
 
-        private void Ensure(long offset, int size)
+        private int Ensure(long offset, int size)
         {
+            if (offset > storageLength)
+            {
+                throw new Exception();
+            }
+
+            if (offset + size > storageLength)
+            {
+                size = (int)(storageLength - offset);
+            }
+
             if (offset >= readOffset && offset <= (readOffset + readSize) && (offset + size) <= (readOffset + readSize))
             {
                 // Have this data in buffer
-                return;
+                return (int)(offset - readOffset);
             }
 
-            if (size > stateData.Length)
+            var startBlock = offset / blockSize;
+            var endBlock = (offset + size + (blockSize - 1)) / blockSize;
+            var sizeAdjusted = (int)(blockSize * (endBlock - startBlock));
+
+            if (sizeAdjusted > stateData.Length)
             {
-                stateData = new byte[size];
+                stateData = new byte[sizeAdjusted];
             }
 
-            readOffset = offset;
-            readSize = storage.Read(offset, stateData, 0, Math.Max(size, readAheadSize));
+            readOffset = blockSize * startBlock;
+            readSize = storage.Read(readOffset, stateData, 0, sizeAdjusted);
             if (readSize == 0)
             {
                 throw new Exception("What?");
             }
+
+            return (int)(offset - readOffset);
         }
 
         private (bool isFinal, ArcOffset<T>[] arcs) ReadState(long offset)
@@ -764,23 +789,25 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 return (cached.Value.Item1, cached.Value.Item2);
             }
 
-            Ensure(offset, readAheadSize);
-
-            var readIndex = 0;
+            var readIndex = Ensure(offset, readAheadSize);
             var hasSize = false;
+
             if (outputType.MaxByteSize() > 64)
             {
-                readIndex += VarInt.ReadVInt32(stateData, 0, out int size);
+                var temp = VarInt.ReadVInt32(stateData, readIndex, out int size);
                 if (size == 0)
                 {
                     throw new Exception("Incorrect size. Maybe in-memory format");
                 }
-                Ensure(offset, readIndex + size);
+                readIndex = Ensure(offset + temp, size);
                 hasSize = true;
             }
+            else
+            {
+                readIndex = Ensure(offset, MaxSizeV32);
+            }
 
-            Ensure(offset, readIndex + MaxSizeV32);
-            readIndex += VarInt.ReadVInt32(stateData, readIndex, out var v);
+            var delta = VarInt.ReadVInt32(stateData, readIndex, out var v);
             bool isFinal = ((v & 1) == 1);
 
             int tsCount = (int)(v >> 1);
@@ -793,22 +820,27 @@ namespace Protsyk.PMS.FullText.Core.Automata
             if (tsCount > 0)
             {
                 int prev = 0;
-                if (!hasSize)
+                if (hasSize)
+                {
+                    //NOTE: Delta will be the index
+                    delta += readIndex;
+                }
+                else
                 {
                     //NOTE: Guess how many bytes to read ahead for a better performance. Nothing more
-                    Ensure(offset, readIndex + 2 * tsCount * MaxSizeV32);
+                    readIndex = Ensure(offset + delta, 2 * tsCount * MaxSizeV32);
                 }
 
                 for (int i = 0; i < tsCount; ++i)
                 {
-                    if (!hasSize) Ensure(offset, readIndex + MaxSizeV32);
-                    readIndex += VarInt.ReadVInt32(stateData, readIndex, out var input);
+                    readIndex = hasSize ? delta : Ensure(offset + delta, MaxSizeV32);
+                    delta += VarInt.ReadVInt32(stateData, readIndex, out var input);
 
-                    if (!hasSize) Ensure(offset, readIndex + outputType.MaxByteSize());
-                    readIndex += outputType.ReadFrom(stateData, readIndex, out var output);
+                    readIndex = hasSize ? delta : Ensure(offset + delta, outputType.MaxByteSize());
+                    delta += outputType.ReadFrom(stateData, readIndex, out var output);
 
-                    if (!hasSize) Ensure(offset, readIndex + MaxSizeV64);
-                    readIndex += VarInt.ReadVInt64(stateData, readIndex, out var toOffset);
+                    readIndex = hasSize ? delta : Ensure(offset + delta, MaxSizeV64);
+                    delta += VarInt.ReadVInt64(stateData, readIndex, out var toOffset);
 
                     prev = (int)(input + prev);
 
@@ -844,6 +876,69 @@ namespace Protsyk.PMS.FullText.Core.Automata
             cache.Add(offset, cacheOrder.AddFirst((isFinal, arcs, offset)));
 
             return (isFinal, arcs);
+        }
+
+
+        public void ToDotNotation(IPersistentStorage outputStorage)
+        {
+            var result = new StringBuilder();
+            result.AppendLine("digraph DFA {");
+            result.AppendLine("rankdir = LR;");
+            result.AppendLine("orientation = Portrait;");
+
+            var stack = new Stack<long>();
+            stack.Push(initial);
+
+            while (stack.Count > 0)
+            {
+                var stateOffset = stack.Pop();
+                var (isFinal, ts) = ReadState(stateOffset);
+
+                if (stateOffset == initial)
+                {
+                    result.AppendFormat("{0}[label = \"{0}\", shape = circle, style = bold, fontsize = 14]", stateOffset);
+                    result.AppendLine();
+                }
+                else if (isFinal)
+                {
+                    result.AppendFormat("{0}[label = \"{0}\", shape = doublecircle, style = bold, fontsize = 14]", stateOffset);
+                    result.AppendLine();
+                }
+                else
+                {
+                    result.AppendFormat("{0}[label = \"{0}\", shape = circle, style = solid, fontsize = 14]", stateOffset);
+                    result.AppendLine();
+                }
+
+                if (ts != null)
+                {
+                    // Enumerate transitions in the reverse order because actions in
+                    // stack will reverse them again.
+                    for (int i = ts.Length - 1; i >= 0; --i)
+                    {
+                        var t = ts[i];
+                        stack.Push(t.ToOffset);
+
+                        result.AppendFormat("{0}->{1} [label = \"{2} | {3}\", fontsize = 14];", stateOffset, t.ToOffset, t.Input, t.Output);
+                        result.AppendLine();
+                    }
+                }
+
+                if (result.Length > 65536)
+                {
+                    AppendText(outputStorage, result.ToString());
+                    result.Clear();
+                }
+            }
+
+            result.AppendLine("}");
+            AppendText(outputStorage, result.ToString());
+        }
+
+        private void AppendText(IPersistentStorage outputStorage, string text)
+        {
+            var bytes = Encoding.UTF8.GetBytes(text);
+            outputStorage.WriteAll(outputStorage.Length, bytes, 0, bytes.Length);
         }
         #endregion
 
@@ -978,6 +1073,40 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
         }
 
+        public IEnumerable<string> MatchRecursive(IDfaMatcher<char> matcher)
+        {
+            var result = new List<string>();
+            var prefix = new List<char>();
+            MatchRecursive(matcher, initial, result, prefix);
+            return result;
+        }
+
+        private void MatchRecursive(IDfaMatcher<char> matcher, long stateOffset, List<string> result, List<char> prefix)
+        {
+            var (isFinal, ts) = ReadState(stateOffset);
+
+            if (isFinal && matcher.IsFinal())
+            {
+                result.Add(new string(prefix.ToArray()));
+            }
+
+            if (ts != null)
+            {
+                foreach (var t in ts)
+                {
+                    if (matcher.Next(t.Input))
+                    {
+                        prefix.Add(t.Input);
+
+                        MatchRecursive(matcher, t.ToOffset, result, prefix);
+
+                        prefix.RemoveAt(prefix.Count - 1);
+                        matcher.Pop();
+                    }
+                }
+            }
+        }
+
         public void Dispose()
         {
             if (storage != null)
@@ -1107,41 +1236,48 @@ namespace Protsyk.PMS.FullText.Core.Automata
         public byte[] GetBytesCompressed()
         {
             var names = new Dictionary<int, long>();
+            var sizes = new Dictionary<int, int>();
 
             var size = 7 + sizeof(long);
             for (int i = 0; i < states.Count; ++i)
             {
                 var startOffset = size;
                 names.Add(states[i].Id, startOffset);
-                if (outputType.MaxByteSize() > 64)
-                {
-                    size += VarInt.GetByteSize(0u);
-                }
+
+                var nodeSize = 0;
                 if (trans.TryGetValue(states[i].Id, out var ts) && (ts.Count > 0))
                 {
-                    size += VarInt.GetByteSize(((uint)ts.Count << 1) | (IsFinal(states[i].Id) ? 1u : 0u));
+                    nodeSize += VarInt.GetByteSize(((uint)ts.Count << 1) | (IsFinal(states[i].Id) ? 1u : 0u));
                     var prev = 0;
                     for (int j = 0; j < ts.Count; ++j)
                     {
                         var next = (int)ts[j].Input;
-                        size += VarInt.GetByteSize((uint)(next - prev));
-                        size += outputType.GetByteSize(ts[j].Output);
+                        nodeSize += VarInt.GetByteSize((uint)(next - prev));
+                        nodeSize += outputType.GetByteSize(ts[j].Output);
                         var toOffset = names[ts[j].To];
                         if (startOffset - toOffset < toOffset)
                         {
-                            size += VarInt.GetByteSize((ulong)(((startOffset - toOffset) << 1) | 0));
+                            nodeSize += VarInt.GetByteSize((ulong)(((startOffset - toOffset) << 1) | 0));
                         }
                         else
                         {
-                            size += VarInt.GetByteSize((ulong)(((toOffset) << 1) | 1));
+                            nodeSize += VarInt.GetByteSize((ulong)(((toOffset) << 1) | 1));
                         }
                         prev = next;
                     }
                 }
                 else
                 {
-                    size += VarInt.GetByteSize(IsFinal(states[i].Id) ? 1u : 0u);
+                    nodeSize += VarInt.GetByteSize(IsFinal(states[i].Id) ? 1u : 0u);
                 }
+
+                if (outputType.MaxByteSize() > 64)
+                {
+                    sizes.Add(states[i].Id, nodeSize);
+                    size += VarInt.GetByteSize((ulong)nodeSize);
+                }
+
+                size += nodeSize;
             }
 
             var result = new byte[size];
@@ -1151,7 +1287,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             result[3] = (byte)'-';
             result[4] = (byte)'0';
             result[5] = (byte)'1';
-            result[6] = (byte)'M'; // This format is slightly different from S, for large output types node size is always zero
+            result[6] = (byte)'S';
             Array.Copy(BitConverter.GetBytes(names[Initial]), 0, result, 7, sizeof(long));
             var writeIndex = 7 + sizeof(long);
 
@@ -1160,7 +1296,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 var startOffset = names[states[i].Id];
                 if (outputType.MaxByteSize() > 64)
                 {
-                    writeIndex += VarInt.WriteVInt32(0, result, writeIndex);
+                    var nodeSize = sizes[states[i].Id];
+                    writeIndex += VarInt.WriteVInt32(nodeSize, result, writeIndex);
                 }
                 if (trans.TryGetValue(states[i].Id, out var ts) && (ts.Count > 0))
                 {
@@ -1207,7 +1344,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 (data[3] != (byte)'-') ||
                 (data[4] != (byte)'0') ||
                 ((data[5] != (byte)'1') && (data[5] != (byte)'2')) ||
-                ((data[6] != (byte)'S') && (data[6] != (byte)'M')))
+                (data[6] != (byte)'S'))
             {
                 throw new Exception("Wrong header");
             }
