@@ -101,12 +101,24 @@ Examples of queries:
     * [Ternary Search Tree](http://www.protsyk.com/cms/?page_id=3004).
     * [Finite State Transducer (FST)](http://www.protsyk.com/cms/?page_id=3017).
 * Key-value storage for document metadata is based on persistent B-Tree implementation: [B-Tree](http://www.protsyk.com/cms/?page_id=3003).
+* [Packed Integers](https://pempek.net/articles/2013/08/03/bit-packing-with-packedarray/).
+* Classic data structures:
+    * Heap
+    * Linked List
+    * [LRU Cache](https://en.wikipedia.org/wiki/Cache_replacement_policies)
 
 # Algorithms
 
 * Approximate term matching is based on [Levenshtein automaton](http://blog.notdot.net/2010/07/Damn-Cool-Algorithms-Levenshtein-Automata).
 * Query Language parser is implemented using [recursive descent parser](https://en.wikipedia.org/wiki/Recursive_descent_parser) technique.
-* A method for encoding/decoding occurrences uses [Group VarInt encoding](http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html).
+* A method for encoding/decoding occurrences uses:
+    * [Group VarInt encoding](http://www.ir.uwaterloo.ca/book/addenda-06-index-compression.html).
+    * [Delta encoding](https://en.wikipedia.org/wiki/Delta_encoding).
+    * [VarInt](https://en.wikipedia.org/wiki/Variable-length_quantity) encoding.
+* Classic algorithms:
+    * Binary search
+    * Heap sort
+    * Huffman Encoding
 
 # References
 
