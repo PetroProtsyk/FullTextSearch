@@ -24,7 +24,7 @@ namespace Protsyk.PMS.FullText.Core
         #endregion
 
         public PostingListWriter(string folder, string fileNamePostingLists)
-            : this(new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists)))
+            : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
         {
         }
 

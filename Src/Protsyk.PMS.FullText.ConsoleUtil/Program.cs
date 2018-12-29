@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -49,19 +48,96 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         public string Pattern { get; internal set; }
     }
 
+    [Verb("benchmark", HelpText = "Benchmark search engine.")]
+    class BenchmarkOptions
+    {
+        [Option('n', "size", Required = false, Default = 10000UL, HelpText = "Size of sample")]
+        public ulong Count { get; internal set; }
+    }
+
     class Program
     {
         static int Main(string[] args)
         {
             PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2018");
 
-            return Parser.Default.ParseArguments<IndexOptions, SearchOptions, PrintOptions, LookupOptions>(args)
+            return Parser.Default.ParseArguments<IndexOptions,
+                                                 SearchOptions,
+                                                 PrintOptions,
+                                                 LookupOptions,
+                                                 BenchmarkOptions>(args)
               .MapResult(
                 (IndexOptions opts) => DoIndex(opts),
                 (SearchOptions opts) => DoSearch(opts),
                 (PrintOptions opts) => DoPrint(opts),
                 (LookupOptions opts) => DoLookup(opts),
+                (BenchmarkOptions opts) => DoBenchmark(opts),
                 errors => 255);
+        }
+
+        private static int DoBenchmark(BenchmarkOptions opts)
+        {
+            var N = opts.Count;
+            var skip = 1000UL;
+            foreach (var name in PostingListIOFactory.GetNames())
+            {
+                using (var ms = new Core.Common.Persistance.MemoryStorage())
+                {
+                    var address = default(PostingListAddress);
+
+                    var timer = Stopwatch.StartNew();
+                    using (var writer = PostingListIOFactory.CreateWriter(name, ms.GetReference()))
+                    {
+                        writer.StartList(string.Empty);
+                        for (ulong i = 0; i < N; ++i)
+                        {
+                            writer.AddOccurrence(Occurrence.O(1, 1, skip + i));
+                        }
+                        address = writer.EndList();
+                    }
+                    PrintConsole(ConsoleColor.Magenta, $"Encoder {name}");
+                    PrintConsole(ConsoleColor.Magenta, $"\tCount : {N}");
+                    PrintConsole(ConsoleColor.Magenta, $"\tSize  : {ms.Length}");
+                    PrintConsole(ConsoleColor.Magenta, $"\tWrite : {timer.Elapsed}");
+
+                    timer = Stopwatch.StartNew();
+                    using (var reader = PostingListIOFactory.CreateReader(name, ms.GetReference()))
+                    {
+                        var list = reader.Get(address).AsSkipList();
+                        for (ulong i = 0; i < N; ++i)
+                        {
+                            var target = Occurrence.O(1, 1, skip + i);
+                            var actual = list.LowerBound(target).FirstOrDefault();
+                            if (target != actual)
+                            {
+                                throw new Exception();
+                            }
+                        }
+
+                        for (ulong i = 1; i < skip; ++i)
+                        {
+                            var target = Occurrence.O(1, 1, i);
+                            var actual = list.LowerBound(target).FirstOrDefault();
+                            if (actual != Occurrence.O(1, 1, skip))
+                            {
+                                throw new Exception();
+                            }
+                        }
+
+                        for (ulong i = N + 1; i < N + skip; ++i)
+                        {
+                            var target = Occurrence.O(1, 1, skip + i);
+                            var actual = list.LowerBound(target).FirstOrDefault();
+                            if (actual != Occurrence.Empty)
+                            {
+                                throw new Exception();
+                            }
+                        }
+                    }
+                    PrintConsole(ConsoleColor.Magenta, $"\tSeek  : {timer.Elapsed}");
+                }
+            }
+            return 1;
         }
 
         private static int DoLookup(LookupOptions opts)

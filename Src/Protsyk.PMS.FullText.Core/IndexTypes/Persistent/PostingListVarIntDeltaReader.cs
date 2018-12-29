@@ -32,20 +32,28 @@ namespace Protsyk.PMS.FullText.Core
         #endregion
 
         #region ReaderEnumerator
-        private class PostingListReaderImpl : IPostingList
+        private class PostingListReaderImpl : IPostingList, ISkipList
         {
             private readonly IPersistentStorage storage;
             private readonly PostingListAddress address;
+            private Occurrence firstOccurrence;
 
             public PostingListReaderImpl(IPersistentStorage storage, PostingListAddress address)
             {
                 this.storage = storage;
                 this.address = address;
+                this.firstOccurrence = Occurrence.Empty;
+            }
+
+            public IEnumerable<Occurrence> LowerBound(Occurrence c)
+            {
+                firstOccurrence = c;
+                return this;
             }
 
             public IEnumerator<Occurrence> GetEnumerator()
             {
-                return new ReaderEnumerator(storage, address);
+                return new ReaderEnumerator(storage, address, firstOccurrence);
             }
 
             IEnumerator IEnumerable.GetEnumerator()
@@ -56,11 +64,14 @@ namespace Protsyk.PMS.FullText.Core
 
         private class ReaderEnumerator : IEnumerator<Occurrence>
         {
+            #region Fields
+            private const int SkipSearchBlocksThreshold = 8;
             private static readonly int HeaderLength = sizeof(long) + sizeof(int);
             private readonly IPersistentStorage persistentStorage;
             private readonly PostingListAddress address;
-            private long readOffset;
             private readonly byte[] buffer;
+            private readonly Occurrence firstOccurrence;
+            private long readOffset;
             private int dataInBuffer;
             private int indxInBuffer;
             private bool isEof;
@@ -68,22 +79,17 @@ namespace Protsyk.PMS.FullText.Core
             private long listEndOffset;
             private Occurrence current;
             private int state;
+            #endregion
 
-            public ReaderEnumerator(IPersistentStorage storage, PostingListAddress address)
+            #region Methods
+            public ReaderEnumerator(IPersistentStorage storage, PostingListAddress address, Occurrence firstOccurrence)
             {
                 this.persistentStorage = storage;
                 this.address = address;
                 this.state = 0;
                 this.buffer = new byte[PostingListVarIntDeltaWriter.BlockSize];
+                this.firstOccurrence = firstOccurrence;
                 Reset();
-            }
-
-            public Occurrence Current => current;
-
-            object IEnumerator.Current => current;
-
-            public void Dispose()
-            {
             }
 
             private ulong NextNumber()
@@ -120,6 +126,12 @@ namespace Protsyk.PMS.FullText.Core
                 indxInBuffer += VarInt.ReadVUInt64(buffer, indxInBuffer, out var result);
                 return result;
             }
+            #endregion
+
+            #region IEnumerator
+            public Occurrence Current => current;
+
+            object IEnumerator.Current => current;
 
             public bool MoveNext()
             {
@@ -147,7 +159,69 @@ namespace Protsyk.PMS.FullText.Core
                         listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(header, sizeof(long));
 
                         readOffset += header.Length;
-                        state = 1;
+                        state = 17;
+                    }
+
+                    if (state == 17)
+                    {
+                        // Seek state
+                        var left = (listEndOffset - readOffset) / buffer.Length;
+                        if (left < SkipSearchBlocksThreshold || !(current < firstOccurrence))
+                        {
+                            state = 1;
+                        }
+                        else
+                        {
+                            // Allocate space for two blocks, find two consecutive blocks that contain
+                            // occurrence that is requested
+                            var t = new byte[buffer.Length * 2];
+                            var a = 0L;
+                            var b = left;
+                            var mid = a;
+                            while (a != b)
+                            {
+                                mid = (a + b) >> 1;
+
+                                // Read two blocks
+                                var midOffset = readOffset + buffer.Length * mid;
+                                var inList = (listEndOffset - midOffset - buffer.Length);
+                                var toRead = inList > t.Length ? t.Length : (int)inList;
+                                persistentStorage.ReadAll(midOffset, t, 0, toRead);
+
+                                // Block 1: Full occurrence
+                                var j = 0;
+                                j += VarInt.ReadVUInt64(t, j, out var o1_1);
+                                j += VarInt.ReadVUInt64(t, j, out var o1_2);
+                                j += VarInt.ReadVUInt64(t, j, out var o1_3);
+
+                                // Block 2: Full occurrence
+                                j = buffer.Length;
+                                j += VarInt.ReadVUInt64(t, j, out var o2_1);
+                                j += VarInt.ReadVUInt64(t, j, out var o2_2);
+                                j += VarInt.ReadVUInt64(t, j, out var o2_3);
+
+                                if (Occurrence.O(o1_1, o1_2, o1_3).CompareTo(firstOccurrence) < 0)
+                                {
+                                     if (Occurrence.O(o2_1, o2_2, o2_3).CompareTo(firstOccurrence) >= 0)
+                                     {
+                                         break;
+                                     }
+                                     else
+                                     {
+                                         a = mid + 1;
+                                     }
+                                }
+                                else
+                                {
+                                    b = mid;
+                                }
+                            }
+
+                            state = 1;
+                            indxInBuffer = 0;
+                            dataInBuffer = 0;
+                            readOffset   = readOffset + buffer.Length * mid;
+                        }
                     }
 
                     if (state == 1)
@@ -156,7 +230,11 @@ namespace Protsyk.PMS.FullText.Core
                                                NextNumber(),
                                                NextNumber());
                         state = 2;
-                        return true;
+
+                        if (!(current < firstOccurrence))
+                        {
+                            return true;
+                        }
                     }
 
                     if (state == 2)
@@ -231,7 +309,10 @@ namespace Protsyk.PMS.FullText.Core
                                 }
                         }
 
-                        return true;
+                        if (!(current < firstOccurrence))
+                        {
+                            return true;
+                        }
                     }
                 }
             }
@@ -246,6 +327,11 @@ namespace Protsyk.PMS.FullText.Core
                 listEndOffset = 0;
                 continuationOffset = 0;
             }
+
+            public void Dispose()
+            {
+            }
+            #endregion
         }
         #endregion
 

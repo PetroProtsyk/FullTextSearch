@@ -5,6 +5,27 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
+    // This posting list uses VInt encoding and delta compression.
+    // Binary layout is like this:
+    //
+    // Blocks: [HEADER] [..........................][..........................][......................]
+    // Length:  8 + 4    ------ BlockSize ---------  ------ BlockSize ---------  -- BlockSize or less--
+    // Data  :  HEADER   F, D1, D2, ..., Dn, 000
+    //
+    // List starts with a header. Header has two fields:
+    //    1) Continuation offset      - 8 bytes, offset from the beginning of the file to the start of the next list
+    //    2) Size of blocks in bytes  - 4 bytes
+    //
+    // After headers, blocks follow each other. Each block has the same structure and size, except the last block.
+    // The last block has variable size from 1 to BlockSize bytes.
+    //
+    // At the start of each block, a full occurrence is written using VInt compression.
+    // After the first full occurrence, a delta from the next occurrence is written. If encoded delta does not fit in a block,
+    // then all remaining bytes of a block are set to zero (0). Encoder creates a new block with the same structure, and writes
+    // full occurrence.
+    //
+    // Because each block has fixed size and at the beginning of each block a full occurrence is written, encoder can efficiently
+    // search for a specific occurrence, using for example binary search algorithm.
     public class PostingListVarIntDeltaWriter : IOccurrenceWriter
     {
         #region Fields
@@ -23,7 +44,7 @@ namespace Protsyk.PMS.FullText.Core
         #endregion
 
         public PostingListVarIntDeltaWriter(string folder, string fileNamePostingLists)
-            : this(new FileStorage(Path.Combine(folder, PersistentIndex.FileNamePostingLists)))
+            : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
         {
         }
 
