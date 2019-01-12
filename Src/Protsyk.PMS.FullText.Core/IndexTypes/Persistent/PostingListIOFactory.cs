@@ -13,6 +13,7 @@ namespace Protsyk.PMS.FullText.Core
             yield return PostingListBinaryWriter.Id;
             yield return PostingListBinaryDeltaWriter.Id;
             yield return PostingListVarIntDeltaWriter.Id;
+            yield return PostingListPackedIntDeltaWriter.Id;
         }
 
         public static IOccurrenceWriter CreateWriter(string readerType, string folder, string fileName)
@@ -40,6 +41,11 @@ namespace Protsyk.PMS.FullText.Core
             if (readerType == PostingListVarIntDeltaWriter.Id)
             {
                 return new PostingListVarIntDeltaWriter(storage);
+            }
+
+            if (readerType == PostingListPackedIntDeltaWriter.Id)
+            {
+                return new PostingListPackedIntDeltaWriter(storage);
             }
 
             throw new NotSupportedException($"Not supported Posting Type {readerType}");
@@ -70,6 +76,11 @@ namespace Protsyk.PMS.FullText.Core
             if (readerType == PostingListVarIntDeltaWriter.Id)
             {
                 return new PostingListVarIntDeltaReader(storage);
+            }
+
+            if (readerType == PostingListPackedIntDeltaWriter.Id)
+            {
+                return new PostingListPackedIntDeltaReader(storage);
             }
 
             throw new NotSupportedException($"Not supported Posting Type {readerType}");

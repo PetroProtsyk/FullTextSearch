@@ -19,7 +19,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List, BTree or HashTable")]
         public string FieldsType { get; set; }
 
-        [Option('p', "postingType", Required = false, Default = "Default", HelpText = "Type of posting list. Text, Binary or BinaryCompressed")]
+        [Option('p', "postingType", Required = false, Default = "Default", HelpText = "Type of posting list. Text, Binary, PackedInt, VarIntCompressed or BinaryCompressed")]
         public string PostingType { get; set; }
 
         [Option('e', "textEncoding", Required = false, Default = "Default", HelpText = "Type of dictionary encoding")]
@@ -79,65 +79,86 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         {
             var N = opts.Count;
             var skip = 1000UL;
+
             foreach (var name in PostingListIOFactory.GetNames())
             {
-                using (var ms = new Core.Common.Persistance.MemoryStorage())
+                DoBenchmarkPostingList(name, N, skip);
+            }
+
+            return 1;
+        }
+
+        private static void DoBenchmarkPostingList(string name, ulong count, ulong skip)
+        {
+            using (var ms = new Core.Common.Persistance.MemoryStorage())
+            {
+                var address = default(PostingListAddress);
+
+                var timer = Stopwatch.StartNew();
+                using (var writer = PostingListIOFactory.CreateWriter(name, ms.GetReference()))
                 {
-                    var address = default(PostingListAddress);
-
-                    var timer = Stopwatch.StartNew();
-                    using (var writer = PostingListIOFactory.CreateWriter(name, ms.GetReference()))
+                    writer.StartList(string.Empty);
+                    for (ulong i = 0; i < count; ++i)
                     {
-                        writer.StartList(string.Empty);
-                        for (ulong i = 0; i < N; ++i)
-                        {
-                            writer.AddOccurrence(Occurrence.O(1, 1, skip + i));
-                        }
-                        address = writer.EndList();
+                        writer.AddOccurrence(Occurrence.O(1, 1, skip + i));
                     }
-                    PrintConsole(ConsoleColor.Magenta, $"Encoder {name}");
-                    PrintConsole(ConsoleColor.Magenta, $"\tCount : {N}");
-                    PrintConsole(ConsoleColor.Magenta, $"\tSize  : {ms.Length}");
-                    PrintConsole(ConsoleColor.Magenta, $"\tWrite : {timer.Elapsed}");
+                    address = writer.EndList();
+                }
+                PrintConsole(ConsoleColor.Magenta, $"Encoder {name}");
+                PrintConsole(ConsoleColor.Magenta, $"\tCount : {count}");
+                PrintConsole(ConsoleColor.Magenta, $"\tSize  : {ms.Length}");
+                PrintConsole(ConsoleColor.Magenta, $"\tWrite : {timer.Elapsed}");
 
-                    timer = Stopwatch.StartNew();
-                    using (var reader = PostingListIOFactory.CreateReader(name, ms.GetReference()))
+                timer = Stopwatch.StartNew();
+                using (var reader = PostingListIOFactory.CreateReader(name, ms.GetReference()))
+                {
+                    // Linear Scan
                     {
-                        var list = reader.Get(address).AsSkipList();
-                        for (ulong i = 0; i < N; ++i)
+                        ulong i = 0;
+                        foreach (var actual in reader.Get(address))
                         {
                             var target = Occurrence.O(1, 1, skip + i);
-                            var actual = list.LowerBound(target).FirstOrDefault();
                             if (target != actual)
                             {
                                 throw new Exception();
                             }
-                        }
-
-                        for (ulong i = 1; i < skip; ++i)
-                        {
-                            var target = Occurrence.O(1, 1, i);
-                            var actual = list.LowerBound(target).FirstOrDefault();
-                            if (actual != Occurrence.O(1, 1, skip))
-                            {
-                                throw new Exception();
-                            }
-                        }
-
-                        for (ulong i = N + 1; i < N + skip; ++i)
-                        {
-                            var target = Occurrence.O(1, 1, skip + i);
-                            var actual = list.LowerBound(target).FirstOrDefault();
-                            if (actual != Occurrence.Empty)
-                            {
-                                throw new Exception();
-                            }
+                            ++i;
                         }
                     }
-                    PrintConsole(ConsoleColor.Magenta, $"\tSeek  : {timer.Elapsed}");
+
+                    var list = reader.Get(address).AsSkipList();
+                    for (ulong i = 0; i < count; ++i)
+                    {
+                        var target = Occurrence.O(1, 1, skip + i);
+                        var actual = list.LowerBound(target).FirstOrDefault();
+                        if (target != actual)
+                        {
+                            throw new Exception();
+                        }
+                    }
+
+                    for (ulong i = 1; i < skip; ++i)
+                    {
+                        var target = Occurrence.O(1, 1, i);
+                        var actual = list.LowerBound(target).FirstOrDefault();
+                        if (actual != Occurrence.O(1, 1, skip))
+                        {
+                            throw new Exception();
+                        }
+                    }
+
+                    for (ulong i = count + 1; i < count + skip; ++i)
+                    {
+                        var target = Occurrence.O(1, 1, skip + i);
+                        var actual = list.LowerBound(target).FirstOrDefault();
+                        if (actual != Occurrence.Empty)
+                        {
+                            throw new Exception();
+                        }
+                    }
                 }
+                PrintConsole(ConsoleColor.Magenta, $"\tSeek  : {timer.Elapsed}");
             }
-            return 1;
         }
 
         private static int DoLookup(LookupOptions opts)

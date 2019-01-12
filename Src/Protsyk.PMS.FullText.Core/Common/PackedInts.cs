@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Runtime.CompilerServices;
 
-namespace Protsyk.PMS.FullText.Core.Common
+namespace Protsyk.PMS.FullText.Core
 {
     public static class PackedInts
     {
@@ -60,17 +60,17 @@ namespace Protsyk.PMS.FullText.Core.Common
             throw new NotSupportedException();
         }
 
-        public static IPackedInts Load(byte[] bytes)
+        public static IPackedInts Load(byte[] bytes, int startIndex, int length)
         {
-            var bits = (int)bytes[0];
-            var count = (int)bytes[1] | ((int)bytes[2] << 8) | ((int)bytes[3] << 16) | ((int)bytes[4] << 24);
+            var bits = (int)bytes[startIndex + 0];
+            var count = (int)bytes[startIndex + 1] | ((int)bytes[startIndex + 2] << 8) | ((int)bytes[startIndex + 3] << 16) | ((int)bytes[startIndex + 4] << 24);
 
             if (bits <= 8)
             {
                 var data = new byte[(count * bits + 7) / 8];
                 for (int i = 0; i < data.Length; ++i)
                 {
-                    data[i] = (byte)bytes[5 + i];
+                    data[i] = (byte)bytes[startIndex + 5 + i];
                 }
 
                 return bits == 8 ? (IPackedInts)new PackedInt8(count, data) : new PackedIntN8(bits, count, data);
@@ -81,10 +81,10 @@ namespace Protsyk.PMS.FullText.Core.Common
                 var data = new ushort[(count * bits + 15) / 16];
                 for (int i = 0; i < data.Length; ++i)
                 {
-                    var r = (uint)bytes[5 + 2 * i];
+                    var r = (uint)bytes[startIndex + 5 + 2 * i];
                     if (5 + 2 * i + 1 < bytes.Length)
                     {
-                        r |= (uint)(bytes[5 + 2 * i + 1] << 8);
+                        r |= (uint)(bytes[startIndex + 5 + 2 * i + 1] << 8);
                     }
                     //if (i == data.Length - 1)
                     //{
@@ -100,18 +100,18 @@ namespace Protsyk.PMS.FullText.Core.Common
                 var data = new uint[(count * bits + 31) / 32];
                 for (int i = 0; i < data.Length; i++)
                 {
-                    var r = (uint)bytes[5 + 4 * i];
+                    var r = (uint)bytes[startIndex + 5 + 4 * i];
                     if (5 + 4 * i + 1 < bytes.Length)
                     {
-                        r |= (uint)bytes[5 + 4 * i + 1] << 8;
+                        r |= (uint)bytes[startIndex + 5 + 4 * i + 1] << 8;
                     }
                     if (5 + 4 * i + 2 < bytes.Length)
                     {
-                        r |= (uint)bytes[5 + 4 * i + 2] << 16;
+                        r |= (uint)bytes[startIndex + 5 + 4 * i + 2] << 16;
                     }
                     if (5 + 4 * i + 3 < bytes.Length)
                     {
-                        r |= (uint)bytes[5 + 4 * i + 3] << 24;
+                        r |= (uint)bytes[startIndex + 5 + 4 * i + 3] << 24;
                     }
                     if (i == data.Length - 1)
                     {
@@ -127,34 +127,34 @@ namespace Protsyk.PMS.FullText.Core.Common
                 var data = new ulong[(count * bits + 63) / 64];
                 for (int i = 0; i < data.Length; i++)
                 {
-                    var r = (ulong)bytes[5 + 8 * i];
+                    var r = (ulong)bytes[startIndex + 5 + 8 * i];
                     if (5 + 8 * i + 1 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 1] << 8;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 1] << 8;
                     }
                     if (5 + 8 * i + 2 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 2] << 16;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 2] << 16;
                     }
                     if (5 + 8 * i + 3 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 3] << 24;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 3] << 24;
                     }
                     if (5 + 8 * i + 4 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 4] << 32;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 4] << 32;
                     }
                     if (5 + 8 * i + 5 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 5] << 40;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 5] << 40;
                     }
                     if (5 + 8 * i + 6 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 6] << 48;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 6] << 48;
                     }
                     if (5 + 8 * i + 7 < bytes.Length)
                     {
-                        r |= (ulong)bytes[5 + 8 * i + 7] << 56;
+                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 7] << 56;
                     }
                     if (i == data.Length - 1)
                     {
@@ -168,35 +168,35 @@ namespace Protsyk.PMS.FullText.Core.Common
             throw new NotSupportedException();
         }
 
-        public static IPackedInts Convert(int[] values)
+        public static IPackedInts Convert(int[] values, int startIndex, int count)
         {
             var size = 1;
-            for (int i = 0; i < values.Length; ++i)
+            for (int i = 0; i < count; ++i)
             {
-                size = Math.Max(size, GetBitSize(values[i]));
+                size = Math.Max(size, GetBitSize(values[startIndex + i]));
             }
 
-            var result = Get(size, values.Length);
-            for (int i = 0; i < values.Length; ++i)
+            var result = Get(size, count);
+            for (int i = 0; i < count; ++i)
             {
-                result.Set(i, values[i]);
+                result.Set(i, values[startIndex + i]);
             }
 
             return result;
         }
 
-        public static IPackedInts Convert(long[] values)
+        public static IPackedInts Convert(long[] values, int startIndex, int count)
         {
             var size = 1;
-            for (int i = 0; i < values.Length; ++i)
+            for (int i = 0; i < count; ++i)
             {
-                size = Math.Max(size, GetBitSize(values[i]));
+                size = Math.Max(size, GetBitSize(values[startIndex + i]));
             }
 
-            var result = Get(size, values.Length);
-            for (int i = 0; i < values.Length; ++i)
+            var result = Get(size, count);
+            for (int i = 0; i < count; ++i)
             {
-                result.SetLong(i, values[i]);
+                result.SetLong(i, values[startIndex + i]);
             }
 
             return result;
@@ -228,17 +228,17 @@ namespace Protsyk.PMS.FullText.Core.Common
         private const int BitsInBaseType = 8;
         private const int LastBitIndexInBaseType = 7;
 
-        private static readonly uint[] mask = new uint[]{
-        0b0000_0000,
-        0b0000_0001,
-        0b0000_0011,
-        0b0000_0111,
-        0b0000_1111,
-        0b0001_1111,
-        0b0011_1111,
-        0b0111_1111,
-        0b1111_1111,
-    };
+        private static readonly uint[] mask = new uint[] {
+                0b0000_0000,
+                0b0000_0001,
+                0b0000_0011,
+                0b0000_0111,
+                0b0000_1111,
+                0b0001_1111,
+                0b0011_1111,
+                0b0111_1111,
+                0b1111_1111
+        };
 
         private readonly byte[] data;
         private readonly int bits;
@@ -394,7 +394,7 @@ namespace Protsyk.PMS.FullText.Core.Common
         private const int BitsInBaseType = 16;
         private const int LastBitIndexInBaseType = 15;
 
-        private static readonly uint[] mask = new uint[]{
+        private static readonly uint[] mask = new uint[] {
         0b0000_0000_0000_0000,
         0b0000_0000_0000_0001,
         0b0000_0000_0000_0011,
@@ -411,8 +411,7 @@ namespace Protsyk.PMS.FullText.Core.Common
         0b0001_1111_1111_1111,
         0b0011_1111_1111_1111,
         0b0111_1111_1111_1111,
-        0b1111_1111_1111_1111,
-    };
+        0b1111_1111_1111_1111 };
 
         private readonly ushort[] data;
         private readonly int bits;
@@ -613,8 +612,7 @@ namespace Protsyk.PMS.FullText.Core.Common
         0b0001_1111_1111_1111_1111_1111_1111_1111,
         0b0011_1111_1111_1111_1111_1111_1111_1111,
         0b0111_1111_1111_1111_1111_1111_1111_1111,
-        0b1111_1111_1111_1111_1111_1111_1111_1111,
-    };
+        0b1111_1111_1111_1111_1111_1111_1111_1111 };
 
         private readonly uint[] data;
         private readonly int bits;
@@ -852,8 +850,7 @@ namespace Protsyk.PMS.FullText.Core.Common
         0b0001_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111,
         0b0011_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111,
         0b0111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111,
-        0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111,
-    };
+        0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111 };
 
         private readonly ulong[] data;
         private readonly int bits;

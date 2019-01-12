@@ -6,20 +6,24 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public class PostingListBinaryDeltaReader : IOccurrenceReader
+    // TODO: PostingListPackedIntDelta and PostingListBinaryDelta Reader/Writer have a lot in common
+    //       Refactor these classes to have common encoding scheme in a base class
+    public class PostingListPackedIntDeltaReader : IOccurrenceReader
     {
         #region Fields
-        internal static readonly int ReadBufferSize = 4096;
+        // Should be more than Writer can write in one PackedInt block.
+        // Here an approximation is used - a value greater than FlushThreshold in Writer.
+        internal static readonly int ReadBufferSize = 2 * 4096;
 
         private readonly IPersistentStorage persistentStorage;
         #endregion
 
-        public PostingListBinaryDeltaReader(string folder, string fileNamePostingLists)
+        public PostingListPackedIntDeltaReader(string folder, string fileNamePostingLists)
             : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
         {
         }
 
-        public PostingListBinaryDeltaReader(IPersistentStorage storage)
+        public PostingListPackedIntDeltaReader(IPersistentStorage storage)
         {
             this.persistentStorage = storage;
         }
@@ -69,7 +73,8 @@ namespace Protsyk.PMS.FullText.Core
             private long continuationOffset;
             private long listEndOffset;
             private uint deltaSelector;
-            private int selectorIndex; // Selector for GroupVarInt
+            private IPackedInts data;
+            private int dataIndex;
             private int state;
             private Occurrence current;
 
@@ -79,7 +84,8 @@ namespace Protsyk.PMS.FullText.Core
                 this.address = address;
                 this.buffer = new byte[ReadBufferSize];
                 this.selectors = new int[4];
-                this.selectorIndex = 4;
+                this.data = null;
+                this.dataIndex = 0;
                 Reset();
             }
 
@@ -125,32 +131,38 @@ namespace Protsyk.PMS.FullText.Core
                 return true;
             }
 
-            private int NextInteger()
+            private IPackedInts ReadPacked()
             {
-                if (selectorIndex == 4)
-                {
-                    if (!EnsureBuffer(1))
-                    {
-                        throw new Exception("Wrong data");
-                    }
-
-                    int selector = (int)buffer[indxInBuffer++];
-                    selectors[3] = (selector & 0b11) + 1;
-                    selectors[2] = ((selector >> 2) & 0b11) + 1;
-                    selectors[1] = ((selector >> 4) & 0b11) + 1;
-                    selectors[0] = ((selector >> 6) & 0b11) + 1;
-                    selectorIndex = 0;
-                }
-
-                if (!EnsureBuffer(selectors[selectorIndex]))
+                if (!EnsureBuffer(1 + 4))
                 {
                     throw new Exception("Wrong data");
                 }
 
-                var result = GroupVarint.ReadInt(buffer, indxInBuffer, selectors[selectorIndex]);
-                indxInBuffer += selectors[selectorIndex];
-                selectorIndex++;
-                return result;
+                var bits = (int)buffer[indxInBuffer];
+                var count = (int)buffer[indxInBuffer + 1] | ((int)buffer[indxInBuffer + 2] << 8) | ((int)buffer[indxInBuffer + 3] << 16) | ((int)buffer[indxInBuffer + 4] << 24);
+                var size = 1 + 4 + (7 + count * bits) / 8;
+
+                if (!EnsureBuffer(size))
+                {
+                    throw new Exception("Wrong data");
+                }
+
+                // NOTE: Instead of creating instance of packed integers,
+                //       one can decode data from the read buffer directly.
+                var packed = PackedInts.Load(buffer, indxInBuffer, size);
+                indxInBuffer += size;
+                return packed;
+            }
+
+            private int NextInteger()
+            {
+                if (data == null || dataIndex >= data.Length)
+                {
+                    data = ReadPacked();
+                    dataIndex = 0;
+                }
+
+                return data.Get(dataIndex++);
             }
 
 
@@ -173,15 +185,16 @@ namespace Protsyk.PMS.FullText.Core
                             return false;
                         }
 
-                        var buffer = new byte[HeaderLength];
-                        persistentStorage.ReadAll(readOffset, buffer, 0, buffer.Length);
+                        var headerBuffer = new byte[HeaderLength];
+                        persistentStorage.ReadAll(readOffset, headerBuffer, 0, headerBuffer.Length);
 
-                        continuationOffset = BitConverter.ToInt64(buffer, 0);
-                        listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(buffer, sizeof(long));
+                        continuationOffset = BitConverter.ToInt64(headerBuffer, 0);
+                        listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(headerBuffer, sizeof(long));
 
-                        readOffset += buffer.Length;
+                        readOffset += headerBuffer.Length;
                         state = 1;
-                        selectorIndex = 4;
+                        data = null;
+                        dataIndex = 0;
                     }
 
                     if (state == 1)
@@ -195,7 +208,7 @@ namespace Protsyk.PMS.FullText.Core
 
                     if (state == 2)
                     {
-                        if (isEof && indxInBuffer >= dataInBuffer)
+                        if (isEof && indxInBuffer >= dataInBuffer && (data == null || dataIndex >= data.Length))
                         {
                             state = 0;
                         }
@@ -278,7 +291,8 @@ namespace Protsyk.PMS.FullText.Core
                 isEof = false;
                 listEndOffset = 0;
                 continuationOffset = 0;
-                selectorIndex = 4;
+                data = null;
+                dataIndex = 0;
             }
         }
         #endregion
@@ -288,100 +302,6 @@ namespace Protsyk.PMS.FullText.Core
         {
             persistentStorage?.Dispose();
         }
-        #endregion
-
-        #region API
-        // TODO: Need unit test for this
-        public IPostingList GetBasic(PostingListAddress address)
-        {
-            var offset = address.Offset;
-            var buffer = new byte[sizeof(long) + sizeof(int)];
-            var occurrences = new List<Occurrence>();
-
-            while (true)
-            {
-                persistentStorage.ReadAll(offset, buffer, 0, buffer.Length);
-
-                long continuationOffset = BitConverter.ToInt64(buffer, 0);
-                int length = BitConverter.ToInt32(buffer, sizeof(long));
-
-                var dataBuffer = new byte[length];
-                persistentStorage.ReadAll(offset + sizeof(long) + sizeof(int), dataBuffer, 0, dataBuffer.Length);
-
-                ParseBufferTo(dataBuffer, occurrences);
-
-                if (continuationOffset == 0)
-                {
-                    break;
-                }
-                else
-                {
-                    offset = continuationOffset;
-                }
-            }
-
-            return new PostingListArray(occurrences.ToArray());
-        }
-
-        private static void ParseBufferTo(byte[] buffer, IList<Occurrence> occurrences)
-        {
-            var numbers = GroupVarint.Decode(buffer);
-
-            var o = new Occurrence((ulong)numbers[0],
-                                   (ulong)numbers[1],
-                                   (ulong)numbers[2]);
-            occurrences.Add(o);
-            int i = 3;
-            while (i < numbers.Count)
-            {
-                uint deltaSelector = (uint)numbers[i];
-                ++i;
-                while (deltaSelector > 0)
-                {
-                    int delta = (int)(deltaSelector & 0b00000011);
-                    deltaSelector >>= 2;
-
-                    if (i + delta > numbers.Count)
-                    {
-                        throw new Exception("Attempt to read above data");
-                    }
-
-                    switch (delta)
-                    {
-                        case 0:
-                            {
-                                throw new Exception("Zero delta is not used, see comments in DeltaWriter");
-                            }
-                        case 1:
-                            {
-                                o = Occurrence.O(o.DocumentId, o.FieldId, o.TokenId + (ulong)numbers[i]);
-                                i += 1;
-                                occurrences.Add(o);
-                                break;
-                            }
-                        case 2:
-                            {
-                                o = Occurrence.O(o.DocumentId, o.FieldId + (ulong)numbers[i], (ulong)numbers[i + 1]);
-                                i += 2;
-                                occurrences.Add(o);
-                                break;
-                            }
-                        case 3:
-                            {
-                                o = Occurrence.O(o.DocumentId + (ulong)numbers[i], (ulong)numbers[i + 1], (ulong)numbers[i + 2]);
-                                i += 3;
-                                occurrences.Add(o);
-                                break;
-                            }
-                        default:
-                            {
-                                throw new Exception("Something wrong");
-                            }
-                    }
-                }
-            }
-        }
-
         #endregion
     }
 }
