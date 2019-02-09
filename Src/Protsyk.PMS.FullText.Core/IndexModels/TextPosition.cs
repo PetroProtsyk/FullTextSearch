@@ -77,7 +77,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public override int GetHashCode()
         {
-            return HashCode.Combine(Offset, Length);
+            return HashCombine.Combine(Offset, Length);
         }
         #endregion
 
