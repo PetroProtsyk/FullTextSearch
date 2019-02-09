@@ -137,3 +137,7 @@ Examples of queries:
 # Links
 
 * [Project Website](http://www.protsyk.com/pms)
+
+# Publishing
+
+dotnet publish -c Release --self-contained -r osx.10.13-x64

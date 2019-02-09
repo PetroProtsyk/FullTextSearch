@@ -8,6 +8,9 @@ namespace Protsyk.PMS.FullText.Core
 {
     public abstract class FullTextIndexBuilder : IIndexBuilder
     {
+        // Default and the first field id for searchable fields
+        private const int DefaultFieldId = 1;
+        // Temporary in-memory inverted index
         private SortedDictionary<string, List<Occurrence>> temp;
         private IFullTextIndexHeader header;
         private long nextId;
@@ -33,7 +36,7 @@ namespace Protsyk.PMS.FullText.Core
         public void AddText(string text, string metadata)
         {
             var id = (ulong)Interlocked.Increment(ref nextId);
-            AddTerms(id, TokenizeReader(new StringReader(text)));
+            AddTerms(id, DefaultFieldId, TokenizeReader(id, DefaultFieldId, new StringReader(text)));
             if (metadata != null)
             {
                 AddFields(id, metadata);
@@ -43,48 +46,83 @@ namespace Protsyk.PMS.FullText.Core
         public void AddFile(string fileName, string metadata)
         {
             var id = (ulong)Interlocked.Increment(ref nextId);
-            AddTerms(id, TokenizeFile(fileName));
+            AddTerms(id, DefaultFieldId, TokenizeFile(id, fileName));
             AddFields(id, metadata);
         }
 
-        private IEnumerable<string> TokenizeFile(string fileName)
+        public void AddCompound(IInputDocument document)
+        {
+           if (document == null)
+           {
+               throw new ArgumentNullException(nameof(document));
+           }
+
+           var id = (ulong)Interlocked.Increment(ref nextId);
+           if (document.Metadata != null)
+           {
+               for (int i=0; i<document.Fields.Count; ++i)
+               {
+                    var reader = document.Fields[i].GetTextReader();
+                    AddTerms(id, DefaultFieldId + (ulong)i, TokenizeReader(id, DefaultFieldId + (ulong)i, reader));
+               }
+               AddFields(id, document.Metadata);
+           }
+        }
+
+        private IEnumerable<ScopedToken> TokenizeFile(ulong id, string fileName)
         {
             using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 using (var reader = new StreamReader(stream))
                 {
-                    foreach (var term in TokenizeReader(reader))
+                    foreach (var token in TokenizeReader(id, DefaultFieldId, reader))
                     {
-                        yield return term;
+                        yield return token;
                     }
                 }
             }
         }
 
-        private IEnumerable<string> TokenizeReader(TextReader reader)
+        private IEnumerable<ScopedToken> TokenizeReader(ulong id, ulong fieldId, TextReader reader)
         {
-            using (var tokenizer = new BasicTokenizer(header.MaxTokenSize))
+            using (var wrapper = new TextReaderSink(reader, GetTextWriter(id, fieldId)))
             {
-                foreach (var term in tokenizer.Tokenize(reader).Select(t => t.AsString()))
+                foreach (var token in TokenizeReader(wrapper))
                 {
-                    yield return term;
+                    yield return token;
                 }
             }
         }
 
-        private void AddTerms(ulong id, IEnumerable<string> terms)
+        private IEnumerable<ScopedToken> TokenizeReader(TextReader reader)
         {
-            ulong tokenId = 0;
-            foreach (var term in terms)
+            using (var tokenizer = new BasicTokenizer(header.MaxTokenSize))
             {
-                List<Occurrence> postingList;
-                if (!temp.TryGetValue(term, out postingList))
+                foreach (var token in tokenizer.Tokenize(reader))
+                {
+                    yield return token;
+                }
+            }
+        }
+
+        private void AddTerms(ulong id, ulong fieldId, IEnumerable<ScopedToken> terms)
+        {
+            var positions = new List<TextPosition>();
+            ulong tokenId = 0;
+            foreach (var token in terms)
+            {
+                var term = token.AsString();
+                if (!temp.TryGetValue(term, out var postingList))
                 {
                     postingList = new List<Occurrence>();
                     temp.Add(term, postingList);
                 }
-                postingList.Add(Occurrence.O(id, 1, ++tokenId));
+
+                positions.Add(TextPosition.P(token.CharOffset, token.Length));
+                postingList.Add(Occurrence.O(id, fieldId, ++tokenId));
             }
+
+            AddDocVector(id, fieldId, positions);
         }
 
         public IndexBuilderStatistics StopAndWait()
@@ -128,7 +166,11 @@ namespace Protsyk.PMS.FullText.Core
 
         protected abstract void AddTerm(string term, PostingListAddress address);
 
+        protected abstract void AddDocVector(ulong id, ulong fieldId, IEnumerable<TextPosition> positions);
+
         protected abstract void AddFields(ulong id, string jsonData);
+
+        protected abstract TextWriter GetTextWriter(ulong id, ulong fieldId);
 
         protected abstract void UpdateIndexHeader(IFullTextIndexHeader header);
 
@@ -151,6 +193,66 @@ namespace Protsyk.PMS.FullText.Core
         public void Dispose()
         {
             Dispose(true);
+        }
+        #endregion
+
+        #region Types
+        // From MSDN (https://docs.microsoft.com/en-us/dotnet/api/system.io.textreader)
+        // A derived class must minimally implement the Peek() and Read() methods to make a useful instance of TextReader.
+        private class TextReaderSink : TextReader
+        {
+            private readonly TextReader reader;
+            private readonly TextWriter sink;
+
+            public TextReaderSink(TextReader reader, TextWriter sink)
+            {
+                this.reader = reader;
+                this.sink = sink;
+            }
+
+            public override int Peek()
+            {
+                return reader.Peek();
+            }
+
+            public override int Read()
+            {
+                var result = reader.Read();
+                if (result >= 0)
+                {
+                    sink.Write((char)result);
+                }
+                return result;
+            }
+
+            public override int Read(char[] buffer, int index, int count)
+            {
+                var read = reader.Read(buffer, index, count);
+                if (read > 0)
+                {
+                    sink.Write(buffer, index, read);
+                }
+                return read;
+            }
+
+            public override int Read(Span<char> buffer)
+            {
+                var read = reader.Read(buffer);
+                if (read > 0)
+                {
+                    sink.Write(buffer.Slice(0, read));
+                }
+                return read;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    sink?.Dispose();
+                }
+                base.Dispose(disposing);
+            }
         }
         #endregion
     }

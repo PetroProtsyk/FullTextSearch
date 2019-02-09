@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
+using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -29,6 +31,16 @@ namespace Protsyk.PMS.FullText.Core
         protected override void AddFields(ulong id, string jsonData)
         {
             Index.AddFields(id, jsonData);
+        }
+
+        protected override void AddDocVector(ulong id, ulong fieldId, IEnumerable<TextPosition> positions)
+        {
+            Index.AddDocVector(id, fieldId, positions);
+        }
+
+        protected override TextWriter GetTextWriter(ulong id, ulong fieldId)
+        {
+            return Index.GetTextWriter(id, fieldId);
         }
 
         protected override IFullTextIndexHeader GetIndexHeader()

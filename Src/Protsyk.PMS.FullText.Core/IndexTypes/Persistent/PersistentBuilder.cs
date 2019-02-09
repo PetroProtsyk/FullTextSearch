@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Compression;
+using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -13,10 +15,14 @@ namespace Protsyk.PMS.FullText.Core
         private readonly PersistentIndexName name;
         private IMetadataStorage<string> fields;
         private IOccurrenceWriter occurrenceWriter;
+        private DeltaVarIntListWriter positionsWriter;
         private IUpdateTermDictionary dictionaryWriter;
+        private IUpdateTermDictionary posIndexWriter;
         private PersistentIndexInfo indexInfo;
         private IUpdate dictionaryUpdate;
-        private long updates;
+        private IUpdate posIndexUpdate;
+        private long dictUpdates;
+        private long posUpdates;
 
         private string Folder => name.Folder;
 
@@ -33,12 +39,17 @@ namespace Protsyk.PMS.FullText.Core
             occurrenceWriter = PostingListIOFactory.CreateWriter(name.PostingType, Folder, PersistentIndex.FileNamePostingLists);
             dictionaryWriter = PersistentDictionaryFactory.CreateWriter(name.DictionaryType, Folder, PersistentIndex.FileNameDictionary, MaxTokenSize, name.TextEncoding);
             dictionaryUpdate = dictionaryWriter.BeginUpdate();
-            updates = 0;
+            posIndexWriter = PersistentDictionaryFactory.CreateWriter(name.DictionaryType, Folder, PersistentIndex.FileNamePosIndex, PersistentIndex.PosIndexKeySize, name.TextEncoding);
+            posIndexUpdate = posIndexWriter.BeginUpdate();
+            positionsWriter = new DeltaVarIntListWriter(Folder, PersistentIndex.FileNamePositions);
+            dictUpdates = 0;
+            posUpdates = 0;
         }
 
         protected override void DoStop()
         {
             dictionaryUpdate?.Commit();
+            posIndexUpdate?.Commit();
             DisposeObjects();
         }
 
@@ -51,12 +62,12 @@ namespace Protsyk.PMS.FullText.Core
         {
             dictionaryWriter.AddTerm(term, address, existingList => occurrenceWriter.UpdateNextList(existingList, address));
 
-            ++updates;
-            if (updates > AutoCommitThreshold)
+            ++dictUpdates;
+            if (dictUpdates > AutoCommitThreshold)
             {
                 dictionaryUpdate.Commit();
                 dictionaryUpdate = dictionaryWriter.BeginUpdate();
-                updates = 0;
+                dictUpdates = 0;
             }
         }
 
@@ -68,6 +79,39 @@ namespace Protsyk.PMS.FullText.Core
                 occurrenceWriter.AddOccurrence(occurrence);
             }
             return occurrenceWriter.EndList();
+        }
+
+        protected override void AddDocVector(ulong id, ulong fieldId, IEnumerable<TextPosition> positions)
+        {
+            var listStart = positionsWriter.StartList();
+            foreach (var pos in positions)
+            {
+                positionsWriter.AddValue((ulong)pos.Offset + 1);
+                positionsWriter.AddValue((ulong)pos.Offset + 1 +(ulong)pos.Length);
+            }
+            var listEnd = positionsWriter.EndList();
+
+            var key = PersistentIndex.GetKeyForPositions('P', id, fieldId);
+            posIndexWriter.AddTerm(key,
+                                   new PostingListAddress(listStart),
+                                   _ => throw new Exception("Not expected"));
+            ++posUpdates;
+            if (posUpdates > AutoCommitThreshold)
+            {
+                posIndexUpdate.Commit();
+                posIndexUpdate = posIndexWriter.BeginUpdate();
+                posUpdates = 0;
+            }
+        }
+
+        protected override TextWriter GetTextWriter(ulong id, ulong fieldId)
+        {
+            var payload = positionsWriter.StartPayload();
+            var key = PersistentIndex.GetKeyForPositions('T', id, fieldId);
+            posIndexWriter.AddTerm(key,
+                                   new PostingListAddress(payload),
+                                   _ => throw new Exception("Not expected"));
+            return positionsWriter.StartTextPayload();
         }
 
         protected override IFullTextIndexHeader GetIndexHeader()
@@ -130,6 +174,9 @@ namespace Protsyk.PMS.FullText.Core
         private void DisposeObjects()
         {
             indexInfo?.Dispose();
+            posIndexUpdate?.Dispose();
+            posIndexWriter?.Dispose();
+            positionsWriter?.Dispose();
             dictionaryUpdate?.Dispose();
             dictionaryWriter?.Dispose();
             occurrenceWriter?.Dispose();

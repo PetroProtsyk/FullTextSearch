@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -14,6 +15,9 @@ namespace Protsyk.PMS.FullText.Core
         private readonly ConcurrentDictionary<string, PostingListAddress> data = new ConcurrentDictionary<string, PostingListAddress>();
         private readonly ConcurrentDictionary<PostingListAddress, Occurrence[]> postingLists = new ConcurrentDictionary<PostingListAddress, Occurrence[]>();
         private readonly ConcurrentDictionary<ulong, string> fields = new ConcurrentDictionary<ulong, string>();
+        private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, PostingListAddress> posIndex = new ConcurrentDictionary<(ulong, ulong), PostingListAddress>();
+        private readonly ConcurrentDictionary<PostingListAddress, TextPosition[]> positions = new ConcurrentDictionary<PostingListAddress, TextPosition[]>();
+        private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, string> docTexts = new ConcurrentDictionary<(ulong, ulong), string>();
         #endregion
 
         #region Constructor
@@ -42,6 +46,32 @@ namespace Protsyk.PMS.FullText.Core
         IEnumerable<DictionaryTerm> IFullTextIndex.GetTerms(ITermMatcher matcher)
         {
             return Dictionary.GetTerms(matcher);
+        }
+
+        IEnumerable<TextPosition> IFullTextIndex.GetPositions(ulong docId, ulong fieldId)
+        {
+            var vectorId = new ValueTuple<ulong,ulong>(docId, fieldId);
+            if (!posIndex.TryGetValue(vectorId, out var address))
+            {
+                throw new Exception($"Not found document field id:{docId}, field:{fieldId}");
+            }
+
+            if (!positions.TryGetValue(address, out var result))
+            {
+                throw new Exception($"Not found positions {address.Offset}");
+            }
+
+            return result;
+        }
+
+        TextReader IFullTextIndex.GetText(ulong docId, ulong fieldId)
+        {
+            var textId = new ValueTuple<ulong,ulong>(docId, fieldId);
+            if (!docTexts.TryGetValue(textId, out var text))
+            {
+                throw new Exception($"Not found document field id:{docId}, field:{fieldId}");
+            }
+            return new StringReader(text);
         }
 
         public ITermMatcher CompilePattern(string pattern)
@@ -120,10 +150,54 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException();
             }
         }
+
+        public void AddDocVector(ulong id, ulong fieldId, IEnumerable<TextPosition> pos)
+        {
+            var address = new PostingListAddress(posIndex.Count);
+            var vectorId = new ValueTuple<ulong,ulong>(id, fieldId);
+            if (!posIndex.TryAdd(vectorId, address))
+            {
+                throw new Exception($"Duplicate document field id:{id}, field:{fieldId}");
+            }
+
+            if (!positions.TryAdd(address, pos.ToArray()))
+            {
+                throw new Exception($"Duplicate address {address.Offset}");
+            }
+        }
+
+        public TextWriter GetTextWriter(ulong id, ulong fieldId)
+        {
+            return new TextWriterWrapper((text)=>{
+                var textId = new ValueTuple<ulong,ulong>(id, fieldId);
+                docTexts.TryAdd(textId, text);
+            });
+        }
+
+        private class TextWriterWrapper : StringWriter
+        {
+            private readonly Action<string> whenDisposed;
+
+            public TextWriterWrapper(Action<string> whenDisposed)
+            {
+                this.whenDisposed = whenDisposed;
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    whenDisposed?.Invoke(ToString());
+                }
+                base.Dispose(disposing);
+            }
+        }
         #endregion
 
         #region IDisposable
-        public void Dispose() { }
+        public void Dispose()
+        {
+        }
         #endregion
     }
 }

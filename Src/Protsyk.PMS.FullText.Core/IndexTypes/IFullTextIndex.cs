@@ -1,4 +1,5 @@
 ﻿using System;
+using System.IO;
 using System.Collections.Generic;
 
 namespace Protsyk.PMS.FullText.Core
@@ -14,6 +15,10 @@ namespace Protsyk.PMS.FullText.Core
         IMetadataStorage<string> Fields { get; }
 
         IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher);
+
+        IEnumerable<TextPosition> GetPositions(ulong docId, ulong fieldId);
+
+        TextReader GetText(ulong docId, ulong fieldId);
 
         ITermMatcher CompilePattern(string pattern);
 

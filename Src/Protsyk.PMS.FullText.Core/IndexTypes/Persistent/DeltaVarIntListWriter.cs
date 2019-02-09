@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Diagnostics;
+using System.Text;
 using Protsyk.PMS.FullText.Core.Common;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
@@ -120,6 +121,61 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException();
             }
 
+            return listEnd;
+        }
+
+        public TextWriter StartTextPayload()
+        {
+            return new PayloadText(persistentStorage);
+        }
+
+        class PayloadText : TextWriter
+        {
+            private readonly IPersistentStorage persistentStorage;
+
+            public override Encoding Encoding => Encoding.UTF8;
+
+            public PayloadText(IPersistentStorage persistentStorage)
+            {
+                this.persistentStorage = persistentStorage;
+            }
+
+            public override void Write(char value)
+            {
+                Write(new char[] {value}, 0, 1);
+            }
+
+            public override void Write(char[] buffer, int index, int count)
+            {
+                var bytes = Encoding.GetBytes(buffer, index, count);
+                persistentStorage.WriteAll(persistentStorage.Length, BitConverter.GetBytes(bytes.Length), 0, sizeof(int));
+                persistentStorage.WriteAll(persistentStorage.Length, bytes, 0, bytes.Length);
+            }
+
+            protected override void Dispose(bool disposing)
+            {
+                if (disposing)
+                {
+                    persistentStorage?.WriteAll(persistentStorage.Length, BitConverter.GetBytes(0), 0, sizeof(int));
+                }
+                base.Dispose(disposing);
+            }
+        }
+
+        public long StartPayload()
+        {
+            listStart = persistentStorage.Length;
+            return listStart;
+        }
+
+        public void WritePayload(byte[] buffer, int offset, int count)
+        {
+            persistentStorage.WriteAll(persistentStorage.Length, buffer, offset, count);
+        }
+
+        public long EndPayload()
+        {
+            var listEnd = persistentStorage.Length;
             return listEnd;
         }
 

@@ -995,7 +995,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                         }
                         else if (s.Input < c)
                         {
-                            a = mid;
+                            a = mid + 1; //TODO: Verify
                         }
                         else
                         {
@@ -1527,7 +1527,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                         }
                         else if (s.Input < c)
                         {
-                            a = mid;
+                            a = mid + 1; //TODO: Verify
                         }
                         else
                         {

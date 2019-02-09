@@ -23,6 +23,7 @@ namespace Protsyk.PMS.FullText.Core
             var buffer = new char[maxTokenSize];
             var length = 0;
             var offset = 0;
+            var startOffset = 0;
             var state = States.Read;
 
             var readBuffer = new char[maxTokenSize];
@@ -62,6 +63,10 @@ namespace Protsyk.PMS.FullText.Core
                                     {
                                         buffer[length] = char.ToLowerInvariant(next);
                                     }
+                                    if (length == 0)
+                                    {
+                                        startOffset = offset;
+                                    }
                                     ++length;
                                 }
                                 else
@@ -77,8 +82,9 @@ namespace Protsyk.PMS.FullText.Core
                         {
                             if (length > 0)
                             {
-                                yield return new ScopedToken(offset, length, buffer);
+                                yield return new ScopedToken(startOffset, length, buffer);
                                 length = 0;
+                                startOffset = -1;
                             }
                             state = state == States.BeforeEof ? States.Eof : States.Token;
                             break;

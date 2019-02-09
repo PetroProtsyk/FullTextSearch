@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
+using System.Linq;
+using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Compression;
 
 namespace Protsyk.PMS.FullText.Core
@@ -10,6 +13,9 @@ namespace Protsyk.PMS.FullText.Core
         public static readonly string FileNameDictionary = "index-dictionary.pms";
         public static readonly string FileNamePostingLists = "index-postinglists.pms";
         public static readonly string FileNameInfo = "index-info.pms";
+        public static readonly string FileNamePositions = "index-textpos.pms";
+        public static readonly string FileNamePosIndex = "index-posindex.pms";
+        public static readonly int PosIndexKeySize = 65;
         private readonly PersistentIndexName name;
 
         public PersistentIndex(PersistentIndexName name)
@@ -29,10 +35,11 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             VerifyHeader(name);
-
             var indexType = Header.Type.Split(' ');
             Dictionary = PersistentDictionaryFactory.Create(indexType[1], folder, FileNameDictionary, Header.MaxTokenSize, indexType[4]);
             PostingLists = PostingListIOFactory.CreateReader(indexType[3], folder, FileNamePostingLists);
+            PosIndex = PersistentDictionaryFactory.Create(indexType[1], folder, FileNamePosIndex, PosIndexKeySize, indexType[4]);
+            PositionsReader = new DeltaVarIntListReader(folder, FileNamePositions);
             Fields = PersistentMetadataFactory.CreateStorage(indexType[2], folder, FileNameFields);
             this.name = name;
         }
@@ -74,11 +81,43 @@ namespace Protsyk.PMS.FullText.Core
 
         public IPostingLists PostingLists { get; }
 
+        public ITermDictionary PosIndex { get; }
+
+        private DeltaVarIntListReader PositionsReader;
+
         public IMetadataStorage<string> Fields { get; }
 
         public IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher)
         {
             return Dictionary.GetTerms(matcher);
+        }
+
+        public IEnumerable<TextPosition> GetPositions(ulong docId, ulong fieldId)
+        {
+            var key = GetKeyForPositions('P', docId, fieldId);
+            var matcher = new DfaTermMatcher(new SequenceMatcher<char>(key, false));
+            var term = PosIndex.GetTerms(matcher).Single();
+            var offset = -1;
+            foreach (var pos in PositionsReader.Get(term.Value.Offset))
+            {
+                if (offset == -1)
+                {
+                    offset = (int)pos;
+                }
+                else
+                {
+                    yield return TextPosition.P(offset - 1, (int)pos - offset);
+                    offset = -1;
+                }
+            }
+        }
+
+        public TextReader GetText(ulong docId, ulong fieldId)
+        {
+            var key = GetKeyForPositions('T', docId, fieldId);
+            var matcher = new DfaTermMatcher(new SequenceMatcher<char>(key, false));
+            var term = PosIndex.GetTerms(matcher).Single();
+            return PositionsReader.GetText(term.Value.Offset);
         }
 
         public ITermMatcher CompilePattern(string pattern)
@@ -99,10 +138,20 @@ namespace Protsyk.PMS.FullText.Core
 
         public void Dispose()
         {
+            PositionsReader?.Dispose();
+            PosIndex?.Dispose();
             PostingLists?.Dispose();
             Dictionary?.Dispose();
             Fields?.Dispose();
             HeaderReader?.Dispose();
+        }
+
+        internal static string GetKeyForPositions(char prefix, ulong docId, ulong fieldId)
+        {
+            //return $"{docId}-{fieldId}";
+            var key = Convert.ToString((int)docId, 2).PadLeft(32, '0') +
+                      Convert.ToString(((int)(fieldId << 1)|(prefix == 'T' ? 0 : 1)), 2).PadLeft(32, '0');
+            return key;
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -27,6 +28,9 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
 
         [Option('m', "mask", Required = false, Default = "*.txt", HelpText = "File name filter")]
         public string Filter { get; set; }
+
+        [Option('t', "type", Required = false, Default = "text", HelpText = "Index text or file names: text, name")]
+        public string InputType { get; set; }
     }
 
     [Verb("search", HelpText = "Search index.")]
@@ -202,6 +206,8 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             {
                 var searchQuery = index.Compile(opts.Query);
                 var prevDoc = Occurrence.NoId;
+                var doc = default(TextDocument);
+                var hits = new SortedSet<int>();
                 foreach (var match in searchQuery.AsEnumerable())
                 {
                     if (match.DocumentId != prevDoc)
@@ -209,6 +215,14 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                         if (prevDoc != Occurrence.NoId)
                         {
                             PrintConsole(ConsoleColor.Gray, String.Empty);
+
+                            PrintConsole(ConsoleColor.Gray, "====================");
+                            doc = new TextDocument(index.GetText(prevDoc, 1UL).ReadToEnd(),
+                                                index.GetPositions(prevDoc, 1UL));
+                            PrintConsole(ConsoleColor.Green, doc.Annotate(hits));
+                            PrintConsole(ConsoleColor.Gray, "====================");
+                            PrintConsole(ConsoleColor.Gray, String.Empty);
+                            hits.Clear();
                         }
 
                         PrintConsole(ConsoleColor.Gray, index.Fields.GetMetadata(match.DocumentId));
@@ -216,11 +230,23 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                         documentsCount++;
                     }
                     ++matchesCount;
+                    foreach (var o in match.GetOccurrences())
+                    {
+                        hits.Add((int)o.TokenId);
+                    }
                     PrintConsole(ConsoleColor.Gray, $"{match} ");
                 }
                 if (prevDoc != Occurrence.NoId)
                 {
                     PrintConsole(ConsoleColor.Gray, String.Empty);
+
+                    PrintConsole(ConsoleColor.Gray, "====================");
+                    doc = new TextDocument(index.GetText(prevDoc, 1UL).ReadToEnd(),
+                                        index.GetPositions(prevDoc, 1UL));
+                    PrintConsole(ConsoleColor.Green, doc.Annotate(hits));
+                    PrintConsole(ConsoleColor.Gray, "====================");
+                    PrintConsole(ConsoleColor.Gray, String.Empty);
+                    hits.Clear();
                 }
             }
 
@@ -239,9 +265,22 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                 foreach (var file in Directory.EnumerateFiles(opts.InputPath, opts.Filter, SearchOption.AllDirectories).Select(f => new FileInfo(f)))
                 {
                     PrintConsole(ConsoleColor.Gray, $"{file.FullName}");
-                    builder.AddFile(
-                        file.FullName,
-                        "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
+                    if (opts.InputType == "text")
+                    {
+                        builder.AddFile(
+                            file.FullName,
+                            "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
+                    }
+                    else if (opts.InputType == "name")
+                    {
+                        builder.AddText(
+                            file.FullName,
+                            "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
+                    }
+                    else
+                    {
+                        throw new Exception("Unsupported input type");
+                    }
                     ++documents;
                 }
                 var stat = builder.StopAndWait();

@@ -14,12 +14,12 @@ namespace Protsyk.PMS.FullText.Core
         {
             if (dictionaryType == PersistentIndexName.DefaultValue || dictionaryType == PersistentDictionaryTst.Id)
             {
-                return new PersistentDictionaryTst(folder, PersistentIndex.FileNameDictionary, maxTokenLength, TextEncodingFactory.GetByName(encodingName));
+                return new PersistentDictionaryTst(folder, fileNameDictionary, maxTokenLength, TextEncodingFactory.GetByName(encodingName));
             }
 
             if (dictionaryType == PersistentDictionaryFst.Id)
             {
-                return  new PersistentDictionaryFst(folder, PersistentIndex.FileNameDictionary, maxTokenLength, TextEncodingFactory.GetByName(encodingName));
+                return  new PersistentDictionaryFst(folder, fileNameDictionary, maxTokenLength, TextEncodingFactory.GetByName(encodingName));
             }
 
             throw new NotSupportedException($"Dictionary type {dictionaryType} is not supported");
