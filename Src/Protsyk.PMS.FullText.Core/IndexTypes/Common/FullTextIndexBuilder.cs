@@ -235,16 +235,6 @@ namespace Protsyk.PMS.FullText.Core
                 return read;
             }
 
-            public override int Read(Span<char> buffer)
-            {
-                var read = reader.Read(buffer);
-                if (read > 0)
-                {
-                    sink.Write(buffer.Slice(0, read));
-                }
-                return read;
-            }
-
             protected override void Dispose(bool disposing)
             {
                 if (disposing)

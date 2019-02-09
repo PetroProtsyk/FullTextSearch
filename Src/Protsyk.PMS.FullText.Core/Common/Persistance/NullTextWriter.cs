@@ -19,10 +19,6 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         {
         }
 
-        public override void Write(ReadOnlySpan<char> buffer)
-        {
-        }
-
         public override void Write(char[] buffer, int index, int count)
         {
         }
