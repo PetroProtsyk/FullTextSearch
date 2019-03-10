@@ -140,4 +140,12 @@ Examples of queries:
 
 # Publishing
 
+## MacOS
+```
 dotnet publish -c Release --self-contained -r osx.10.13-x64
+```
+
+## Windows
+```
+dotnet publish -c Release --self-contained -r win10-x64
+```
