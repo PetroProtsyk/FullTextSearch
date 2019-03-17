@@ -878,7 +878,6 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return (isFinal, arcs);
         }
 
-
         public void ToDotNotation(IPersistentStorage outputStorage)
         {
             var result = new StringBuilder();
@@ -886,8 +885,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
             result.AppendLine("rankdir = LR;");
             result.AppendLine("orientation = Portrait;");
 
+            var seen = new HashSet<long>();
             var stack = new Stack<long>();
             stack.Push(initial);
+            seen.Add(initial);
 
             while (stack.Count > 0)
             {
@@ -917,8 +918,16 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     for (int i = ts.Length - 1; i >= 0; --i)
                     {
                         var t = ts[i];
-                        stack.Push(t.ToOffset);
+                        if (!seen.Contains(t.ToOffset))
+                        {
+                            stack.Push(t.ToOffset);
+                            seen.Add(t.ToOffset);
+                        }
+                    }
 
+                    for (int i = 0; i < ts.Length; i++)
+                    {
+                        var t = ts[i];
                         result.AppendFormat("{0}->{1} [label = \"{2} | {3}\", fontsize = 14];", stateOffset, t.ToOffset, t.Input, t.Output);
                         result.AppendLine();
                     }
