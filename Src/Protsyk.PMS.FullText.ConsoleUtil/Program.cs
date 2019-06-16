@@ -14,7 +14,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('i', "input", Required = true, HelpText = "Folder with files that should be indexed")]
         public string InputPath { get; set; }
 
-        [Option('d', "dictionaryType", Required = false, Default = "Default", HelpText = "Type of dictionary storage. TTD or FST")]
+        [Option('d', "dictionaryType", Required = false, Default = "Default", HelpText = "Type of dictionary storage. TST or FST")]
         public string DictionaryType { get; set; }
 
         [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List, BTree or HashTable")]
