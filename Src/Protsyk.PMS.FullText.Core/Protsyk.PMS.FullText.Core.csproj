@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>netcoreapp2.0</TargetFramework>
+    <TargetFramework>netcoreapp3.0</TargetFramework>
     <Authors>Petro Protsyk</Authors>
     <Product>PMS FullText Search</Product>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
