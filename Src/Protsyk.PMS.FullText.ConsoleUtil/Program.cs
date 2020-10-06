@@ -1,10 +1,14 @@
-﻿using System;
+﻿using CommandLine;
+using Protsyk.PMS.FullText.Core;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.IO.Compression;
 using System.Linq;
-using CommandLine;
-using Protsyk.PMS.FullText.Core;
+using System.Net.Http;
+using System.Threading.Tasks;
+using System.Xml;
 
 namespace Protsyk.PMS.FullText.ConsoleUtil
 {
@@ -29,8 +33,12 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         [Option('m', "mask", Required = false, Default = "*.txt", HelpText = "File name filter")]
         public string Filter { get; set; }
 
-        [Option('t', "type", Required = false, Default = "text", HelpText = "Index text or file names: text, name")]
+        [Option('t', "type", Required = false, Default = "text", HelpText = "Index text, Wikipedia metadata xml or file names: text, enwiki, name")]
         public string InputType { get; set; }
+
+        [Option('y', "indexFolder", Required = false, Default = ".", HelpText = "Folder with index")]
+        public string IndexPath { get; set; }
+
     }
 
     [Verb("search", HelpText = "Search index.")]
@@ -38,11 +46,16 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
     {
         [Option('q', "query", Required = true, HelpText = "Search Query")]
         public string Query { get; set; }
+
+        [Option('y', "indexFolder", Required = false, Default = ".", HelpText = "Folder with index")]
+        public string IndexPath { get; set; }
     }
 
     [Verb("print", HelpText = "Print index.")]
     class PrintOptions
     {
+        [Option('y', "indexFolder", Required = false, Default = ".", HelpText = "Folder with index")]
+        public string IndexPath { get; set; }
     }
 
     [Verb("lookup", HelpText = "Match dictionary terms using pattern.")]
@@ -50,6 +63,9 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
     {
         [Option('p', "pattern", Required = true, HelpText = "Search Pattern")]
         public string Pattern { get; internal set; }
+
+        [Option('y', "indexFolder", Required = false, Default = ".", HelpText = "Folder with index")]
+        public string IndexPath { get; set; }
     }
 
     [Verb("benchmark", HelpText = "Benchmark search engine.")]
@@ -59,20 +75,41 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         public ulong Count { get; internal set; }
     }
 
+    [Verb("index-wiki", HelpText = "Download enwiki and create index")]
+    class IndexWikikOptions
+    {
+        [Option('d', "dictionaryType", Required = false, Default = "Default", HelpText = "Type of dictionary storage. TST or FST")]
+        public string DictionaryType { get; set; }
+
+        [Option('f', "fieldsType", Required = false, Default = "Default", HelpText = "Type of metadata storage. List, BTree or HashTable")]
+        public string FieldsType { get; set; }
+
+        [Option('p', "postingType", Required = false, Default = "Default", HelpText = "Type of posting list. Text, Binary, PackedInt, VarIntCompressed or BinaryCompressed")]
+        public string PostingType { get; set; }
+
+        [Option('e', "textEncoding", Required = false, Default = "Default", HelpText = "Type of dictionary encoding")]
+        public string TextEncoding { get; set; }
+
+        [Option('y', "indexFolder", Required = false, Default = ".", HelpText = "Folder with index")]
+        public string IndexPath { get; set; }
+    }
+
     class Program
     {
         static int Main(string[] args)
         {
             Console.OutputEncoding = System.Text.Encoding.UTF8;
-            PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2018");
+            PrintConsole(ConsoleColor.Green, "PMS Full-Text Search (c) Petro Protsyk 2017-2021");
 
             return Parser.Default.ParseArguments<IndexOptions,
+                                                 IndexWikikOptions,
                                                  SearchOptions,
                                                  PrintOptions,
                                                  LookupOptions,
                                                  BenchmarkOptions>(args)
               .MapResult(
                 (IndexOptions opts) => DoIndex(opts),
+                (IndexWikikOptions opts) => DoWikiIndex(opts),
                 (SearchOptions opts) => DoSearch(opts),
                 (PrintOptions opts) => DoPrint(opts),
                 (LookupOptions opts) => DoLookup(opts),
@@ -171,7 +208,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             var pattern = opts.Pattern;
             var timer = Stopwatch.StartNew();
             var termsFound = 0;
-            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
+            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(opts.IndexPath)))
             {
                 var matcher = index.CompilePattern(pattern);
                 var terms = index.GetTerms(matcher);
@@ -189,7 +226,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
         private static int DoPrint(PrintOptions opts)
         {
             var timer = Stopwatch.StartNew();
-            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
+            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(opts.IndexPath)))
             {
                 var visitor = new PrintVisitor(index);
                 index.Visit(visitor);
@@ -203,7 +240,7 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             var timer = Stopwatch.StartNew();
             var documentsCount = 0;
             var matchesCount = 0;
-            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(".")))
+            using (var index = IndexFactory.OpenIndex(new PersistentIndexName(opts.IndexPath)))
             {
                 var searchQuery = index.Compile(opts.Query);
                 var prevDoc = Occurrence.NoId;
@@ -255,9 +292,35 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             return 0;
         }
 
+        static IEnumerable<String> ParseEnWikiXml(string fileName)
+        {
+            using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read, 65536))
+            {
+                using (var reader = XmlReader.Create(stream))
+                {
+                    reader.MoveToContent();
+                    while (!reader.EOF)
+                    {
+                        if (reader.NodeType == XmlNodeType.Element && reader.Name == "title")
+                        {
+                            var title = reader.ReadElementContentAsString();
+                            if (!string.IsNullOrEmpty(title))
+                            {
+                                yield return title;
+                            }
+                        }
+                        else
+                        {
+                            reader.Read();
+                        }
+                    }
+                }
+            }
+        }
+
         private static int DoIndex(IndexOptions opts)
         {
-            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(".", opts.DictionaryType, opts.FieldsType, opts.PostingType, opts.TextEncoding)))
+            using (var builder = IndexFactory.CreateBuilder(new PersistentIndexName(opts.IndexPath, opts.DictionaryType, opts.FieldsType, opts.PostingType, opts.TextEncoding)))
             {
                 builder.Start();
 
@@ -278,6 +341,21 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                             file.FullName,
                             "{filename:\"" + file.FullName + "\", size:\"" + file.Length + "\", created:\"" + file.CreationTime.ToString("o") + "\"}");
                     }
+                    else if (opts.InputType == "enwiki")
+                    {
+                        int t = 0;
+                        foreach (var title in ParseEnWikiXml(file.FullName))
+                        {
+                            var text = title;
+                            if (text.StartsWith("Wikipedia: "))
+                            {
+                                text = text.Substring(11);
+                            }
+
+                            PrintConsole(ConsoleColor.Gray, $"\t {++t} -> {text}");
+                            builder.AddText(text, "{id:\"" + t + "\"}");
+                        }
+                    }
                     else
                     {
                         throw new Exception("Unsupported input type");
@@ -289,6 +367,66 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
             }
 
             return 0;
+        }
+
+        private static int DoWikiIndex(IndexWikikOptions opts)
+        {
+            var gzFilename = DownloadAbstracts(opts.IndexPath).Result;
+            var filename = Decompress(opts.IndexPath, gzFilename).Result;
+
+            return DoIndex(new IndexOptions
+            {
+                DictionaryType = opts.DictionaryType,
+                IndexPath = opts.IndexPath,
+                FieldsType = opts.FieldsType,
+                PostingType = opts.PostingType,
+                TextEncoding = opts.TextEncoding,
+                Filter = "*.xml",
+                InputType = "enwiki",
+                InputPath = Path.GetDirectoryName(filename)
+            });
+        }
+
+        private static async Task<string> DownloadAbstracts(string outputFolder)
+        {
+            var url = "https://dumps.wikimedia.org/enwiki/latest/enwiki-latest-abstract.xml.gz";
+            var outputFileName = Path.Combine(outputFolder, "enwiki-latest-abstract.xml.gz");
+            if (File.Exists(outputFileName))
+            {
+                PrintConsole(ConsoleColor.White, $"File exists: {outputFileName}");
+                return outputFileName;
+            }
+            PrintConsole(ConsoleColor.White, $"Downloading abstracts to: {outputFileName}");
+            using (var wc = new System.Net.WebClient())
+            {
+                await wc.DownloadFileTaskAsync(new Uri(url), outputFileName);
+            }
+            PrintConsole(ConsoleColor.White, "Downloading complete");
+            return outputFileName;
+        }
+
+        private static async Task<string> Decompress(string outputFolder, string fileToDecompress)
+        {
+            var outputFile = Path.Combine(outputFolder, "enwiki-latest-abstract.xml");
+            if (File.Exists(outputFile))
+            {
+                PrintConsole(ConsoleColor.White, $"File exists: {outputFile}");
+                return outputFile;
+            }
+
+            PrintConsole(ConsoleColor.White, $"Decompressing to: {outputFile}");
+            using (var originalFileStream = File.OpenRead(fileToDecompress))
+            {
+                using (var decompressedFileStream = File.Create(outputFile))
+                {
+                    using (var decompressionStream = new GZipStream(originalFileStream, CompressionMode.Decompress))
+                    {
+                        await decompressionStream.CopyToAsync(decompressedFileStream);
+                    }
+                }
+            }
+            PrintConsole(ConsoleColor.White, "Decompressing complete");
+            return outputFile;
         }
 
         private static void PrintConsole(ConsoleColor color, string text)

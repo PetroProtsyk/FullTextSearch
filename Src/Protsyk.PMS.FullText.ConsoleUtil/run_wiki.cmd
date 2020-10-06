@@ -1,0 +1,1 @@
+dotnet run --configuration=Release -- index-wiki --dictionaryType TST --fieldsType HashTable --postingType BinaryCompressed --textEncoding UTF-8 --indexFolder "."

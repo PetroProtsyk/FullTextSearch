@@ -23,12 +23,17 @@ namespace Protsyk.PMS.FullText.Core
         private IUpdate posIndexUpdate;
         private long dictUpdates;
         private long posUpdates;
+        private bool textPositions;
+        private bool documentFields;
 
         private string Folder => name.Folder;
 
         public PersistentBuilder(PersistentIndexName name)
         {
             this.name = name;
+            // TODO: Make it configurable
+            this.textPositions = true;
+            this.documentFields = true;
         }
 
         protected override void DoStart()
@@ -55,7 +60,11 @@ namespace Protsyk.PMS.FullText.Core
 
         protected override void AddFields(ulong id, string jsonData)
         {
-            fields.SaveMetadata(id, jsonData);
+            if (documentFields)
+            {
+                // TODO: B-Tree fields are very slow
+                fields.SaveMetadata(id, jsonData);
+            }
         }
 
         protected override void AddTerm(string term, PostingListAddress address)
@@ -83,6 +92,10 @@ namespace Protsyk.PMS.FullText.Core
 
         protected override void AddDocVector(ulong id, ulong fieldId, IEnumerable<TextPosition> positions)
         {
+            if (!textPositions)
+            {
+                return;
+            }
             var listStart = positionsWriter.StartList();
             foreach (var pos in positions)
             {
@@ -106,6 +119,10 @@ namespace Protsyk.PMS.FullText.Core
 
         protected override TextWriter GetTextWriter(ulong id, ulong fieldId)
         {
+            if (!textPositions)
+            {
+                return new NullTextWriter();
+            }
             var payload = positionsWriter.StartPayload();
             var key = PersistentIndex.GetKeyForPositions('T', id, fieldId);
             posIndexWriter.AddTerm(key,
