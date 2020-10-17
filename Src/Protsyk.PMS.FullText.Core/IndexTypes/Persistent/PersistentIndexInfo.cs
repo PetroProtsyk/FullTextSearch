@@ -22,18 +22,17 @@ namespace Protsyk.PMS.FullText.Core
 
         public IndexHeaderData Read()
         {
-            var buffer = new byte[1024];
-            int read = persistentStorage.Read(0, buffer, 0, buffer.Length);
-            if (read == 0)
+            if (persistentStorage.Length == 0)
             {
                 return null;
             }
 
-            using (var reader = new StringReader(Encoding.UTF8.GetString(buffer, 0, read)))
-            {
-                var result = JsonSerializer.Deserialize<IndexHeaderData>(reader.ReadToEnd());
-                return result;
-            }
+            var buffer = new byte[persistentStorage.Length];
+            persistentStorage.ReadAll(0, buffer, 0, buffer.Length);
+
+            var data = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
+            var result = JsonSerializer.Deserialize<IndexHeaderData>(data);
+            return result;
         }
 
         public void Write(IFullTextIndexHeader header)
@@ -49,6 +48,7 @@ namespace Protsyk.PMS.FullText.Core
 
             var headerText = JsonSerializer.Serialize<IndexHeaderData>(headerData, new JsonSerializerOptions() { WriteIndented = true });
             var data = Encoding.UTF8.GetBytes(headerText);
+            persistentStorage.Truncate(data.Length);
             persistentStorage.WriteAll(0, data, 0, data.Length);
         }
 

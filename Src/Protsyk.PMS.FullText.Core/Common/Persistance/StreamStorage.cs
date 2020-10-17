@@ -56,6 +56,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             stream.Write(buffer, offset, count);
         }
 
+        public void Truncate(long fileSize)
+        {
+            stream.SetLength(fileSize);
+        }
+
         public virtual void Flush()
         {
             stream.Flush();
