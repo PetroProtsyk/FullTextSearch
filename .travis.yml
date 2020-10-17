@@ -8,4 +8,4 @@ sudo: false
 script:
  - dotnet restore ./Src/
  - dotnet build ./Src/
- - dotnet test ./Src/Protsyk.PMS.FullText.Core.UnitTests/ -p:ParallelizeTestCollections=false
+ - dotnet test ./Src/Protsyk.PMS.FullText.Core.UnitTests/

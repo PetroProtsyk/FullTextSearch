@@ -1,8 +1,8 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Protsyk.PMS.FullText.Core.Common.Persistance;
+using System;
 using System.IO;
 using System.Text;
-using Protsyk.PMS.FullText.Core.Common.Persistance;
+using System.Text.Json;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -29,45 +29,26 @@ namespace Protsyk.PMS.FullText.Core
                 return null;
             }
 
-            using (var reader = new StringReader(System.Text.Encoding.UTF8.GetString(buffer, 0, read)))
+            using (var reader = new StringReader(Encoding.UTF8.GetString(buffer, 0, read)))
             {
-                var result = new IndexHeaderData
-                {
-                    Type = reader.ReadLine(),
-                    MaxTokenSize = int.Parse(reader.ReadLine()),
-                    NextDocumentId = ulong.Parse(reader.ReadLine()),
-                    CreatedDate = DateTime.Parse(reader.ReadLine()),
-                    ModifiedDate = DateTime.Parse(reader.ReadLine()),
-                };
-
-                while (true)
-                {
-                    var line = reader.ReadLine();
-                    if (line == null)
-                    {
-                        break;
-                    }
-                    result.Settings.Add(line);
-                }
-
+                var result = JsonSerializer.Deserialize<IndexHeaderData>(reader.ReadToEnd());
                 return result;
             }
         }
 
         public void Write(IFullTextIndexHeader header)
         {
-            var headerText = new StringBuilder();
-            headerText.AppendLine(header.Type);
-            headerText.AppendLine(header.MaxTokenSize.ToString());
-            headerText.AppendLine(header.NextDocumentId.ToString());
-            headerText.AppendLine(header.CreatedDate.ToString("o"));
-            headerText.AppendLine(header.ModifiedDate.ToString("o"));
-            foreach (var setting in header.Settings)
+            var headerData = new IndexHeaderData
             {
-                headerText.AppendLine(setting);
-            }
+                Type = header.Type,
+                MaxTokenSize = header.MaxTokenSize,
+                NextDocumentId = header.NextDocumentId,
+                CreatedDate = header.CreatedDate,
+                ModifiedDate = header.ModifiedDate,
+            };
 
-            var data = Encoding.UTF8.GetBytes(headerText.ToString());
+            var headerText = JsonSerializer.Serialize<IndexHeaderData>(headerData, new JsonSerializerOptions() { WriteIndented = true });
+            var data = Encoding.UTF8.GetBytes(headerText);
             persistentStorage.WriteAll(0, data, 0, data.Length);
         }
 

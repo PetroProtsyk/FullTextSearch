@@ -49,7 +49,23 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             }
             finally
             {
-                Directory.Delete(testFolder, true);
+                SafeDeleteFolder(testFolder);
+            }
+        }
+
+        private static void SafeDeleteFolder(string testFolder)
+        {
+            for (int i = 0; i < 5; i++)
+            {
+                try
+                {
+                    Directory.Delete(testFolder, true);
+                    return;
+                }
+                catch (IOException)
+                {
+                    Thread.Sleep((i + 1) * 500);
+                }
             }
         }
 
