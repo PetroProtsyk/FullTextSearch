@@ -1,18 +1,20 @@
-@echo off
+rem @echo off
 
-del index-*.pms
+If exist "index-*.pms" (
+        del index-*.pms
+)
 
 IF "%1"=="" (
 	echo Please provide folder with .txt files to index
 	goto EXIT
 )
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll index --dictionaryType TST --fieldsType HashTable --postingType BinaryCompressed --textEncoding UTF-8 --input "%1"
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll print
+Protsyk.PMS.FullText.ConsoleUtil index --dictionaryType TST --fieldsType HashTable --postingType BinaryCompressed --textEncoding UTF-8 --input "%1"
+Protsyk.PMS.FullText.ConsoleUtil print
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll search --query "WORD(pms)"
+Protsyk.PMS.FullText.ConsoleUtil search --query "WORD(pms)"
 
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern "WILD(pet*)"
-dotnet Protsyk.PMS.FullText.ConsoleUtil.dll lookup --pattern "EDIT(projct, 1)"
+Protsyk.PMS.FullText.ConsoleUtil lookup --pattern "WILD(pet*)"
+Protsyk.PMS.FullText.ConsoleUtil lookup --pattern "EDIT(projct, 1)"
 
 :EXIT
