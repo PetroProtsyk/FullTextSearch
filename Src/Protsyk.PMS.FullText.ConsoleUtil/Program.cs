@@ -397,9 +397,18 @@ namespace Protsyk.PMS.FullText.ConsoleUtil
                 return outputFileName;
             }
             PrintConsole(ConsoleColor.White, $"Downloading abstracts to: {outputFileName}");
-            using (var wc = new System.Net.WebClient())
+            using (var client = new HttpClient())
             {
-                await wc.DownloadFileTaskAsync(new Uri(url), outputFileName);
+                using (HttpResponseMessage response = await client.GetAsync(url, HttpCompletionOption.ResponseHeadersRead))
+                {
+                    using (Stream streamToReadFrom = await response.Content.ReadAsStreamAsync())
+                    {
+                        using (var output = File.Create(outputFileName))
+                        {
+                            await streamToReadFrom.CopyToAsync(output);
+                        }
+                    }
+                }
             }
             PrintConsole(ConsoleColor.White, "Downloading complete");
             return outputFileName;
