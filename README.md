@@ -1,5 +1,5 @@
 # PMS Full-Text Search Engine for .NET Core
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Travis Status](https://travis-ci.com/PetroProtsyk/FullTextSearch.svg?branch=master)](https://travis-ci.com/PetroProtsyk/FullTextSearch)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) ![build](https://github.com/PetroProtsyk/FullTextSearch/actions/workflows/dotnet-core.yml/badge.svg)
 
 Full-Text Search Engine with no external dependencies written in C# for .NET Core.
 
