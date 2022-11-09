@@ -54,7 +54,7 @@ namespace Protsyk.PMS.FullText.Core
             listStart = persistentStorage.Length;
 
             // Write List mark
-            persistentStorage.WriteAll(listStart, new byte[] {(byte)'L'}, 0, 1);
+            persistentStorage.WriteAll(listStart, "L"u8);
 
             // Reserve space for the length of the list
             persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(0), 0, sizeof(int));
