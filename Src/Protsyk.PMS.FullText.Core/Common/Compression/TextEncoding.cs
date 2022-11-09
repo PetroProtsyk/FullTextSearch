@@ -31,7 +31,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
         public IDfaMatcher<byte> CreateMatcher(IDfaMatcher<char> charMatcher, int maxLength)
             => encoding == Encoding.UTF8 ?
-                (IDfaMatcher<byte>)new DecodingMatcherForUTF8(charMatcher, GetMaxEncodedLength(maxLength)) :
-                (IDfaMatcher<byte>)new DecodingMatcher(charMatcher, GetMaxEncodedLength(maxLength), this);
+                new DecodingMatcherForUTF8(charMatcher, GetMaxEncodedLength(maxLength)) :
+                new DecodingMatcher(charMatcher, GetMaxEncodedLength(maxLength), this);
     }
 }
