@@ -155,15 +155,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
         }
 
-        private struct Transition
+        private readonly struct Transition
         {
-            public int ToId { get; set; }
+            public int ToId { get; init; }
 
-            public long ToOffset { get; set; }
+            public long ToOffset { get; init; }
 
-            public char Input { get; set; }
+            public char Input { get; init; }
 
-            public T Output { get; set; }
+            public T Output { get; init; }
         }
 
         private static StateWithTransitions CopyOf(StateWithTransitions s)
