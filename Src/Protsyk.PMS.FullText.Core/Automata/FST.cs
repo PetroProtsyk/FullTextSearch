@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
 using System.Threading;
@@ -575,30 +576,25 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private void UpdateHeader(long initialOffset, FSTBuilderStat stat)
         {
-            var data = new byte[64];
-            data[0] = (byte)'F';
-            data[1] = (byte)'S';
-            data[2] = (byte)'T';
-            data[3] = (byte)'-';
-            data[4] = (byte)'0';
-            data[5] = (byte)'2';
-            data[6] = (byte)'S'; // Compressed Stream
+            Span<byte> data = stackalloc byte[64];
+
+            "FST-02S"u8.CopyTo(data); // Compressed Stream
 
             int offset = 7;
 
-            Array.Copy(BitConverter.GetBytes(initialOffset), 0, data, offset, sizeof(long));
+            BinaryPrimitives.WriteInt64LittleEndian(data[offset..], initialOffset);
             offset += sizeof(long);
 
-            Array.Copy(BitConverter.GetBytes(stat.States), 0, data, offset, sizeof(long));
+            BinaryPrimitives.WriteInt64LittleEndian(data[offset..], stat.States);
             offset += sizeof(long);
 
-            Array.Copy(BitConverter.GetBytes(stat.TermCount), 0, data, offset, sizeof(long));
+            BinaryPrimitives.WriteInt64LittleEndian(data[offset..], stat.TermCount);
             offset += sizeof(long);
 
-            Array.Copy(BitConverter.GetBytes(stat.MaxLength), 0, data, offset, sizeof(int));
+            BinaryPrimitives.WriteInt32LittleEndian(data[offset..], stat.MaxLength);
             offset += sizeof(int);
 
-            storage.WriteAll(0, data, 0, data.Length);
+            storage.WriteAll(0, data);
         }
 
         public void Dispose()
