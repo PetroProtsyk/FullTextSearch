@@ -622,7 +622,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         void SetFinal(int stateId, bool isFinal);
     }
 
-    public class FSTBuilderStat
+    public sealed class FSTBuilderStat
     {
         public long TermCount { get; set; }
 
@@ -695,8 +695,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private long ReadHeader(IPersistentStorage storage)
         {
-            var data = new byte[7 + sizeof(long)];
-            storage.ReadAll(0, data, 0, data.Length);
+            Span<byte> data = stackalloc byte[7 + sizeof(long)];
+            storage.ReadAll(0, data);
 
             if ((data[0] != (byte)'F') ||
                 (data[1] != (byte)'S') ||
@@ -711,18 +711,18 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (data[5] == (byte)'2')
             {
-                data = new byte[64];
-                storage.ReadAll(0, data, 0, data.Length);
+                data = stackalloc byte[64];
+                storage.ReadAll(0, data);
 
                 Header = new FSTBuilderStat
                 {
-                    States = BitConverter.ToInt64(data, 15),
-                    TermCount = BitConverter.ToInt64(data, 23),
-                    MaxLength = BitConverter.ToInt32(data, 31),
+                    States = BinaryPrimitives.ReadInt64LittleEndian(data[15..]),
+                    TermCount = BinaryPrimitives.ReadInt64LittleEndian(data[23..]),
+                    MaxLength = BinaryPrimitives.ReadInt32LittleEndian(data[31..]),
                 };
             }
 
-            return BitConverter.ToInt64(data, 7);
+            return BinaryPrimitives.ReadInt64LittleEndian(data[7..]);
         }
 
         private int Ensure(long offset, int size)
