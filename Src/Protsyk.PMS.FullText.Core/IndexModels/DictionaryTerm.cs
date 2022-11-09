@@ -25,7 +25,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(Value.GetHashCode(), Key?.GetHashCode() ?? 0);
+            return HashCode.Combine(Value, Key);
         }
     }
 }

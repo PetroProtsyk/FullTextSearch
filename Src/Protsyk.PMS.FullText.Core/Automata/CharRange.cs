@@ -28,15 +28,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-                return false;
-
-            return obj is CharRange && Equals((CharRange)obj);
+            return obj is CharRange other && Equals(other);
         }
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(start, end);
+            return HashCode.Combine(start, end);
         }
 
         public override string ToString()

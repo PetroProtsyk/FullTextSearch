@@ -114,14 +114,13 @@ namespace Protsyk.PMS.FullText.Core.Automata
             public int GetDedupHash()
             {
                 var result = 0;
+
                 for (int i = 0; i < Arcs.Count; ++i)
                 {
-                    result = HashCombine.Combine(result,
-                                                 Arcs[i].ToId.GetHashCode(),
-                                                 Arcs[i].Input.GetHashCode(),
-                                                 Arcs[i].Output.GetHashCode());
+                    result = HashCode.Combine(result, Arcs[i].ToId,  Arcs[i].Input, Arcs[i].Output);
                 }
-                return HashCombine.Combine(result, IsFinal ? 1 : 0);
+
+                return HashCode.Combine(result, IsFinal ? 1 : 0);
             }
 
             public bool IsEquivalent(StateWithTransitions other)
@@ -1612,7 +1611,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(From.GetHashCode(), To.GetHashCode(), Input.GetHashCode(), Output.GetHashCode());
+            return HashCode.Combine(From, To, Input, Output);
         }
 
         public bool Equals(Arc<T> other)
@@ -1640,7 +1639,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(ToOffset.GetHashCode(), Input.GetHashCode(), Output.GetHashCode());
+            return HashCode.Combine(ToOffset, Input, Output);
         }
 
         public bool Equals(ArcOffset<T> other)
