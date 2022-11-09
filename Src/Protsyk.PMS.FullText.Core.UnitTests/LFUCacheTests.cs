@@ -1,7 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using Protsyk.PMS.FullText.Core.Collections;
+﻿using Protsyk.PMS.FullText.Core.Collections;
+
 using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests

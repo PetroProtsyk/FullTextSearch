@@ -1,5 +1,4 @@
-﻿
-namespace Protsyk.PMS.FullText.Core
+﻿namespace Protsyk.PMS.FullText.Core
 {
     public class PersistentIndexName : IIndexName
     {

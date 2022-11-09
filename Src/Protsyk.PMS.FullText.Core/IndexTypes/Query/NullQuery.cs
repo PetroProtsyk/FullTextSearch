@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core
+﻿namespace Protsyk.PMS.FullText.Core
 {
     /// <summary>
     /// Query that returns no results

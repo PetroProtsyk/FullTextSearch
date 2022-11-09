@@ -1,8 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using Protsyk.PMS.FullText.Core.Common.Compression;
 using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.Automata.UnitTests

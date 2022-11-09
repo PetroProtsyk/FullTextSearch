@@ -1,6 +1,4 @@
-﻿using CommandLine;
-using Protsyk.PMS.FullText.Core;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -9,6 +7,10 @@ using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using System.Xml;
+
+using CommandLine;
+
+using Protsyk.PMS.FullText.Core;
 
 namespace Protsyk.PMS.FullText.ConsoleUtil
 {

@@ -1,9 +1,4 @@
-﻿
-using System;
-using System.IO;
-using System.Linq;
-using System.Threading;
-using Xunit;
+﻿using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests
 {

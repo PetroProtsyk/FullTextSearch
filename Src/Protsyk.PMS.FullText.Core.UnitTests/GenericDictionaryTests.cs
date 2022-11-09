@@ -1,8 +1,6 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+
 using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests
@@ -27,7 +25,6 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             return tree;
         }
 
-
         public static void TheFirstTest<T>() where T : IDictionary<int, string>, new()
         {
             var tree = MakeDefault<T>();
@@ -37,7 +34,6 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             Assert.True(tree.ContainsKey(101));
             Assert.True(tree.ContainsKey(156));
         }
-
 
         public static void TheSecondTest<T>(int n) where T : IDictionary<int, string>, new()
         {

@@ -1,7 +1,4 @@
-﻿using System;
-using System.Linq;
-using Protsyk.PMS.FullText.Core.Automata;
-using Xunit;
+﻿using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests
 {
