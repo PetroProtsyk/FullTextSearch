@@ -970,7 +970,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             {
                 if (ts.Length < 8)
                 {
-                    foreach (var t in ts)
+                    foreach (ref readonly var t in ts.AsSpan())
                     {
                         if (t.Input == c)
                         {
@@ -1600,15 +1600,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
-    public struct Arc<T> : IEquatable<Arc<T>>
+    public readonly struct Arc<T> : IEquatable<Arc<T>>
     {
-        public int From { get; set; }
+        public int From { get; init; }
 
-        public int To { get; set; }
+        public int To { get; init; }
 
-        public char Input { get; set; }
+        public char Input { get; init; }
 
-        public T Output { get; set; }
+        public T Output { get; init; }
 
         public override int GetHashCode()
         {
@@ -1630,13 +1630,13 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
-    public struct ArcOffset<T> : IEquatable<ArcOffset<T>>
+    public readonly struct ArcOffset<T> : IEquatable<ArcOffset<T>>
     {
-        public long ToOffset { get; set; }
+        public long ToOffset { get; init; }
 
-        public char Input { get; set; }
+        public char Input { get; init; }
 
-        public T Output { get; set; }
+        public T Output { get; init; }
 
         public override int GetHashCode()
         {
