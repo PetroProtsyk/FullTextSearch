@@ -2,7 +2,7 @@
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public struct DictionaryTerm : IEquatable<DictionaryTerm>
+    public readonly struct DictionaryTerm : IEquatable<DictionaryTerm>
     {
         public readonly PostingListAddress Value;
         public readonly string Key;
@@ -15,9 +15,6 @@ namespace Protsyk.PMS.FullText.Core
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-                return false;
-
             return obj is DictionaryTerm && Equals((DictionaryTerm)obj);
         }
 
