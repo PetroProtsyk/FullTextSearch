@@ -52,6 +52,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             {
                 instance.WriteAll(fileOffset, buffer, offset, count);
             }
+
+            public void WriteAll(long fileOffset, ReadOnlySpan<byte> buffer)
+            {
+                instance.WriteAll(fileOffset, buffer);
+            }
         }
     }
 }

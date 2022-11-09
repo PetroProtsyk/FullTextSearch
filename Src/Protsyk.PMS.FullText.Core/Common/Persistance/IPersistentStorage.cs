@@ -23,6 +23,8 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
 
         void WriteAll(long fileOffset, byte[] buffer, int offset, int count);
 
+        void WriteAll(long fileOffset, ReadOnlySpan<byte> buffer);
+
         void Flush();
     }
 }

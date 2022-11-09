@@ -88,6 +88,12 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             stream.Write(buffer, offset, count);
         }
 
+        public void WriteAll(long fileOffset, ReadOnlySpan<byte> buffer)
+        {
+            stream.Seek(fileOffset, SeekOrigin.Begin);
+            stream.Write(buffer);
+        }
+
         public void Truncate(long fileSize)
         {
             stream.SetLength(fileSize);
