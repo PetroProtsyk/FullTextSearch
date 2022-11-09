@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -45,7 +46,7 @@ namespace Protsyk.PMS.FullText.Core
 
             persistentStorage.ReadAll(offset, buffer, 0, sizeof(int));
             offset += sizeof(int);
-            chunkSize = BitConverter.ToInt32(buffer, 0);
+            chunkSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             while(chunkSize > 0)
             {
                 if (buffer.Length < chunkSize)
@@ -60,7 +61,7 @@ namespace Protsyk.PMS.FullText.Core
 
                 persistentStorage.ReadAll(offset, buffer, 0, sizeof(int));
                 offset += sizeof(int);
-                chunkSize = BitConverter.ToInt32(buffer, 0);
+                chunkSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             }
             return new StringReader(result.ToString());
         }
@@ -163,6 +164,8 @@ namespace Protsyk.PMS.FullText.Core
 
             public bool MoveNext()
             {
+                Span<byte> buffer = stackalloc byte[16];
+
                 while (true)
                 {
                     if (state == 0)
@@ -172,16 +175,17 @@ namespace Protsyk.PMS.FullText.Core
                             return false;
                         }
 
-                        var header = new byte[HeaderLength];
-                        persistentStorage.ReadAll(readOffset, header, 0, header.Length);
+                        var header = buffer.Slice(0, HeaderLength);
+
+                        persistentStorage.ReadAll(readOffset, header);
 
                         if (header[0] != (byte)'L')
                         {
                             throw new Exception("Invalid List Header");
                         }
 
-                        var listLength = BitConverter.ToInt32(header, 1);
-                        var recordCount = BitConverter.ToInt32(header, 1 + sizeof(int));
+                        var listLength = BinaryPrimitives.ReadInt32LittleEndian(header.Slice(1));
+                        var recordCount = BinaryPrimitives.ReadInt32LittleEndian(header.Slice(1 + sizeof(int)));
 
                         listEndOffset = readOffset + HeaderLength + listLength;
 
