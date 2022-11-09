@@ -79,15 +79,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
         }
 
-
         private bool ContainsKeyInternal(TKey key)
         {
-            NodeData temp;
-            return TryFindKeyOrLeaf(key, out temp);
+            return TryFindKeyOrLeaf(key, out _);
         }
 
-
-        private int Put(NodeData target, TKey key, DataLink dataLink)
+        private int Put(in NodeData target, TKey key, DataLink dataLink)
         {
             var targetKeys = LoadKeys(target);
 
@@ -101,8 +98,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             return index;
         }
 
-
-        private void SplitUp(NodeData target)
+        private void SplitUp(in NodeData target)
         {
             NodeData targetParent;
             if (target.ParentId == NodeManager.NoId)
@@ -197,20 +193,17 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
         }
 
-
         private NodeData CreateNode()
         {
             return nodeManager.CreateNode();
         }
-
 
         private void DisposeNode(int nodeId)
         {
             nodeManager.DisposeNode(nodeId);
         }
 
-
-        private TKey[] LoadKeys(NodeData node)
+        private TKey[] LoadKeys(in NodeData node)
         {
             var result = new TKey[node.Count];
             for (int i = 0; i < node.Count; ++i)
@@ -220,8 +213,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             return result;
         }
 
-
-        private KeyValuePair<TKey, TValue>[] LoadKeyValues(NodeData node)
+        private KeyValuePair<TKey, TValue>[] LoadKeyValues(in NodeData node)
         {
             var result = new KeyValuePair<TKey, TValue>[node.Count];
             for (int i = 0; i < node.Count; ++i)
@@ -237,14 +229,13 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         private NodeData FindLeaf(TKey key)
         {
-            NodeData result;
-            if (TryFindKeyOrLeaf(key, out result))
+            if (TryFindKeyOrLeaf(key, out NodeData result))
             {
                 throw new KeyAlreadyExistsException();
             }
+            
             return result;
         }
-
 
         private bool TryFindKeyOrLeaf(TKey key, out NodeData keyOrLeafNode)
         {
@@ -569,7 +560,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         }
 
 
-        private void FormatLinks(StringBuilder text, NodeData node)
+        private void FormatLinks(StringBuilder text, in NodeData node)
         {
             bool rankEmpty = true;
             for (int i = 0; i < node.Count + 1; ++i)
@@ -608,7 +599,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         }
 
 
-        private void FormatNode(StringBuilder text, NodeData node, int id)
+        private void FormatNode(StringBuilder text, in NodeData node, int id)
         {
             text.AppendFormat("node{0}[label = \"", id);
             var nodeKeys = LoadKeyValues(node);
@@ -1478,19 +1469,17 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
         }
 
-        private struct NodeData
+        private readonly struct NodeData
         {
             public static readonly int HeaderLength = 3 * sizeof(int);
             public static readonly int DataHeaderLength = HeaderLength + sizeof(int);
 
             private readonly byte[] data;
 
-
             public NodeData(byte[] data)
             {
                 this.data = data;
             }
-
 
             public byte[] Data => data;
 
@@ -1529,7 +1518,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-
             public int GetLink(int index)
             {
                 if (index > Count + 1)
@@ -1538,7 +1526,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
                 return BitConverter.ToInt32(data, HeaderLength + index * sizeof(int));
             }
-
 
             public void SetLink(int index, int id)
             {
@@ -1549,13 +1536,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 Array.Copy(BitConverter.GetBytes(id), 0, data, HeaderLength + index * sizeof(int), sizeof(int));
             }
 
-
             public DataLink GetData(int index, int maxChildren)
             {
                 int offset = HeaderLength + (maxChildren + 1) * sizeof(int) + index * DataLink.SizeInBytes;
                 return DataLink.FromBytes(data, offset);
             }
-
 
             public void SetData(int index, int maxChildren, DataLink location)
             {
@@ -1570,14 +1555,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 Array.Copy(bytes, 0, data, offset, bytes.Length);
             }
 
-
             public static int Size(int maxChildren)
             {
                 return HeaderLength + // id + parent id + count
                        (maxChildren + 1) * sizeof(int) + // Link
                        (maxChildren) * DataLink.SizeInBytes; // Data Link
             }
-
 
             /// <summary>
             /// Create empty node with a given id
@@ -1590,7 +1573,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 Array.Copy(BitConverter.GetBytes(0), 0, data, sizeof(int), sizeof(int));
                 return new NodeData(data);
             }
-
 
             public void Insert(int index, int maxChildren, DataLink dataLink)
             {
@@ -1610,7 +1592,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 SetLink(index, NodeManager.NoId);
                 SetData(index, maxChildren, dataLink);
             }
-
 
             public void RemoveAt(int position, int maxChildren)
             {
