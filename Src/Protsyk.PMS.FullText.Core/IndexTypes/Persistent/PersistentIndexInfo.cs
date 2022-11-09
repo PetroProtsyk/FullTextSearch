@@ -1,8 +1,8 @@
-﻿using Protsyk.PMS.FullText.Core.Common.Persistance;
-using System;
+﻿using System;
 using System.IO;
-using System.Text;
 using System.Text.Json;
+
+using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
@@ -28,10 +28,9 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             var buffer = new byte[persistentStorage.Length];
-            persistentStorage.ReadAll(0, buffer, 0, buffer.Length);
+            persistentStorage.ReadAll(0, buffer);
 
-            var data = Encoding.UTF8.GetString(buffer, 0, buffer.Length);
-            var result = JsonSerializer.Deserialize<IndexHeaderData>(data);
+            var result = JsonSerializer.Deserialize<IndexHeaderData>(buffer);
             return result;
         }
 
@@ -46,10 +45,10 @@ namespace Protsyk.PMS.FullText.Core
                 ModifiedDate = header.ModifiedDate,
             };
 
-            var headerText = JsonSerializer.Serialize<IndexHeaderData>(headerData, new JsonSerializerOptions() { WriteIndented = true });
-            var data = Encoding.UTF8.GetBytes(headerText);
+            var data = JsonSerializer.SerializeToUtf8Bytes(headerData, new JsonSerializerOptions() { WriteIndented = true });
+
             persistentStorage.Truncate(data.Length);
-            persistentStorage.WriteAll(0, data, 0, data.Length);
+            persistentStorage.WriteAll(0, data);
         }
 
         public void Dispose()
