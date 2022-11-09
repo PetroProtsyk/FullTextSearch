@@ -26,6 +26,14 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             }
         }
 
+        public void ReadAll(long fileOffset, Span<byte> buffer)
+        {
+            if (buffer.Length != Read(fileOffset, buffer))
+            {
+                throw new InvalidOperationException();
+            }
+        }
+
         public int Read(long fileOffset, byte[] buffer, int offset, int count)
         {
             var position = stream.Seek(fileOffset, SeekOrigin.Begin);
@@ -44,6 +52,30 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
                 }
                 count -= read;
                 offset += read;
+                totalRead += read;
+            }
+
+            return totalRead;
+        }
+
+        public int Read(long fileOffset, Span<byte> buffer)
+        {
+            var position = stream.Seek(fileOffset, SeekOrigin.Begin);
+            if (position != fileOffset)
+            {
+                throw new InvalidOperationException();
+            }
+
+            int remaining = buffer.Length;
+            int totalRead = 0;
+            while (remaining > 0)
+            {
+                var read = stream.Read(buffer);
+                if (read == 0)
+                {
+                    break;
+                }
+                remaining -= read;
                 totalRead += read;
             }
 

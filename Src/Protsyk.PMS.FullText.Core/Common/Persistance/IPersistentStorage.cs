@@ -12,6 +12,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         void ReadAll(long fileOffset, byte[] buffer, int offset, int count);
 
         /// <summary>
+        /// Read count bytes from storage. If less data read, throw exception
+        /// </summary>
+        void ReadAll(long fileOffset, Span<byte> buffer);
+
+        /// <summary>
         /// Try to read count bytes from storage. Return actual bytes read
         /// </summary>
         int Read(long fileOffset, byte[] buffer, int offset, int count);
