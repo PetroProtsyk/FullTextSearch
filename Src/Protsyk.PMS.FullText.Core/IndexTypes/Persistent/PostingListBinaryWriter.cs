@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.IO;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -129,12 +130,12 @@ namespace Protsyk.PMS.FullText.Core
 
         public void UpdateNextList(PostingListAddress address, PostingListAddress nextList)
         {
-            var buffer = new byte[sizeof(long)];
+            Span<byte> buffer = stackalloc byte[8];
             var offset = address.Offset;
             while (true)
             {
-                persistentStorage.ReadAll(offset, buffer, 0, buffer.Length);
-                long continuationOffset = BitConverter.ToInt64(buffer, 0);
+                persistentStorage.ReadAll(offset, buffer);
+                long continuationOffset = BinaryPrimitives.ReadInt64LittleEndian(buffer);
 
                 if (continuationOffset == 0)
                 {
