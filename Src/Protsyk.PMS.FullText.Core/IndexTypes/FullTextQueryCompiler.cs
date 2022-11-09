@@ -44,14 +44,9 @@ namespace Protsyk.PMS.FullText.Core
 
         private ISearchQuery Compile(AstQuery ast)
         {
-            if (ast == null)
-            {
-                throw new ArgumentNullException(nameof(ast));
-            }
+            ArgumentNullException.ThrowIfNull(ast);
 
-            if ((ast is WordAstQuery) ||
-                (ast is WildcardAstQuery) ||
-                (ast is EditAstQuery))
+            if (ast is WordAstQuery or WildcardAstQuery or EditAstQuery)
             {
                 return CompilePattern(index.GetTerms(BuildMatcher(ast)));
             }

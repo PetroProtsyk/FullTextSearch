@@ -13,15 +13,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         public static IEnumerable<T> HeapSort<T>(this IEnumerable<T> items, IComparer<T> comparer)
         {
-            if (items == null)
-            {
-                throw new ArgumentNullException(nameof(items));
-            }
-
-            if (comparer == null)
-            {
-                throw new ArgumentNullException(nameof(comparer));
-            }
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(comparer);
 
             var heap = new Heap<T>(comparer, items);
             while (!heap.IsEmpty)
@@ -37,15 +30,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         public static IEnumerable<T> TopN<T>(this IEnumerable<T> items, IComparer<T> comparer, int n)
         {
-            if (items == null)
-            {
-                throw new ArgumentNullException(nameof(items));
-            }
-
-            if (comparer == null)
-            {
-                throw new ArgumentNullException(nameof(comparer));
-            }
+            ArgumentNullException.ThrowIfNull(items);
+            ArgumentNullException.ThrowIfNull(comparer);
 
             if (n < 0)
             {

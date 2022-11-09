@@ -69,14 +69,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public FSTBuilder(IFSTOutput<T> outputType, int cacheSize, IPersistentStorage storage)
         {
-            if (outputType == null)
-            {
-                throw new ArgumentNullException(nameof(outputType));
-            }
-            if (storage == null)
-            {
-                throw new ArgumentNullException(nameof(storage));
-            }
+            ArgumentNullException.ThrowIfNull(outputType);
+            ArgumentNullException.ThrowIfNull(storage);
+
             if (storage.Length != 0)
             {
                 throw new InvalidOperationException("Storage is not empty");
@@ -684,14 +679,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
         #region Methods
         public PersistentFST(IFSTOutput<T> outputType, IPersistentStorage storage)
         {
-            if (outputType == null)
-            {
-                throw new ArgumentNullException(nameof(outputType));
-            }
-            if (storage == null)
-            {
-                throw new ArgumentNullException(nameof(storage));
-            }
+            ArgumentNullException.ThrowIfNull(outputType);
+            ArgumentNullException.ThrowIfNull(storage);
+
             if (storage.Length == 0)
             {
                 throw new InvalidOperationException("Storage is empty");

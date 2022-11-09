@@ -135,10 +135,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         private (long indexOffset, long dataOffset, int dataSize) FindKeyRecord(TKey key)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
+            ArgumentNullException.ThrowIfNull(key);
 
             var index = (long)((ulong)GetKeyHash(key) % (ulong)capacity);
             var offset = headerSize + index * IndexRecordSize;
@@ -208,10 +205,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             get
             {
-                if (key == null)
-                {
-                    throw new ArgumentNullException(nameof(key));
-                }
+                ArgumentNullException.ThrowIfNull(key);
 
                 var keyRecord = FindKeyRecord(key);
                 var nextOffset = keyRecord.dataOffset;

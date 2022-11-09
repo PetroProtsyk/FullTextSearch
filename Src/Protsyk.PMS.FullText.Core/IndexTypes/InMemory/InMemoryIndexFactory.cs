@@ -16,10 +16,7 @@ namespace Protsyk.PMS.FullText.Core
 
         private static InMemoryIndexName InMemoryName(IIndexName name)
         {
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             var result = name as InMemoryIndexName;
             if (result == null)

@@ -74,10 +74,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         /// </summary>
         public bool AddOrGet(IEnumerable<TKey> item, TValue value, out TValue currentValue)
         {
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+            ArgumentNullException.ThrowIfNull(item);
 
             var sequence = item.GetEnumerator();
             if (!sequence.MoveNext())
@@ -545,10 +542,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public Header(byte[] headerData)
             {
-                if (headerData == null)
-                {
-                    throw new ArgumentNullException(nameof(headerData));
-                }
+                ArgumentNullException.ThrowIfNull(headerData);
 
                 this.headerData = headerData;
             }
@@ -681,20 +675,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public NodeManager(IPersistentStorage persistentStorage, IFixedSizeDataSerializer<TKey> keySerializer, IFixedSizeDataSerializer<TValue> valueSerializer)
             {
-                if (persistentStorage == null)
-                {
-                    throw new ArgumentNullException(nameof(persistentStorage));
-                }
-
-                if (keySerializer == null)
-                {
-                    throw new ArgumentNullException(nameof(keySerializer));
-                }
-
-                if (valueSerializer == null)
-                {
-                    throw new ArgumentNullException(nameof(valueSerializer));
-                }
+                ArgumentNullException.ThrowIfNull(persistentStorage);
+                ArgumentNullException.ThrowIfNull(keySerializer);
+                ArgumentNullException.ThrowIfNull(valueSerializer);
 
                 this.syncRoot = new object();
                 this.Header = new Header();

@@ -52,10 +52,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public void AddCompound(IInputDocument document)
         {
-           if (document == null)
-           {
-               throw new ArgumentNullException(nameof(document));
-           }
+           ArgumentNullException.ThrowIfNull(document);
 
            var id = (ulong)Interlocked.Increment(ref nextId);
            if (document.Metadata != null)

@@ -38,10 +38,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         public BtreePersistent(IPersistentStorage persistentStorage, int order)
         {
-            if (persistentStorage == null)
-            {
-                throw new ArgumentNullException(nameof(persistentStorage));
-            }
+            ArgumentNullException.ThrowIfNull(persistentStorage);
 
             if (order < 1)
             {
@@ -1238,10 +1235,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public PageDataStorage(IPersistentStorage persistentStorage, int headerSize, int maxChildren)
             {
-                if (persistentStorage == null)
-                {
-                    throw new ArgumentNullException(nameof(persistentStorage));
-                }
+                ArgumentNullException.ThrowIfNull(persistentStorage);
 
                 this.persistentStorage = persistentStorage;
                 this.syncRoot = new object();

@@ -20,10 +20,7 @@ namespace Protsyk.PMS.FullText.Core
 
         private static PersistentIndexName Convert(IIndexName name)
         {
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             var result = name as PersistentIndexName;
             if (result == null)
