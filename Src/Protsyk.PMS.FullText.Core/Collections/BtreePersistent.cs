@@ -84,7 +84,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             return TryFindKeyOrLeaf(key, out _);
         }
 
-        private int Put(in NodeData target, TKey key, DataLink dataLink)
+        private int Put(in NodeData target, TKey key, in DataLink dataLink)
         {
             var targetKeys = LoadKeys(target);
 
@@ -1393,12 +1393,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
 
 
-            private class Transaction : ITransaction
+            private sealed class Transaction : ITransaction
             {
                 private readonly PageDataStorage owner;
                 private readonly HashSet<int> pages;
                 private bool commited;
-
 
                 public Transaction(PageDataStorage owner)
                 {
@@ -1438,7 +1437,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
         }
 
-        private struct DataLink
+        private readonly struct DataLink
         {
             public static readonly int SizeInBytes = 2 * sizeof(ulong);
 
@@ -1451,7 +1450,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 ValueAddress = valueAddress;
             }
 
-
             public byte[] GetBytes()
             {
                 var buffer = new byte[SizeInBytes];
@@ -1459,7 +1457,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 Array.Copy(BitConverter.GetBytes(ValueAddress), 0, buffer, sizeof(ulong), sizeof(ulong));
                 return buffer;
             }
-
 
             public static DataLink FromBytes(byte[] buffer, int offset)
             {
@@ -1542,7 +1539,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return DataLink.FromBytes(data, offset);
             }
 
-            public void SetData(int index, int maxChildren, DataLink location)
+            public void SetData(int index, int maxChildren, in DataLink location)
             {
                 int offset = HeaderLength + (maxChildren + 1) * sizeof(int) + index * DataLink.SizeInBytes;
                 var bytes = location.GetBytes();
@@ -1574,7 +1571,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return new NodeData(data);
             }
 
-            public void Insert(int index, int maxChildren, DataLink dataLink)
+            public void Insert(int index, int maxChildren, in DataLink dataLink)
             {
                 int count = Count;
                 if (count + 1 > maxChildren || index > count)
