@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Collections.Generic;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public struct Occurrence : IEquatable<Occurrence>, IComparable<Occurrence>
+    public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurrence>
     {
         #region Fields
         /// <summary>
@@ -54,9 +54,9 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             return new Occurrence(
-                ulong.Parse(match.Groups["docId"].Value),
-                ulong.Parse(match.Groups["fieldId"].Value),
-                ulong.Parse(match.Groups["tokenId"].Value));
+                ulong.Parse(match.Groups["docId"].ValueSpan, provider: CultureInfo.InvariantCulture),
+                ulong.Parse(match.Groups["fieldId"].ValueSpan, provider: CultureInfo.InvariantCulture),
+                ulong.Parse(match.Groups["tokenId"].ValueSpan, provider: CultureInfo.InvariantCulture));
         }
         #endregion
 
@@ -84,11 +84,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-            return obj is Occurrence && Equals((Occurrence) obj);
+            return obj is Occurrence other && Equals(other);
         }
 
         public override int GetHashCode()
