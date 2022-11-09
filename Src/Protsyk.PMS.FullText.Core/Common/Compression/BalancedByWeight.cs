@@ -43,8 +43,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
         private BaseNode DivEqually(IList<CharFrequency> v)
         {
-            if (v == null)
-                throw new ArgumentNullException(nameof(v));
+            ArgumentNullException.ThrowIfNull(v);
 
             if (v.Count < 1)
                 throw new ArgumentException("Empty input");

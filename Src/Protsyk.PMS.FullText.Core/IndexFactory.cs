@@ -25,10 +25,7 @@ namespace Protsyk.PMS.FullText.Core
 
         private static IIndexTypeFactory GetFactoryForName(IIndexName name)
         {
-            if (name == null)
-            {
-                throw new ArgumentNullException(nameof(name));
-            }
+            ArgumentNullException.ThrowIfNull(name);
 
             if (!indexTypes.TryGetValue(name.GetType(), out var factory))
             {

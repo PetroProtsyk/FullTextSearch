@@ -1,9 +1,8 @@
 ﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
-using System.IO;
-using System.Collections;
+
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core.Collections
@@ -13,7 +12,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         #region Fields
         private static readonly int MinValueBufferSize = 256;
         private static readonly int MinCapacity = 8;
-        private static readonly byte[] Header = new byte[] { (byte)'P', (byte)'M', (byte)'S', (byte)'-', (byte)'H', (byte)'A', (byte)'S', (byte)'H' };
+        private static readonly byte[] Header = "PMS-HASH"u8.ToArray();
         private static readonly int HeaderSize = Header.Length;
         private static readonly int IndexRecordSize = sizeof(long) + sizeof(int);
 
@@ -135,10 +134,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         private (long indexOffset, long dataOffset, int dataSize) FindKeyRecord(TKey key)
         {
-            if (key == null)
-            {
-                throw new ArgumentNullException(nameof(key));
-            }
+            ArgumentNullException.ThrowIfNull(key);
 
             var index = (long)((ulong)GetKeyHash(key) % (ulong)capacity);
             var offset = headerSize + index * IndexRecordSize;
@@ -208,10 +204,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             get
             {
-                if (key == null)
-                {
-                    throw new ArgumentNullException(nameof(key));
-                }
+                ArgumentNullException.ThrowIfNull(key);
 
                 var keyRecord = FindKeyRecord(key);
                 var nextOffset = keyRecord.dataOffset;

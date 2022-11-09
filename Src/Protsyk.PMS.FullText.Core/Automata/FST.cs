@@ -69,14 +69,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public FSTBuilder(IFSTOutput<T> outputType, int cacheSize, IPersistentStorage storage)
         {
-            if (outputType == null)
-            {
-                throw new ArgumentNullException(nameof(outputType));
-            }
-            if (storage == null)
-            {
-                throw new ArgumentNullException(nameof(storage));
-            }
+            ArgumentNullException.ThrowIfNull(outputType);
+            ArgumentNullException.ThrowIfNull(storage);
+
             if (storage.Length != 0)
             {
                 throw new InvalidOperationException("Storage is not empty");
@@ -160,15 +155,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
         }
 
-        private struct Transition
+        private readonly struct Transition
         {
-            public int ToId { get; set; }
+            public int ToId { get; init; }
 
-            public long ToOffset { get; set; }
+            public long ToOffset { get; init; }
 
-            public char Input { get; set; }
+            public char Input { get; init; }
 
-            public T Output { get; set; }
+            public T Output { get; init; }
         }
 
         private static StateWithTransitions CopyOf(StateWithTransitions s)
@@ -684,14 +679,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
         #region Methods
         public PersistentFST(IFSTOutput<T> outputType, IPersistentStorage storage)
         {
-            if (outputType == null)
-            {
-                throw new ArgumentNullException(nameof(outputType));
-            }
-            if (storage == null)
-            {
-                throw new ArgumentNullException(nameof(storage));
-            }
+            ArgumentNullException.ThrowIfNull(outputType);
+            ArgumentNullException.ThrowIfNull(storage);
+
             if (storage.Length == 0)
             {
                 throw new InvalidOperationException("Storage is empty");
@@ -980,7 +970,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             {
                 if (ts.Length < 8)
                 {
-                    foreach (var t in ts)
+                    foreach (ref readonly var t in ts.AsSpan())
                     {
                         if (t.Input == c)
                         {
@@ -1610,15 +1600,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
-    public struct Arc<T> : IEquatable<Arc<T>>
+    public readonly struct Arc<T> : IEquatable<Arc<T>>
     {
-        public int From { get; set; }
+        public int From { get; init; }
 
-        public int To { get; set; }
+        public int To { get; init; }
 
-        public char Input { get; set; }
+        public char Input { get; init; }
 
-        public T Output { get; set; }
+        public T Output { get; init; }
 
         public override int GetHashCode()
         {
@@ -1640,13 +1630,13 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
-    public struct ArcOffset<T> : IEquatable<ArcOffset<T>>
+    public readonly struct ArcOffset<T> : IEquatable<ArcOffset<T>>
     {
-        public long ToOffset { get; set; }
+        public long ToOffset { get; init; }
 
-        public char Input { get; set; }
+        public char Input { get; init; }
 
-        public T Output { get; set; }
+        public T Output { get; init; }
 
         public override int GetHashCode()
         {

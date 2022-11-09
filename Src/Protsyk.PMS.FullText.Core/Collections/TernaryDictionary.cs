@@ -74,10 +74,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         /// </summary>
         public bool AddOrGet(IEnumerable<TKey> item, TValue value, out TValue currentValue)
         {
-            if (item == null)
-            {
-                throw new ArgumentNullException(nameof(item));
-            }
+            ArgumentNullException.ThrowIfNull(item);
 
             var sequence = item.GetEnumerator();
             if (!sequence.MoveNext())
@@ -252,17 +249,15 @@ namespace Protsyk.PMS.FullText.Core.Collections
         /// </summary>
         public bool Contains(IEnumerable<TKey> s)
         {
-            TValue value;
-            return TryGet(s, out value);
+            return TryGet(s, out _);
         }
-
 
         public bool TryGet(IEnumerable<TKey> s, out TValue value)
         {
             if (nodeManager.RootNodeId == NodeManager.NoId ||
                 nodeManager.RootNodeId == NodeManager.NewId)
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
 
@@ -274,7 +269,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 {
                     if (currentId == NodeManager.NoId)
                     {
-                        value = default(TValue);
+                        value = default;
                         return false;
                     }
 
@@ -293,7 +288,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             if (parent.Data == null || !parent.IsFinal)
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
 
@@ -409,7 +404,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         #endregion
 
         #region Types
-        private struct NodeData
+        private readonly struct NodeData
         {
             private readonly byte[] data;
             private readonly IFixedSizeDataSerializer<TKey> keySerializer;
@@ -417,14 +412,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public byte[] Data => data;
 
-
             public NodeData(IFixedSizeDataSerializer<TKey> keySerializer, IFixedSizeDataSerializer<TValue> valueSerializer, byte[] data)
             {
                 this.data = data;
                 this.keySerializer = keySerializer;
                 this.valueSerializer = valueSerializer;
             }
-
 
             public TKey Split
             {
@@ -545,14 +538,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public Header(byte[] headerData)
             {
-                if (headerData == null)
-                {
-                    throw new ArgumentNullException(nameof(headerData));
-                }
+                ArgumentNullException.ThrowIfNull(headerData);
 
                 this.headerData = headerData;
             }
-
 
             public Header Copy()
             {
@@ -655,7 +644,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
         }
 
-        private class NodeManager : IDisposable
+        private sealed class NodeManager : IDisposable
         {
             public static readonly int NewId = -1;
             public static readonly int NoId = 0;
@@ -663,7 +652,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             private readonly IPersistentStorage persistentStorage;
             private readonly IFixedSizeDataSerializer<TKey> keySerializer;
             private readonly IFixedSizeDataSerializer<TValue> valueSerializer;
-            private readonly Dictionary<int, NodeData> cache = new Dictionary<int, NodeData>();
+            private readonly Dictionary<int, NodeData> cache = new();
             private readonly object syncRoot;
 
             private Transaction activeTransaction;
@@ -681,20 +670,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public NodeManager(IPersistentStorage persistentStorage, IFixedSizeDataSerializer<TKey> keySerializer, IFixedSizeDataSerializer<TValue> valueSerializer)
             {
-                if (persistentStorage == null)
-                {
-                    throw new ArgumentNullException(nameof(persistentStorage));
-                }
-
-                if (keySerializer == null)
-                {
-                    throw new ArgumentNullException(nameof(keySerializer));
-                }
-
-                if (valueSerializer == null)
-                {
-                    throw new ArgumentNullException(nameof(valueSerializer));
-                }
+                ArgumentNullException.ThrowIfNull(persistentStorage);
+                ArgumentNullException.ThrowIfNull(keySerializer);
+                ArgumentNullException.ThrowIfNull(valueSerializer);
 
                 this.syncRoot = new object();
                 this.Header = new Header();
@@ -765,7 +743,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return new NodeData(keySerializer, valueSerializer, data);
             }
 
-            private void Save(NodeData node)
+            private void Save(in NodeData node)
             {
                 var offset = CalculateNodeOffset(node.Id);
                 persistentStorage.WriteAll(offset, node.Data, 0, node.Data.Length);
@@ -788,13 +766,13 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 persistentStorage?.Dispose();
             }
 
-            private class Transaction : ITransaction
+            private sealed class Transaction : ITransaction
             {
                 private readonly Header header;
                 private readonly NodeManager nodeManager;
                 private readonly IFixedSizeDataSerializer<TKey> keySerializer;
                 private readonly IFixedSizeDataSerializer<TValue> valueSerializer;
-                private readonly Dictionary<int, NodeData> cache = new Dictionary<int, NodeData>();
+                private readonly Dictionary<int, NodeData> cache = new();
                 private int depth;
                 private bool finalized;
 

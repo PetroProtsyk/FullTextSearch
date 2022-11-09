@@ -5,7 +5,7 @@ using System.Diagnostics;
 namespace Protsyk.PMS.FullText.Core.Automata
 {
     [DebuggerDisplay("[{start}, {end}]")]
-    public struct CharRange : IEquatable<CharRange>
+    public readonly struct CharRange : IEquatable<CharRange>
     {
         public static CharRange Empty = new CharRange(int.MinValue, int.MinValue);
 

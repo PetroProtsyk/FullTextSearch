@@ -13,7 +13,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
         public TextEncoding(Encoding encoding)
         {
-            this.encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
+            ArgumentNullException.ThrowIfNull(encoding);
+
+            this.encoding = encoding;
         }
 
         public string GetName() => encoding.WebName;

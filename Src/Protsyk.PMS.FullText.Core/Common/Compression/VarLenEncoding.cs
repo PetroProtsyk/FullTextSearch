@@ -14,7 +14,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
         public VarLenEncoding(VarLenCharEncoding encoding)
         {
-            this.encoding = encoding ?? throw new ArgumentNullException(nameof(encoding));
+            ArgumentNullException.ThrowIfNull(encoding);
+
+            this.encoding = encoding;
         }
 
         public string GetName() => encoding.ToString();
