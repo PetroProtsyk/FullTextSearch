@@ -11,8 +11,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
     public class PersistentHashTable<TKey, TValue> : IEnumerable<KeyValuePair<TKey, TValue>>, IDisposable
     {
         #region Fields
-        private static readonly int MinValueBufferSize = 256;
-        private static readonly int MinCapacity = 8;
+        private const int MinValueBufferSize = 256;
+        private const int MinCapacity = 8;
         private static readonly byte[] Header = "PMS-HASH"u8.ToArray();
         private static readonly int HeaderSize = Header.Length;
         private static readonly int IndexRecordSize = sizeof(long) + sizeof(int);
@@ -26,7 +26,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         private byte[] valueBuffer;
         private int capacity;
         private int count;
-        private int headerSize;
+        private readonly int headerSize;
         #endregion
 
         #region Properties

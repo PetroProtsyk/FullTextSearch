@@ -338,8 +338,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
                 if (node.Eqkid != NodeManager.NoId)
                 {
-                    int childIndex;
-                    if (!labels.TryGetValue(node.Eqkid, out childIndex))
+                    if (!labels.TryGetValue(node.Eqkid, out int childIndex))
                     {
                         childIndex = labels.Count + 1;
                         labels.Add(node.Eqkid, childIndex);
@@ -646,8 +645,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         private sealed class NodeManager : IDisposable
         {
-            public static readonly int NewId = -1;
-            public static readonly int NoId = 0;
+            public const int NewId = -1;
+            public const int NoId = 0;
 
             private readonly IPersistentStorage persistentStorage;
             private readonly IFixedSizeDataSerializer<TKey> keySerializer;
