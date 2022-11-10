@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.IO;
 using System.Text;
 
@@ -56,16 +57,15 @@ namespace Protsyk.PMS.FullText.Core
 
             if (count != 0)
             {
-                buffer.Append(";");
+                buffer.Append(';');
             }
 
-            buffer.AppendFormat("[{0},{1},{2}]", occurrence.DocumentId, occurrence.FieldId, occurrence.TokenId);
+            buffer.Append(CultureInfo.InvariantCulture, $"[{occurrence.DocumentId},{occurrence.FieldId},{occurrence.TokenId}]");
             ++count;
 
             if (buffer.Length + 128 >= MemoryBufferThreshold)
             {
-                var bufferData = System.Text.Encoding.UTF8.GetBytes(buffer.ToString());
-                persistentStorage.WriteAll(persistentStorage.Length, bufferData, 0, bufferData.Length);
+                persistentStorage.AppendUtf8Bytes(buffer.ToString());
                 buffer.Clear();
             }
         }
@@ -79,19 +79,16 @@ namespace Protsyk.PMS.FullText.Core
 
             if (buffer.Length > 0)
             {
-                var bufferData = System.Text.Encoding.UTF8.GetBytes(buffer.ToString());
-                persistentStorage.WriteAll(persistentStorage.Length, bufferData, 0, bufferData.Length);
+                persistentStorage.AppendUtf8Bytes(buffer.ToString());
                 buffer.Clear();
             }
 
             // This posting list does not have continuation
-            var data = System.Text.Encoding.UTF8.GetBytes(EmptyContinuationAddress);
-            persistentStorage.WriteAll(persistentStorage.Length, data, 0, data.Length);
+            persistentStorage.AppendUtf8Bytes(EmptyContinuationAddress);
 
             var listEnd = persistentStorage.Length;
 
-            data = System.Text.Encoding.UTF8.GetBytes(Environment.NewLine);
-            persistentStorage.WriteAll(persistentStorage.Length, data, 0, data.Length);
+            persistentStorage.AppendUtf8Bytes(Environment.NewLine);
 
             var result = currentList.Value;
 
@@ -108,7 +105,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 throw new InvalidOperationException("Continuation is not found. The list might already have it");
             }
-            var data = System.Text.Encoding.UTF8.GetBytes($" -> {nextList.Offset.ToString("X8")}");
+            var data = Encoding.UTF8.GetBytes($" -> {nextList.Offset:X8}");
             persistentStorage.WriteAll(offset, data, 0, data.Length);
         }
 
@@ -131,7 +128,7 @@ namespace Protsyk.PMS.FullText.Core
                     if (buffer[i] == EmptyContinuationAddress[0])
                     {
                         var readNext = persistentStorage.Read(offset - read + i, buffer, 0, EmptyContinuationAddress.Length);
-                        var nextOffsetText = System.Text.Encoding.UTF8.GetString(buffer, 4, 8);
+                        var nextOffsetText = Encoding.UTF8.GetString(buffer, 4, 8);
                         var nextOffset = Convert.ToInt32(nextOffsetText, 16);
                         if (nextOffset < 0)
                         {

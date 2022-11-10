@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -883,7 +885,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 if (stateOffset == initial)
                 {
-                    result.AppendFormat("{0}[label = \"{0}\", shape = circle, style = bold, fontsize = 14]", stateOffset);
+                    result.Append(CultureInfo.InvariantCulture, $"{stateOffset}[label = \"{stateOffset}\", shape = circle, style = bold, fontsize = 14]");
                     result.AppendLine();
                 }
                 else if (isFinal)
@@ -919,22 +921,17 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     }
                 }
 
-                if (result.Length > 65536)
+                if (result.Length > 65_536)
                 {
-                    AppendText(outputStorage, result.ToString());
+                    outputStorage.AppendUtf8Bytes(result.ToString());
                     result.Clear();
                 }
             }
 
             result.AppendLine("}");
-            AppendText(outputStorage, result.ToString());
+            outputStorage.AppendUtf8Bytes(result.ToString());
         }
 
-        private void AppendText(IPersistentStorage outputStorage, string text)
-        {
-            var bytes = Encoding.UTF8.GetBytes(text);
-            outputStorage.WriteAll(outputStorage.Length, bytes, 0, bytes.Length);
-        }
         #endregion
 
         #region IFST
@@ -1795,7 +1792,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         }
     }
 
-    internal class Utils
+    internal static class Utils
     {
         // Calculate length of the longest common prefix
         public static int LCP(string a, string b)
