@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Protsyk.PMS.FullText.Core.Collections;
@@ -1022,7 +1023,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                     if (isFinal && matcher.IsFinal())
                     {
-                        yield return new string(prefix.ToArray());
+                        yield return CollectionsMarshal.AsSpan(prefix).ToString();
                     }
 
                     if (ts != null)
@@ -1081,7 +1082,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (isFinal && matcher.IsFinal())
             {
-                result.Add(new string(prefix.ToArray()));
+                result.Add(CollectionsMarshal.AsSpan(prefix).ToString());
             }
 
             if (ts != null)
@@ -1550,7 +1551,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         {
             if (IsFinal(s) && matcher.IsFinal())
             {
-                result.Add(new string(prefix.ToArray()));
+                result.Add(CollectionsMarshal.AsSpan(prefix).ToString());
             }
 
             if (trans.TryGetValue(s, out var ts))
