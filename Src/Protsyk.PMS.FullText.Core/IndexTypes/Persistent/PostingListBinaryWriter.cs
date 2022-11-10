@@ -130,12 +130,10 @@ namespace Protsyk.PMS.FullText.Core
 
         public void UpdateNextList(PostingListAddress address, PostingListAddress nextList)
         {
-            Span<byte> buffer = stackalloc byte[8];
-            var offset = address.Offset;
+            long offset = address.Offset;
             while (true)
             {
-                persistentStorage.ReadAll(offset, buffer);
-                long continuationOffset = BinaryPrimitives.ReadInt64LittleEndian(buffer);
+                long continuationOffset = persistentStorage.ReadInt64LittleEndian(offset);
 
                 if (continuationOffset == 0)
                 {
