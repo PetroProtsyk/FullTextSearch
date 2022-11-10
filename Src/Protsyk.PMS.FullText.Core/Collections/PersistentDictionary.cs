@@ -33,7 +33,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             if (this.dataStorage.Length == 0)
             {
-                this.dataStorage.WriteAll(0, new byte[] { 20, 18 }, 0, 2);
+                this.dataStorage.WriteAll(0, stackalloc byte[2] { 20, 18 });
             }
         }
 

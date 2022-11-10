@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using Protsyk.PMS.FullText.Core.Collections;
@@ -114,14 +116,13 @@ namespace Protsyk.PMS.FullText.Core.Automata
             public int GetDedupHash()
             {
                 var result = 0;
+
                 for (int i = 0; i < Arcs.Count; ++i)
                 {
-                    result = HashCombine.Combine(result,
-                                                 Arcs[i].ToId.GetHashCode(),
-                                                 Arcs[i].Input.GetHashCode(),
-                                                 Arcs[i].Output.GetHashCode());
+                    result = HashCode.Combine(result, Arcs[i].ToId,  Arcs[i].Input, Arcs[i].Output);
                 }
-                return HashCombine.Combine(result, IsFinal ? 1 : 0);
+
+                return HashCode.Combine(result, IsFinal ? 1 : 0);
             }
 
             public bool IsEquivalent(StateWithTransitions other)
@@ -576,30 +577,25 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private void UpdateHeader(long initialOffset, FSTBuilderStat stat)
         {
-            var data = new byte[64];
-            data[0] = (byte)'F';
-            data[1] = (byte)'S';
-            data[2] = (byte)'T';
-            data[3] = (byte)'-';
-            data[4] = (byte)'0';
-            data[5] = (byte)'2';
-            data[6] = (byte)'S'; // Compressed Stream
+            Span<byte> data = stackalloc byte[64];
+
+            "FST-02S"u8.CopyTo(data); // Compressed Stream
 
             int offset = 7;
 
-            Array.Copy(BitConverter.GetBytes(initialOffset), 0, data, offset, sizeof(long));
+            BinaryPrimitives.WriteInt64LittleEndian(data[offset..], initialOffset);
             offset += sizeof(long);
 
-            Array.Copy(BitConverter.GetBytes(stat.States), 0, data, offset, sizeof(long));
+            BinaryPrimitives.WriteInt64LittleEndian(data[offset..], stat.States);
             offset += sizeof(long);
 
-            Array.Copy(BitConverter.GetBytes(stat.TermCount), 0, data, offset, sizeof(long));
+            BinaryPrimitives.WriteInt64LittleEndian(data[offset..], stat.TermCount);
             offset += sizeof(long);
 
-            Array.Copy(BitConverter.GetBytes(stat.MaxLength), 0, data, offset, sizeof(int));
+            BinaryPrimitives.WriteInt32LittleEndian(data[offset..], stat.MaxLength);
             offset += sizeof(int);
 
-            storage.WriteAll(0, data, 0, data.Length);
+            storage.WriteAll(0, data);
         }
 
         public void Dispose()
@@ -627,7 +623,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         void SetFinal(int stateId, bool isFinal);
     }
 
-    public class FSTBuilderStat
+    public sealed class FSTBuilderStat
     {
         public long TermCount { get; set; }
 
@@ -665,9 +661,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private int readSize;
 
-        private readonly Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>> cache = new Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>>();
+        private readonly Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>> cache = new();
 
-        private readonly LinkedList<(bool, ArcOffset<T>[], long)> cacheOrder = new LinkedList<(bool, ArcOffset<T>[], long)>();
+        private readonly LinkedList<(bool, ArcOffset<T>[], long)> cacheOrder = new();
         #endregion
 
         #region Properties
@@ -700,8 +696,8 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private long ReadHeader(IPersistentStorage storage)
         {
-            var data = new byte[7 + sizeof(long)];
-            storage.ReadAll(0, data, 0, data.Length);
+            Span<byte> data = stackalloc byte[7 + sizeof(long)];
+            storage.ReadAll(0, data);
 
             if ((data[0] != (byte)'F') ||
                 (data[1] != (byte)'S') ||
@@ -716,18 +712,18 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (data[5] == (byte)'2')
             {
-                data = new byte[64];
-                storage.ReadAll(0, data, 0, data.Length);
+                data = stackalloc byte[64];
+                storage.ReadAll(0, data);
 
                 Header = new FSTBuilderStat
                 {
-                    States = BitConverter.ToInt64(data, 15),
-                    TermCount = BitConverter.ToInt64(data, 23),
-                    MaxLength = BitConverter.ToInt32(data, 31),
+                    States = BinaryPrimitives.ReadInt64LittleEndian(data[15..]),
+                    TermCount = BinaryPrimitives.ReadInt64LittleEndian(data[23..]),
+                    MaxLength = BinaryPrimitives.ReadInt32LittleEndian(data[31..]),
                 };
             }
 
-            return BitConverter.ToInt64(data, 7);
+            return BinaryPrimitives.ReadInt64LittleEndian(data[7..]);
         }
 
         private int Ensure(long offset, int size)
@@ -1027,7 +1023,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                     if (isFinal && matcher.IsFinal())
                     {
-                        yield return new string(prefix.ToArray());
+                        yield return CollectionsMarshal.AsSpan(prefix).ToString();
                     }
 
                     if (ts != null)
@@ -1086,7 +1082,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (isFinal && matcher.IsFinal())
             {
-                result.Add(new string(prefix.ToArray()));
+                result.Add(CollectionsMarshal.AsSpan(prefix).ToString());
             }
 
             if (ts != null)
@@ -1555,7 +1551,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         {
             if (IsFinal(s) && matcher.IsFinal())
             {
-                result.Add(new string(prefix.ToArray()));
+                result.Add(CollectionsMarshal.AsSpan(prefix).ToString());
             }
 
             if (trans.TryGetValue(s, out var ts))
@@ -1577,11 +1573,11 @@ namespace Protsyk.PMS.FullText.Core.Automata
         #endregion
     }
 
-    public struct State : IEquatable<State>
+    public readonly struct State : IEquatable<State>
     {
         public static readonly State NoState = new State { Id = -1 };
 
-        public int Id { get; set; }
+        public int Id { get; init; }
 
         public override int GetHashCode()
         {
@@ -1612,7 +1608,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(From.GetHashCode(), To.GetHashCode(), Input.GetHashCode(), Output.GetHashCode());
+            return HashCode.Combine(From, To, Input, Output);
         }
 
         public bool Equals(Arc<T> other)
@@ -1640,7 +1636,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(ToOffset.GetHashCode(), Input.GetHashCode(), Output.GetHashCode());
+            return HashCode.Combine(ToOffset, Input, Output);
         }
 
         public bool Equals(ArcOffset<T> other)

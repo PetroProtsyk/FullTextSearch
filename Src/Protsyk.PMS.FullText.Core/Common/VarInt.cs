@@ -1,9 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
-using System.Text;
-
-namespace Protsyk.PMS.FullText.Core.Common
+﻿namespace Protsyk.PMS.FullText.Core.Common
 {
     public static class VarInt
     {

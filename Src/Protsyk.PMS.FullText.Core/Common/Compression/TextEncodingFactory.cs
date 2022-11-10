@@ -56,27 +56,20 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
         {
             var name = GetName(textEncoding);
 
-            if (name == "LatinHuffman")
+            switch (textEncoding)
             {
-                return new VarLenEncoding(VarLenCharEncoding.FromFrequency<HuffmanEncodingBuilder>(latinFrequencies, true));
-            }
-
-            if (name == "LatinHuTucker")
-            {
-                return new VarLenEncoding(VarLenCharEncoding.FromFrequency<HuTuckerBuilder>(latinFrequencies, true));
-            }
-
-            if (name == "LatinHuTuckerBasic")
-            {
-                return new VarLenEncoding(VarLenCharEncoding.FromFrequency<HuTuckerSimpleBuilder>(latinFrequencies, false));
-            }
-
-            if (name == "LatinBalanced")
-            {
-                return new VarLenEncoding(VarLenCharEncoding.FromFrequency<BalancedByWeightBuilder>(latinFrequencies, true));
+                case "LatinHuffman": 
+                    return new VarLenEncoding(VarLenCharEncoding.FromFrequency<HuffmanEncodingBuilder>(latinFrequencies, true));
+                case "LatinHuTucker": 
+                    return new VarLenEncoding(VarLenCharEncoding.FromFrequency<HuTuckerBuilder>(latinFrequencies, true));
+                case "LatinHuTuckerBasic": 
+                    return new VarLenEncoding(VarLenCharEncoding.FromFrequency<HuTuckerSimpleBuilder>(latinFrequencies, false));
+                case "LatinBalanced":
+                    return new VarLenEncoding(VarLenCharEncoding.FromFrequency<BalancedByWeightBuilder>(latinFrequencies, true));
             }
 
             var encoding = Encoding.GetEncoding(name);
+
             if (encoding != null)
             {
                 return new TextEncoding(encoding);

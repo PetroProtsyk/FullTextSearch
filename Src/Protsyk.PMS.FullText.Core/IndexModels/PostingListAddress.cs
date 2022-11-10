@@ -2,7 +2,7 @@
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public struct PostingListAddress : IEquatable<PostingListAddress>
+    public readonly struct PostingListAddress : IEquatable<PostingListAddress>
     {
         public static PostingListAddress Null = new PostingListAddress(-1);
 
@@ -15,10 +15,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public override bool Equals(object obj)
         {
-            if (ReferenceEquals(null, obj))
-                return false;
-
-            return obj is PostingListAddress && Equals((PostingListAddress)obj);
+            return obj is PostingListAddress other && Equals(other);
         }
 
         public bool Equals(PostingListAddress other)

@@ -1,8 +1,11 @@
 ﻿using System;
+using System.Buffers;
+using System.Buffers.Binary;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
-using System.Diagnostics;
 using System.Text;
+
 using Protsyk.PMS.FullText.Core.Common;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
@@ -51,7 +54,7 @@ namespace Protsyk.PMS.FullText.Core
             listStart = persistentStorage.Length;
 
             // Write List mark
-            persistentStorage.WriteAll(listStart, new byte[] {(byte)'L'}, 0, 1);
+            persistentStorage.WriteAll(listStart, "L"u8);
 
             // Reserve space for the length of the list
             persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(0), 0, sizeof(int));
@@ -142,21 +145,44 @@ namespace Protsyk.PMS.FullText.Core
 
             public override void Write(char value)
             {
-                Write(new char[] {value}, 0, 1);
+                Write(stackalloc char[1] { value });
             }
 
             public override void Write(char[] buffer, int index, int count)
             {
-                var bytes = Encoding.GetBytes(buffer, index, count);
-                persistentStorage.WriteAll(persistentStorage.Length, BitConverter.GetBytes(bytes.Length), 0, sizeof(int));
-                persistentStorage.WriteAll(persistentStorage.Length, bytes, 0, bytes.Length);
+                Write(buffer.AsSpan(index, count));
+            }
+
+            public override void Write(ReadOnlySpan<char> chars)
+            {
+                var rentedBuffer = ArrayPool<byte>.Shared.Rent(Encoding.GetMaxByteCount(chars.Length));
+
+                try
+                {
+                    var byteCount = Encoding.GetBytes(chars, rentedBuffer);
+
+                    Span<byte> lengthData = stackalloc byte[4];
+
+                    BinaryPrimitives.WriteInt32LittleEndian(lengthData, byteCount);
+
+                    persistentStorage.WriteAll(persistentStorage.Length, lengthData);
+                    persistentStorage.WriteAll(persistentStorage.Length, rentedBuffer.AsSpan(0, byteCount));
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(rentedBuffer);
+                }
             }
 
             protected override void Dispose(bool disposing)
             {
                 if (disposing)
                 {
-                    persistentStorage?.WriteAll(persistentStorage.Length, BitConverter.GetBytes(0), 0, sizeof(int));
+                    Span<byte> lengthData = stackalloc byte[4];
+
+                    BinaryPrimitives.WriteInt32LittleEndian(lengthData, 0);
+
+                    persistentStorage?.WriteAll(persistentStorage.Length, lengthData);
                 }
                 base.Dispose(disposing);
             }

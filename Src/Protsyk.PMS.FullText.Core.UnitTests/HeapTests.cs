@@ -1,6 +1,7 @@
-﻿using System;
-using System.Linq;
+﻿using System.Linq;
+
 using Protsyk.PMS.FullText.Core.Collections;
+
 using Xunit;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests

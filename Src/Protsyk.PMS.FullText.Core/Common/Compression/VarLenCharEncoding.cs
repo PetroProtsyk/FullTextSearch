@@ -413,15 +413,15 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             public IEncodingNode Right { get; set; }
         }
 
-        public struct DecodeSymbol
+        public readonly struct DecodeSymbol
         {
-            public uint Code { get; set; }
+            public uint Code { get; init; }
 
-            public uint Mask { get; set; }
+            public uint Mask { get; init; }
 
-            public int Length { get; set; }
+            public int Length { get; init; }
 
-            public char Symbol { get; set; }
+            public char Symbol { get; init; }
         }
 
         public class CodeSymbol
@@ -611,12 +611,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             return FromFrequency<T>(charFrequencies, extend);
         }
 
-        private class BitDecoder : IBitDecoder
+        private sealed class BitDecoder : IBitDecoder
         {
             private readonly IEncodingNode root;
             private IEncodingNode current;
-
-            private Stack<IEncodingNode> states = new Stack<IEncodingNode>();
+            private readonly Stack<IEncodingNode> states = new();
 
             public BitDecoder(IEncodingNode root)
             {
@@ -729,10 +728,10 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
         protected abstract VarLenCharEncoding DoBuild();
 
-        protected struct CharFrequency
+        protected readonly struct CharFrequency
         {
-            public char c;
-            public int f;
+            public readonly char c;
+            public readonly int f;
 
             public CharFrequency(char c, int f)
             {

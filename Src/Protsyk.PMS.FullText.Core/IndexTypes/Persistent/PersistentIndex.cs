@@ -2,8 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+
 using Protsyk.PMS.FullText.Core.Collections;
-using Protsyk.PMS.FullText.Core.Common.Compression;
 
 namespace Protsyk.PMS.FullText.Core
 {

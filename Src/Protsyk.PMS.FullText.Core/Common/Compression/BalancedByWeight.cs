@@ -1,5 +1,5 @@
 using System;
-using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
@@ -21,7 +21,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
         protected override VarLenCharEncoding DoBuild()
         {
-            return new BalancedByWeightEncoding(DivEqually(symbols));
+            return new BalancedByWeightEncoding(DivEqually(CollectionsMarshal.AsSpan(symbols)));
         }
 
         private double Score(BaseNode n, int depth)
@@ -41,30 +41,32 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             throw new Exception("What?");
         }
 
-        private BaseNode DivEqually(IList<CharFrequency> v)
+        private BaseNode DivEqually(ReadOnlySpan<CharFrequency> v)
         {
-            ArgumentNullException.ThrowIfNull(v);
-
-            if (v.Count < 1)
+            if (v.Length < 1)
                 throw new ArgumentException("Empty input");
 
-            double[] sums = new double[v.Count];
+            Span<double> sums = v.Length <= 64
+                ? (stackalloc double[64]).Slice(0, v.Length)
+                : new double[v.Length];
+            
             sums[0] = v[0].f;
-            for (int i=1; i<v.Count; ++i)
+            for (int i=1; i<v.Length; ++i)
             {
                 sums[i] = sums[i-1] + v[i].f;
             }
 
-            return DivEqually(v, 0, v.Count, sums);
+            return DivEqually(v, 0, v.Length, sums);
         }
 
-        private BaseNode DivEqually(IList<CharFrequency> v, int start, int end, double[] sums)
+        private BaseNode DivEqually(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
         {
             if (end - start <= 0)
             {
                 throw new ArgumentException();
             }
-            else if (end - start == 1)
+            
+            if (end - start == 1)
             {
                 return new LeafNode {
                     v = v[start],
@@ -92,7 +94,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             }
         }
 
-        private BaseNode DivRangeEquallyV1(IList<CharFrequency> v, int start, int end, double[] sums)
+        private BaseNode DivRangeEquallyV1(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
         {
             var leftSum = (start > 0) ? sums[start - 1] : 0;
             var mid = (sums[end - 1] - leftSum) / 2;
@@ -121,7 +123,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             throw new Exception("Terrible");
         }
 
-        private BaseNode DivRangeEquallyV2(IList<CharFrequency> v, int start, int end, double[] sums)
+        private BaseNode DivRangeEquallyV2(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
         {
             var leftSum = (start > 0) ? sums[start - 1] : 0;
             var mid = (sums[end - 1] - leftSum) / 2;

@@ -13,7 +13,7 @@ namespace Protsyk.PMS.FullText.Core
     /// Token that exists in the context of IEnumerator instance.
     /// When tokenizer moves to the next token, this instance becomes invalid
     /// </summary>
-    public struct ScopedToken
+    public readonly struct ScopedToken
     {
         public int CharOffset { get; }
 

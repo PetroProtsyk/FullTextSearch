@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Linq;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
@@ -10,7 +11,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
         protected override VarLenCharEncoding DoBuild()
         {
             var input = symbols;
-            var combine = Combine(input).ToArray();
+            var combine = Combine(CollectionsMarshal.AsSpan(input)).ToArray();
 
             // Rebuild tree based on the depth
             var nodes = Enumerable.Range(0, input.Count).Select(v => new Leaf { index = v, c = input[v].c, freq = input[v].f }).Cast<Node>().ToArray();
@@ -56,16 +57,26 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             return new HuTuckerEncoding(nodes[heap.Single().Item1]);
         }
 
-        private ValueTuple<int, int>[] Combine(IList<CharFrequency> input)
+        private ValueTuple<int, int>[] Combine(ReadOnlySpan<CharFrequency> input)
         {
-            if (input == null || input.Count < 2)
+            if (input == null || input.Length < 2)
             {
                 throw new ArgumentException("Input should have at least two items", nameof(input));
             }
 
             // Merge compatible blocks b1 and b2 with the lowest combined frequency until all blocks are merged
             // Blocks are compatible if there are no original blocks (leaves) left between them
-            var list = new LinkedList<Node>(Enumerable.Range(0, input.Count).Select(v => new Leaf { index = v, c = input[v].c, freq = input[v].f }));
+            var list = new LinkedList<Node>();
+
+            for (int i = 0; i < input.Length; i++)
+            {
+                list.AddLast(new Leaf { 
+                    index = i,
+                    c = input[i].c, 
+                    freq = input[i].f 
+                });
+            }
+
             while (list.Count > 1)
             {
                 LinkedListNode<Node> b1 = null;
@@ -111,7 +122,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             }
 
             // Label each input item with the depth in the tree
-            var depth = new int[input.Count];
+            var depth = new int[input.Length];
             var s = new Stack<ValueTuple<Node, int>>();
             s.Push(new ValueTuple<Node, int>(list.Single(), 0));
             while (s.Count > 0)
@@ -132,8 +143,8 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
                 }
             }
 
-            var result = new ValueTuple<int, int>[input.Count];
-            for (int i = 0; i < input.Count; ++i)
+            var result = new ValueTuple<int, int>[input.Length];
+            for (int i = 0; i < input.Length; ++i)
             {
                 result[i] = new ValueTuple<int, int>(i, depth[i]);
             }

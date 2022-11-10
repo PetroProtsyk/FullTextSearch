@@ -1,10 +1,9 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Text.RegularExpressions;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    public struct TextPosition : IEquatable<TextPosition>, IComparable<TextPosition>
+    public readonly struct TextPosition : IEquatable<TextPosition>, IComparable<TextPosition>
     {
         #region Fields
         public static readonly TextPosition Empty = P(0, 0);
@@ -60,6 +59,7 @@ namespace Protsyk.PMS.FullText.Core
         #endregion
 
         #region IEquatable<TextPosition>
+
         public bool Equals(TextPosition other)
         {
             return Offset == other.Offset &&
@@ -67,18 +67,15 @@ namespace Protsyk.PMS.FullText.Core
         }
 
         public override bool Equals(object obj)
-        {
-            if (ReferenceEquals(null, obj))
-            {
-                return false;
-            }
-            return obj is TextPosition && Equals((TextPosition) obj);
+        {           
+            return obj is TextPosition other && Equals(other);
         }
 
         public override int GetHashCode()
         {
-            return HashCombine.Combine(Offset, Length);
+            return HashCode.Combine(Offset, Length);
         }
+
         #endregion
 
         #region IComparable
