@@ -65,5 +65,14 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             
             return BinaryPrimitives.ReadInt64LittleEndian(buffer);
         }
+
+        public static int ReadInt32LittleEndian(this IPersistentStorage storage, long fileOffset)
+        {
+            Span<byte> buffer = stackalloc byte[4];
+
+            storage.ReadAll(fileOffset, buffer);
+
+            return BinaryPrimitives.ReadInt32LittleEndian(buffer);
+        }
     }
 }

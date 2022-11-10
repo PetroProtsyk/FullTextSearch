@@ -42,11 +42,9 @@ namespace Protsyk.PMS.FullText.Core
             var result = new StringBuilder();
             var buffer = new byte[4096];
             var offset = textStart;
-            var chunkSize = 0;
 
-            persistentStorage.ReadAll(offset, buffer, 0, sizeof(int));
+            int chunkSize = persistentStorage.ReadInt32LittleEndian(offset);
             offset += sizeof(int);
-            chunkSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             while(chunkSize > 0)
             {
                 if (buffer.Length < chunkSize)
@@ -54,14 +52,13 @@ namespace Protsyk.PMS.FullText.Core
                     buffer = new byte[4096 * ((chunkSize+4095)/4096)];
                 }
 
-                persistentStorage.ReadAll(offset, buffer, 0, chunkSize);
+                persistentStorage.ReadAll(offset, buffer.AsSpan(0, chunkSize));
                 offset += chunkSize;
 
                 result.Append(Encoding.UTF8.GetString(buffer, 0, chunkSize));
 
-                persistentStorage.ReadAll(offset, buffer, 0, sizeof(int));
+                chunkSize = persistentStorage.ReadInt32LittleEndian(offset);
                 offset += sizeof(int);
-                chunkSize = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             }
             return new StringReader(result.ToString());
         }
