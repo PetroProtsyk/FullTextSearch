@@ -9,10 +9,13 @@ namespace Protsyk.PMS.FullText.Core.Common
             if (typeSize <= 0 || typeSize > sizeof(long))
                 throw new ArgumentOutOfRangeException();
 
-            if (typeSize == 8) return ulong.MaxValue;
-            if (typeSize == 4) return uint.MaxValue;
-            if (typeSize == 2) return ushort.MaxValue;
-            if (typeSize == 1) return byte.MaxValue;
+            switch (typeSize)
+            {
+                case 8: return ulong.MaxValue;
+                case 4: return uint.MaxValue;
+                case 2: return ushort.MaxValue;
+                case 1: return byte.MaxValue;
+            }
 
             checked
             {
