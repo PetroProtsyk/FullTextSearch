@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Globalization;
 using System.Text.RegularExpressions;
 
 namespace Protsyk.PMS.FullText.Core
@@ -32,8 +33,8 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             return P(
-                int.Parse(match.Groups["offset"].Value),
-                int.Parse(match.Groups["length"].Value));
+                int.Parse(match.Groups["offset"].ValueSpan),
+                int.Parse(match.Groups["length"].ValueSpan));
         }
         #endregion
 
@@ -54,7 +55,7 @@ namespace Protsyk.PMS.FullText.Core
 
         public override string ToString()
         {
-            return $"[{Offset},{Length}]";
+            return string.Create(CultureInfo.InvariantCulture, $"[{Offset},{Length}]");
         }
         #endregion
 
