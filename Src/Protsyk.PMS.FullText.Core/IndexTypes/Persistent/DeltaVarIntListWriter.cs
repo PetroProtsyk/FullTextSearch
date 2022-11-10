@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Buffers;
-using System.Buffers.Binary;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -57,10 +56,10 @@ namespace Protsyk.PMS.FullText.Core
             persistentStorage.WriteAll(listStart, "L"u8);
 
             // Reserve space for the length of the list
-            persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(0), 0, sizeof(int));
+            persistentStorage.WriteInt32LittleEndian(listStart + 1, 0);
 
             // Reserve space for the record count
-            persistentStorage.WriteAll(listStart + 1 + sizeof(int), BitConverter.GetBytes(0), 0, sizeof(int));
+            persistentStorage.WriteInt32LittleEndian(listStart + 1 + sizeof(int), 0);
 
             return listStart;
         }
@@ -115,7 +114,7 @@ namespace Protsyk.PMS.FullText.Core
             persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(totalSize), 0, sizeof(int));
 
             // Write record count of the list
-            persistentStorage.WriteAll(listStart + 1 + sizeof(int), BitConverter.GetBytes(recordCount), 0, sizeof(int));
+            persistentStorage.WriteInt32LittleEndian(listStart + 1 + sizeof(int), recordCount);
 
             var listEnd = persistentStorage.Length;
 
@@ -161,11 +160,7 @@ namespace Protsyk.PMS.FullText.Core
                 {
                     var byteCount = Encoding.GetBytes(chars, rentedBuffer);
 
-                    Span<byte> lengthData = stackalloc byte[4];
-
-                    BinaryPrimitives.WriteInt32LittleEndian(lengthData, byteCount);
-
-                    persistentStorage.WriteAll(persistentStorage.Length, lengthData);
+                    persistentStorage.WriteInt32LittleEndian(persistentStorage.Length, byteCount);
                     persistentStorage.WriteAll(persistentStorage.Length, rentedBuffer.AsSpan(0, byteCount));
                 }
                 finally
@@ -178,11 +173,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 if (disposing)
                 {
-                    Span<byte> lengthData = stackalloc byte[4];
-
-                    BinaryPrimitives.WriteInt32LittleEndian(lengthData, 0);
-
-                    persistentStorage?.WriteAll(persistentStorage.Length, lengthData);
+                    persistentStorage?.WriteInt32LittleEndian(persistentStorage.Length, 0);
                 }
                 base.Dispose(disposing);
             }
@@ -214,7 +205,7 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             int writeSize = last ? bufferIndex : BlockSize;
-            persistentStorage.WriteAll(persistentStorage.Length, buffer, 0, writeSize);
+            persistentStorage.WriteAll(persistentStorage.Length, buffer.AsSpan(0, writeSize));
             totalSize += writeSize;
         }
 

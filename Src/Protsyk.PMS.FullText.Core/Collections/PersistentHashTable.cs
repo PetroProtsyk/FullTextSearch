@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
@@ -53,9 +54,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 this.count = 0;
 
                 // Header
-                this.dataStorage.WriteAll(0, Header, 0, HeaderSize);
-                this.dataStorage.WriteAll(HeaderSize, BitConverter.GetBytes(capacity), 0, sizeof(int));
-                this.dataStorage.WriteAll(HeaderSize + sizeof(int), BitConverter.GetBytes(count), 0, sizeof(int));
+                this.dataStorage.WriteAll(0, Header.AsSpan(0, HeaderSize));
+                this.dataStorage.WriteInt32LittleEndian(HeaderSize, capacity);
+                this.dataStorage.WriteInt32LittleEndian(HeaderSize + sizeof(int), count);
 
                 // Index
                 var zero = new byte[IndexRecordSize*1024];
@@ -73,8 +74,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
             else
             {
-                this.dataStorage.ReadAll(0, valueBuffer, 0, headerSize);
-                for (int i=0; i<HeaderSize; ++i)
+                this.dataStorage.ReadAll(0, valueBuffer.AsSpan(0, headerSize));
+                for (int i = 0; i < HeaderSize; ++i)
                 {
                     if (Header[i] != valueBuffer[i])
                     {
@@ -82,8 +83,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     }
                 }
 
-                this.capacity = BitConverter.ToInt32(valueBuffer, HeaderSize);
-                this.count = BitConverter.ToInt32(valueBuffer, HeaderSize + sizeof(int));
+                this.capacity = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(HeaderSize));
+                this.count = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(HeaderSize + sizeof(int)));
             }
         }
 
@@ -107,24 +108,19 @@ namespace Protsyk.PMS.FullText.Core.Collections
             var offsetStart = dataStorage.Length;
             var offset = offsetStart;
 
-            dataStorage.WriteAll(offset, BitConverter.GetBytes(keyBytes.Length), 0, sizeof(int));
-            offset += sizeof(int);
+            offset += dataStorage.WriteInt32LittleEndian(offset, keyBytes.Length);
 
-            dataStorage.WriteAll(offset, keyBytes, 0, keyBytes.Length);
+            dataStorage.WriteAll(offset, keyBytes);
             offset += keyBytes.Length;
 
-            dataStorage.WriteAll(offset, BitConverter.GetBytes(valueBytes.Length), 0, sizeof(int));
-            offset += sizeof(int);
+            offset += dataStorage.WriteInt32LittleEndian(offset, valueBytes.Length);
 
-            dataStorage.WriteAll(offset, valueBytes, 0, valueBytes.Length);
+            dataStorage.WriteAll(offset, valueBytes);
             offset += valueBytes.Length;
 
             // Link
-            dataStorage.WriteAll(offset, BitConverter.GetBytes(0L), 0, sizeof(long));
-            offset += sizeof(long);
-
-            dataStorage.WriteAll(offset, BitConverter.GetBytes(0), 0, sizeof(int));
-            offset += sizeof(int);
+            offset += dataStorage.WriteInt64LittleEndian(offset, 0L);
+            offset += dataStorage.WriteInt32LittleEndian(offset, 0);
 
             checked
             {
@@ -139,9 +135,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
             var index = (long)((ulong)GetKeyHash(key) % (ulong)capacity);
             var offset = headerSize + index * IndexRecordSize;
 
-            dataStorage.ReadAll(offset, valueBuffer, 0, IndexRecordSize);
-            var dataOffset = BitConverter.ToInt64(valueBuffer, 0);
-            var dataSize = BitConverter.ToInt32(valueBuffer, sizeof(long));
+            dataStorage.ReadAll(offset, valueBuffer.AsSpan(0, IndexRecordSize));
+
+            var dataOffset = BinaryPrimitives.ReadInt64LittleEndian(valueBuffer);
+            var dataSize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(8));
 
             return (offset, dataOffset, dataSize);
         }
@@ -160,11 +157,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 if (EqualKeys(key, record.key))
                 {
                     // TODO: Reuse space
-                    dataStorage.WriteAll(linkOffset, BitConverter.GetBytes(record.nextOffset), 0, sizeof(long));
-                    dataStorage.WriteAll(linkOffset+sizeof(long), BitConverter.GetBytes(record.nextSize), 0, sizeof(int));
+                    dataStorage.WriteInt64LittleEndian(linkOffset, record.nextOffset);
+                    dataStorage.WriteInt32LittleEndian(linkOffset + sizeof(long), record.nextSize);
 
                     --count;
-                    dataStorage.WriteAll(HeaderSize + sizeof(int), BitConverter.GetBytes(count), 0, sizeof(int));
+                    dataStorage.WriteInt32LittleEndian(HeaderSize + sizeof(int), count);
                     return true;
                 }
                 else
@@ -185,16 +182,16 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 valueBuffer = new byte[256 * (1 + (dataSize+255)/256)];
             }
 
-            dataStorage.ReadAll(dataOffset, valueBuffer, 0, dataSize);
+            dataStorage.ReadAll(dataOffset, valueBuffer.AsSpan(0, dataSize));
  
-            var keySize = BitConverter.ToInt32(valueBuffer, 0);
+            int keySize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer);
             var dataKey = keySerializer.GetValue(valueBuffer.Skip(sizeof(int)).Take(keySize).ToArray());
 
-            var valueSize = BitConverter.ToInt32(valueBuffer, sizeof(int)+keySize);
+            int valueSize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(sizeof(int) + keySize));
             var dataValue = valueSerializer.GetValue(valueBuffer.Skip(sizeof(int)+keySize+sizeof(int)).Take(valueSize).ToArray());
 
-            var nextOffset = BitConverter.ToInt64(valueBuffer, dataSize - sizeof(long) - sizeof(int));
-            var nextSize = BitConverter.ToInt32(valueBuffer, dataSize - sizeof(int));
+            long nextOffset = BitConverter.ToInt64(valueBuffer, dataSize - sizeof(long) - sizeof(int));
+            int nextSize = BitConverter.ToInt32(valueBuffer, dataSize - sizeof(int));
             return (dataKey, dataValue, nextOffset, nextSize);
         }
         #endregion
@@ -244,8 +241,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
                         --count;
                         if (record.nextOffset != 0)
                         {
-                            dataStorage.WriteAll(linkOffset, BitConverter.GetBytes(record.nextOffset), 0, sizeof(long));
-                            dataStorage.WriteAll(linkOffset+sizeof(long), BitConverter.GetBytes(record.nextSize), 0, sizeof(int));
+                            dataStorage.WriteInt64LittleEndian(linkOffset, record.nextOffset);
+                            dataStorage.WriteInt32LittleEndian(linkOffset + sizeof(long), record.nextSize);
                         }
                     }
                     else
@@ -260,11 +257,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 var newValueLink = Append(key, value);
 
                 // Link
-                dataStorage.WriteAll(linkOffset, BitConverter.GetBytes(newValueLink.offset), 0, sizeof(long));
-                dataStorage.WriteAll(linkOffset+sizeof(long), BitConverter.GetBytes(newValueLink.size), 0, sizeof(int));
+                dataStorage.WriteInt64LittleEndian(linkOffset, newValueLink.offset);
+                dataStorage.WriteInt32LittleEndian(linkOffset + sizeof(long), newValueLink.size);
 
                 ++count;
-                dataStorage.WriteAll(HeaderSize + sizeof(int), BitConverter.GetBytes(count), 0, sizeof(int));
+                dataStorage.WriteInt32LittleEndian(HeaderSize + sizeof(int), count);
             }
         }
 
@@ -280,13 +277,13 @@ namespace Protsyk.PMS.FullText.Core.Collections
         #region IEnumerable
         public IEnumerator<KeyValuePair<TKey, TValue>> GetEnumerator()
         {
-            for (var i=0L; i<capacity; ++i)
+            for (var i = 0L; i < capacity; ++i)
             {
                 var offset = headerSize + i * IndexRecordSize;
                 dataStorage.ReadAll(offset, valueBuffer, 0, IndexRecordSize);
 
-                var nextOffset = BitConverter.ToInt64(valueBuffer, 0);
-                var nextSize = BitConverter.ToInt32(valueBuffer, sizeof(long));
+                long nextOffset = BinaryPrimitives.ReadInt64LittleEndian(valueBuffer);
+                int nextSize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(8));
 
                 while (nextOffset != 0)
                 {
