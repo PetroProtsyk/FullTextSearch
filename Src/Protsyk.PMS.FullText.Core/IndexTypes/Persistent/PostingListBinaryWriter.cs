@@ -43,10 +43,10 @@ namespace Protsyk.PMS.FullText.Core
             listStart = persistentStorage.Length;
 
             // Reserve space for continuation offset
-            persistentStorage.WriteAll(listStart, BitConverter.GetBytes(0L), 0, sizeof(long));
+            persistentStorage.WriteInt64LittleEndian(listStart, 0L);
 
             // Reserve space for the length of the list
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(0), 0, sizeof(int));
+            persistentStorage.WriteInt32LittleEndian(listStart + sizeof(long), 0);
         }
 
         public void AddOccurrence(Occurrence occurrence)
@@ -116,7 +116,7 @@ namespace Protsyk.PMS.FullText.Core
             FlushBuffer();
 
             // Write the length of the list
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize), 0, sizeof(int));
+            persistentStorage.WriteInt32LittleEndian(listStart + sizeof(long), totalSize);
 
             var listEnd = persistentStorage.Length;
 
@@ -139,7 +139,7 @@ namespace Protsyk.PMS.FullText.Core
 
                 if (continuationOffset == 0)
                 {
-                    persistentStorage.WriteAll(offset, BitConverter.GetBytes(nextList.Offset), 0, sizeof(long));
+                    persistentStorage.WriteInt64LittleEndian(offset, nextList.Offset);
                     break;
                 }
                 else
