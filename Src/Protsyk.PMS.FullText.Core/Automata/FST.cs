@@ -660,9 +660,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private int readSize;
 
-        private readonly Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>> cache = new Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>>();
+        private readonly Dictionary<long, LinkedListNode<(bool, ArcOffset<T>[], long)>> cache = new();
 
-        private readonly LinkedList<(bool, ArcOffset<T>[], long)> cacheOrder = new LinkedList<(bool, ArcOffset<T>[], long)>();
+        private readonly LinkedList<(bool, ArcOffset<T>[], long)> cacheOrder = new();
         #endregion
 
         #region Properties
@@ -1572,11 +1572,11 @@ namespace Protsyk.PMS.FullText.Core.Automata
         #endregion
     }
 
-    public struct State : IEquatable<State>
+    public readonly struct State : IEquatable<State>
     {
         public static readonly State NoState = new State { Id = -1 };
 
-        public int Id { get; set; }
+        public int Id { get; init; }
 
         public override int GetHashCode()
         {
