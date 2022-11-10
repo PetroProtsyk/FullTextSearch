@@ -1,10 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+
 using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
-    internal class DecodingMatcherForVarLenCharEncoding : IDfaMatcher<byte>
+    internal sealed class DecodingMatcherForVarLenCharEncoding : IDfaMatcher<byte>
     {
         private readonly IDfaMatcher<char> matcher;
         private readonly VarLenCharEncoding encoding;

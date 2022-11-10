@@ -1,14 +1,13 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
+
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class PersistentMetadataBtree : IMetadataStorage<string>
+    internal sealed class PersistentMetadataBtree : IMetadataStorage<string>
     {
-        private BtreePersistent<ulong, string> fields;
+        private readonly BtreePersistent<ulong, string> fields;
 
         public static readonly string Id = "BTree";
 

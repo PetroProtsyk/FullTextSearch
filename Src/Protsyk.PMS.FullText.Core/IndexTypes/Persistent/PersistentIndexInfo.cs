@@ -6,7 +6,7 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class PersistentIndexInfo : IDisposable
+    internal sealed class PersistentIndexInfo : IDisposable
     {
         private readonly FileStorage persistentStorage;
 

@@ -63,7 +63,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class ByteDataSerializer : IFixedSizeDataSerializer<byte>
+    internal sealed class ByteDataSerializer : IFixedSizeDataSerializer<byte>
     {
         public int Size => 1;
 
@@ -88,7 +88,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class StringDataSerializer : IDataSerializer<string>
+    internal sealed class StringDataSerializer : IDataSerializer<string>
     {
         public byte[] GetBytes(string value)
         {
@@ -112,7 +112,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class IntDataSerializer : IFixedSizeDataSerializer<int>
+    internal sealed class IntDataSerializer : IFixedSizeDataSerializer<int>
     {
         public int Size => sizeof(int);
 
@@ -137,7 +137,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class LongDataSerializer : IFixedSizeDataSerializer<long>
+    internal sealed class LongDataSerializer : IFixedSizeDataSerializer<long>
     {
         public int Size => sizeof(long);
 
@@ -162,7 +162,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class ULongDataSerializer : IFixedSizeDataSerializer<ulong>
+    internal sealed class ULongDataSerializer : IFixedSizeDataSerializer<ulong>
     {
         public int Size => sizeof(ulong);
 
@@ -187,7 +187,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class GuidDataSerializer : IFixedSizeDataSerializer<Guid>
+    internal sealed class GuidDataSerializer : IFixedSizeDataSerializer<Guid>
     {
         public int Size => 16;
 
@@ -223,7 +223,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class CharDataSerializer : IFixedSizeDataSerializer<char>
+    internal sealed class CharDataSerializer : IFixedSizeDataSerializer<char>
     {
         public int Size => sizeof(char);
 
@@ -248,11 +248,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
         }
     }
 
-    internal class NoValueSerializer : IFixedSizeDataSerializer<NoValue>
+    internal sealed class NoValueSerializer : IFixedSizeDataSerializer<NoValue>
     {
         public byte[] GetBytes(NoValue value)
         {
-            return new byte[0];
+            return Array.Empty<byte>();
         }
 
         public int GetByteSize(NoValue value)
