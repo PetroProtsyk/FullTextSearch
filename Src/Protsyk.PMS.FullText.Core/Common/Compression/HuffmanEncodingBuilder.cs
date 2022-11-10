@@ -39,7 +39,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
             return new HuffmanEncoding(nodes.Single());
         }
 
-        struct HuffmanCode
+        readonly struct HuffmanCode
         {
             public readonly char c;
             public readonly int code;
@@ -54,14 +54,17 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
 
             public string GetCode()
             {
-                var str = new char[bitLength];
-                var temp = code;
-                for (int i=0; i<bitLength; ++i)
+                return string.Create(bitLength, code, static (buffer, code) =>
                 {
-                    str[bitLength - i - 1] = ((temp & 1) != 0) ? '1' : '0';
-                    temp >>= 1;
-                }
-                return new string(str);
+                    var temp = code;
+                    int bitLength = buffer.Length;
+
+                    for (int i = 0; i < bitLength; ++i)
+                    {
+                        buffer[bitLength - i - 1] = ((temp & 1) != 0) ? '1' : '0';
+                        temp >>= 1;
+                    }
+                });
             }
         }
 
