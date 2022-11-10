@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading;
-
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core.Collections
@@ -561,7 +560,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public void ReadHeader(IPersistentStorage persistentStorage)
             {
-                persistentStorage.ReadAll(0, headerData, 0, headerData.Length);
+                persistentStorage.ReadAll(0, headerData);
 
                 if (Text != HeaderText)
                 {
@@ -572,7 +571,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public void SaveHeader(IPersistentStorage persistentStorage)
             {
-                persistentStorage.WriteAll(0, headerData, 0, headerData.Length);
+                persistentStorage.WriteAll(0, headerData);
             }
         }
 
@@ -740,14 +739,14 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 var offset = CalculateNodeOffset(id);
                 var data = new byte[NodeData.Size(keySerializer.Size + valueSerializer.Size)];
 
-                persistentStorage.ReadAll(offset, data, 0, data.Length);
+                persistentStorage.ReadAll(offset, data);
                 return new NodeData(keySerializer, valueSerializer, data);
             }
 
             private void Save(in NodeData node)
             {
                 var offset = CalculateNodeOffset(node.Id);
-                persistentStorage.WriteAll(offset, node.Data, 0, node.Data.Length);
+                persistentStorage.WriteAll(offset, node.Data);
             }
 
             private void SaveHeader(Header newHeader)

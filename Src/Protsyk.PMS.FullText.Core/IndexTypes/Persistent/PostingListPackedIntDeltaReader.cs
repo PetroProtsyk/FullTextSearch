@@ -121,7 +121,7 @@ namespace Protsyk.PMS.FullText.Core
                     }
                     else
                     {
-                        persistentStorage.ReadAll(readOffset, buffer, dataInBuffer, toRead);
+                        persistentStorage.ReadAll(readOffset, buffer.AsSpan(dataInBuffer, toRead));
                         readOffset += toRead;
                         dataInBuffer += toRead;
                     }
@@ -186,7 +186,7 @@ namespace Protsyk.PMS.FullText.Core
                         }
 
                         var headerBuffer = new byte[HeaderLength];
-                        persistentStorage.ReadAll(readOffset, headerBuffer, 0, headerBuffer.Length);
+                        persistentStorage.ReadAll(readOffset, headerBuffer);
 
                         continuationOffset = BitConverter.ToInt64(headerBuffer, 0);
                         listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(headerBuffer, sizeof(long));

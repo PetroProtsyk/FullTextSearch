@@ -142,7 +142,7 @@ namespace Protsyk.PMS.FullText.Core
                     if (remainingBlocks == 1)
                     {
                         var packed = PackedInts.Convert(buffer, 0, bufferIndex).GetBytes();
-                        persistentStorage.WriteAll(persistentStorage.Length, packed, 0, packed.Length);
+                        persistentStorage.WriteAll(persistentStorage.Length, packed);
                         totalSize += packed.Length;
 
                         deltaSelectorIndex = 0;
@@ -167,7 +167,7 @@ namespace Protsyk.PMS.FullText.Core
                 buffer[deltaSelectorIndex] = deltaSelector;
 
                 var packed = PackedInts.Convert(buffer, 0, bufferIndex).GetBytes();
-                persistentStorage.WriteAll(persistentStorage.Length, packed, 0, packed.Length);
+                persistentStorage.WriteAll(persistentStorage.Length, packed);
 
                 totalSize += packed.Length;
             }
