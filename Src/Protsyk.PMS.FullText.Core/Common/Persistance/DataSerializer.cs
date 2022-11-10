@@ -29,7 +29,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
 
     public static class DataSerializer
     {
-        private static readonly Dictionary<Type, Func<object>> factories = new Dictionary<Type, Func<object>>()
+        private static readonly Dictionary<Type, Func<object>> factories = new()
                                                                             {
                                                                                {typeof(byte), () => new ByteDataSerializer() },
                                                                                {typeof(char), () => new CharDataSerializer()},

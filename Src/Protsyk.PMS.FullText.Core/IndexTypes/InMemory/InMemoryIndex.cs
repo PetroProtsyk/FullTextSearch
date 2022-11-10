@@ -8,17 +8,17 @@ using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName, IFullTextIndex, IMetadataStorage<string>
+    internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName, IFullTextIndex, IMetadataStorage<string>
     {
         #region Fields
         private const int MaxTokenSize = 64;
 
-        private readonly ConcurrentDictionary<string, PostingListAddress> data = new ConcurrentDictionary<string, PostingListAddress>();
-        private readonly ConcurrentDictionary<PostingListAddress, Occurrence[]> postingLists = new ConcurrentDictionary<PostingListAddress, Occurrence[]>();
-        private readonly ConcurrentDictionary<ulong, string> fields = new ConcurrentDictionary<ulong, string>();
-        private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, PostingListAddress> posIndex = new ConcurrentDictionary<(ulong, ulong), PostingListAddress>();
-        private readonly ConcurrentDictionary<PostingListAddress, TextPosition[]> positions = new ConcurrentDictionary<PostingListAddress, TextPosition[]>();
-        private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, string> docTexts = new ConcurrentDictionary<(ulong, ulong), string>();
+        private readonly ConcurrentDictionary<string, PostingListAddress> data = new();
+        private readonly ConcurrentDictionary<PostingListAddress, Occurrence[]> postingLists = new();
+        private readonly ConcurrentDictionary<ulong, string> fields = new();
+        private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, PostingListAddress> posIndex = new();
+        private readonly ConcurrentDictionary<PostingListAddress, TextPosition[]> positions = new();
+        private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, string> docTexts = new();
         #endregion
 
         #region Constructor
