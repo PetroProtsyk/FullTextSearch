@@ -40,7 +40,6 @@ namespace Protsyk.PMS.FullText.Core.UnitTests
             }
         }
 
-
         [Fact]
         public void TestOrQueryWithFixedPostingList_3()
         {

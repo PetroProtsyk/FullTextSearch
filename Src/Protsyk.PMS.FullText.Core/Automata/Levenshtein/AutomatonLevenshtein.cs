@@ -1,5 +1,4 @@
 using System;
-using System.Linq;
 
 namespace Protsyk.PMS.FullText.Core.Automata
 {

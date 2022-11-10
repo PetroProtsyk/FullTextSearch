@@ -1,6 +1,4 @@
-﻿
-using System;
-using System.IO;
+﻿using System.IO;
 using System.Text;
 
 namespace Protsyk.PMS.FullText.Core.Common.Persistance

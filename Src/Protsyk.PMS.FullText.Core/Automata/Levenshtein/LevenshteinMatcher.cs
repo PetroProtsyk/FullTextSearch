@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core.Automata
+﻿namespace Protsyk.PMS.FullText.Core.Automata
 {
     /// <summary>
     /// Match all elements in the Trie within given Levenshtein distance
