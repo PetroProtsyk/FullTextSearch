@@ -901,7 +901,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             private void SetInHeader(int value, int index)
             {
-                Array.Copy(BitConverter.GetBytes(value), 0, headerData, HeaderBytes.Length + sizeof(int) * index, sizeof(int));
+                BinaryPrimitives.WriteInt32LittleEndian(headerData.AsSpan(HeaderBytes.Length + sizeof(int) * index), value);
             }
 
             private int GetInHeader(int index)
@@ -1022,7 +1022,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
                 ulong result = (ulong)((((long)firstNodeId) << 32) | (long)nodeOffset);
 
-                Array.Copy(BitConverter.GetBytes(data.Length), 0, node.Data, nodeOffset, sizeof(int));
+                BinaryPrimitives.WriteInt32LittleEndian(node.Data.AsSpan(nodeOffset), data.Length);
+
                 nodeOffset += sizeof(int);
 
                 //DataNode
@@ -1273,7 +1274,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
                         {
                             throw new InvalidOperationException($"No page {pageId}");
                         }
-                        Array.Copy(BitConverter.GetBytes(footer), 0, rawBytes, pageSize - pageFooterSize, pageFooterSize);
+
+                        BinaryPrimitives.WriteUInt32LittleEndian(rawBytes.AsSpan(pageSize - pageFooterSize), footer);
                     }
                     else
                     {
@@ -1407,7 +1409,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         private readonly struct DataLink
         {
-            public static readonly int SizeInBytes = 2 * sizeof(ulong);
+            public const int SizeInBytes = 2 * sizeof(ulong);
 
             public readonly ulong KeyAddress;
             public readonly ulong ValueAddress;
@@ -1421,8 +1423,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
             public byte[] GetBytes()
             {
                 var buffer = new byte[SizeInBytes];
-                Array.Copy(BitConverter.GetBytes(KeyAddress), 0, buffer, 0, sizeof(ulong));
-                Array.Copy(BitConverter.GetBytes(ValueAddress), 0, buffer, sizeof(ulong), sizeof(ulong));
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(0), KeyAddress);
+                BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(8), ValueAddress);
                 return buffer;
             }
 
@@ -1448,24 +1450,24 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public byte[] Data => data;
 
-            public int Id => BitConverter.ToInt32(data, 0);
+            public int Id => BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(0));
 
             public int ParentId
             {
                 get { return BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(4)); }
-                set { Array.Copy(BitConverter.GetBytes(value), 0, data, sizeof(int), sizeof(int)); }
+                set { BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(4), value); }
             }
 
             public int Count
             {
-                get { return BitConverter.ToInt32(data, 2 * sizeof(int)); }
-                set { Array.Copy(BitConverter.GetBytes(value), 0, data, 2 * sizeof(int), sizeof(int)); }
+                get { return BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(8)); }
+                set { BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(8), value); }
             }
 
             public int DataOffset
             {
-                get { return BitConverter.ToInt32(data, 3 * sizeof(int)); }
-                set { Array.Copy(BitConverter.GetBytes(value), 0, data, 3 * sizeof(int), sizeof(int)); }
+                get { return BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(12)); }
+                set { BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(12), value); }
             }
 
             public bool IsLeaf
@@ -1496,9 +1498,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
             {
                 if (index > Count + 1)
                 {
-                    throw new ArgumentException(nameof(index));
+                    throw new ArgumentException(null, nameof(index));
                 }
-                Array.Copy(BitConverter.GetBytes(id), 0, data, HeaderLength + index * sizeof(int), sizeof(int));
+
+                BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(HeaderLength + index * sizeof(int)), id);
             }
 
             public DataLink GetData(int index, int maxChildren)

@@ -1280,8 +1280,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
             result[4] = (byte)'0';
             result[5] = (byte)'1';
             result[6] = (byte)'S';
-            Array.Copy(BitConverter.GetBytes(names[Initial]), 0, result, 7, sizeof(long));
-            var writeIndex = 7 + sizeof(long);
+
+            int writeIndex = 7;
+            BinaryPrimitives.WriteInt64LittleEndian(result.AsSpan(writeIndex), names[Initial]);
+            writeIndex += sizeof(long);
 
             for (int i = 0; i < states.Count; ++i)
             {
