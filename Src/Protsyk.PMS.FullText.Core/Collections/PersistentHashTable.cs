@@ -13,18 +13,17 @@ namespace Protsyk.PMS.FullText.Core.Collections
         #region Fields
         private const int MinValueBufferSize = 256;
         private const int MinCapacity = 8;
-        private static readonly byte[] Header = "PMS-HASH"u8.ToArray();
+        private static ReadOnlySpan<byte> Header => "PMS-HASH"u8;
         private static readonly int HeaderSize = Header.Length;
         private static readonly int IndexRecordSize = sizeof(long) + sizeof(int);
 
         private readonly IDataSerializer<TKey> keySerializer;
         private readonly IDataSerializer<TValue> valueSerializer;
         private readonly IPersistentStorage dataStorage;
-        private readonly byte[] sizeBuffer;
         private readonly IEqualityComparer<TKey> keyComparer;
 
         private byte[] valueBuffer;
-        private int capacity;
+        private readonly int capacity;
         private int count;
         private readonly int headerSize;
         #endregion
@@ -45,7 +44,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
             this.keyComparer = keyComparer;
             this.keySerializer = DataSerializer.GetDefault<TKey>();
             this.valueSerializer = DataSerializer.GetDefault<TValue>();
-            this.sizeBuffer = new byte[sizeof(int)];
             this.valueBuffer = new byte[MinValueBufferSize];
             this.headerSize = HeaderSize + 2 * sizeof(int);
 
@@ -54,7 +52,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 this.count = 0;
 
                 // Header
-                this.dataStorage.WriteAll(0, Header.AsSpan(0, HeaderSize));
+                this.dataStorage.WriteAll(0, Header);
                 this.dataStorage.WriteInt32LittleEndian(HeaderSize, capacity);
                 this.dataStorage.WriteInt32LittleEndian(HeaderSize + sizeof(int), count);
 
@@ -279,8 +277,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             for (var i = 0L; i < capacity; ++i)
             {
-                var offset = headerSize + i * IndexRecordSize;
-                dataStorage.ReadAll(offset, valueBuffer, 0, IndexRecordSize);
+                long offset = headerSize + i * IndexRecordSize;
+                dataStorage.ReadAll(offset, valueBuffer.AsSpan(0, IndexRecordSize));
 
                 long nextOffset = BinaryPrimitives.ReadInt64LittleEndian(valueBuffer);
                 int nextSize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(8));
