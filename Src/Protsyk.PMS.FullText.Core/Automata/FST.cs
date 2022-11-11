@@ -460,7 +460,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             End();
 
             var data = new byte[storage.Length];
-            storage.ReadAll(0, data, 0, data.Length);
+            storage.ReadAll(0, data);
             return FST<T>.FromBytesCompressed(data, outputType);
         }
 
@@ -1785,10 +1785,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public int WriteTo(string value, byte[] buffer, int startIndex)
         {
-            var bytes = Encoding.UTF8.GetBytes(value);
-            var size = VarInt.WriteVInt32(bytes.Length, buffer, startIndex);
-            Array.Copy(bytes, 0, buffer, startIndex + size, bytes.Length);
-            return size + bytes.Length;
+            int byteCount = Encoding.UTF8.GetByteCount(value);
+            var size = VarInt.WriteVInt32(byteCount, buffer, startIndex);
+
+            Encoding.UTF8.GetBytes(value, buffer.AsSpan(startIndex + size));
+
+            return size + byteCount;
         }
     }
 
