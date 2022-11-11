@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -60,6 +62,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         private void AddInternal(TKey key, TValue value)
         {
             var target = FindLeaf(key);
+
             using (var transaction = nodeManager.StartTransaction())
             {
                 var dataLink = new DataLink(
@@ -576,7 +579,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     text.Append("{rank = same; ");
                     rankEmpty = false;
                 }
-                text.AppendFormat("node{0};", child);
+                text.Append(CultureInfo.InvariantCulture, $"node{child};");
             }
             if (!rankEmpty)
             {
@@ -609,10 +612,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 text.Append(nodeKeys[i].Key);
                 text.Append(" - ");
                 text.Append(nodeKeys[i].Value);
-                text.Append("|");
+                text.Append('|');
             }
             text.AppendFormat("<f{0}>", nodeKeys.Length);
-            text.Append("\"");
+            text.Append('"');
             if (node.Id == nodeManager.RootNodeId)
             {
                 text.Append(", style = bold");
@@ -700,65 +703,51 @@ namespace Protsyk.PMS.FullText.Core.Collections
             Add(item.Key, item.Value);
         }
 
-
         public void Clear()
         {
             nodeManager.Clear();
         }
 
-
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
-            TValue value;
-            if (TryGetValue(item.Key, out value))
-            {
-                return Equals(value, item.Value);
-            }
-            return false;
+            return TryGetValue(item.Key, out TValue value) && Equals(value, item.Value);
         }
-
 
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
 
-
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
             throw new NotImplementedException();
         }
 
-
         public int Count => nodeManager.Count;
 
         public bool IsReadOnly => false;
-
 
         public bool ContainsKey(TKey key)
         {
             return ContainsKeyInternal(key);
         }
 
-
         public void Add(TKey key, TValue value)
         {
             AddInternal(key, value);
         }
-
 
         public bool Remove(TKey key)
         {
             return RemoveInternal(key);
         }
 
-
         public bool TryGetValue(TKey key, out TValue value)
         {
             NodeData temp;
             if (!TryFindKeyOrLeaf(key, out temp))
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
 
@@ -767,7 +756,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             int index;
             if (!TryFindUpperBound(key, targetKeys, comparer, out index))
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
 
@@ -826,8 +815,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
             nodeManager.DeleteData(address);
         }
 
-
         public ICollection<TKey> Keys { get; }
+
         public ICollection<TValue> Values { get; }
 
         #endregion
@@ -850,25 +839,22 @@ namespace Protsyk.PMS.FullText.Core.Collections
             void TouchPage(int pageId);
         }
 
-        private class NodeManager : IDisposable
+        private sealed class NodeManager : IDisposable
         {
-            private static readonly string HeaderText = "Btree-v1";
+            private static ReadOnlySpan<byte> HeaderBytes => "Btree-v1"u8;
+
             private static readonly int NewId = -1;
             public static readonly int NoId = 0;
 
             private readonly byte[] headerData;
             private readonly int maxChildren;
-            private PageDataStorage storage;
+            private readonly PageDataStorage storage;
 
-            public byte[] Header
-            {
-                get { return headerData; }
-            }
+            public byte[] Header => headerData;
 
             private string Text
             {
-                get { return Encoding.UTF8.GetString(headerData, 0, HeaderText.Length); }
-                set { Array.Copy(Encoding.UTF8.GetBytes(HeaderText), 0, headerData, 0, HeaderText.Length); }
+                get { return Encoding.UTF8.GetString(headerData, 0, HeaderBytes.Length); }
             }
 
             private int Order
@@ -915,19 +901,18 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             private void SetInHeader(int value, int index)
             {
-                Array.Copy(BitConverter.GetBytes(value), 0, headerData, HeaderText.Length + sizeof(int) * index, sizeof(int));
+                Array.Copy(BitConverter.GetBytes(value), 0, headerData, HeaderBytes.Length + sizeof(int) * index, sizeof(int));
             }
-
 
             private int GetInHeader(int index)
             {
-                return BitConverter.ToInt32(headerData, HeaderText.Length + sizeof(int) * index);
+                return BitConverter.ToInt32(headerData, HeaderBytes.Length + sizeof(int) * index);
             }
 
             public NodeManager(IPersistentStorage persistentStorage, int order)
             {
                 this.maxChildren = 2 * order + 1;
-                this.headerData = new byte[HeaderText.Length + 7 * sizeof(int)];
+                this.headerData = new byte[HeaderBytes.Length + 7 * sizeof(int)];
                 this.storage = new PageDataStorage(persistentStorage, headerData.Length, maxChildren);
 
                 if (persistentStorage.Length == 0)
@@ -939,7 +924,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 {
                     storage.ReadHeader(headerData);
 
-                    if (Text != HeaderText)
+                    if (!headerData.AsSpan(0, HeaderBytes.Length).SequenceEqual(HeaderBytes))
                     {
                         throw new InvalidOperationException("Header text mismatch");
                     }
@@ -951,10 +936,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-
             private void InitializeHeader(int order)
             {
-                Text = HeaderText;
+                HeaderBytes.CopyTo(headerData);
                 Order = order;
                 NextEmptyId = NewId;
                 Count = 0;
@@ -1083,7 +1067,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 int offset = (int)(address & 0xFFFFFFFF);
 
                 var firstNode = Get(index);
-                var count = BitConverter.ToInt32(firstNode.Data, offset);
+                var count = BinaryPrimitives.ReadInt32LittleEndian(firstNode.Data.AsSpan(offset));
                 var result = new byte[count];
                 offset += sizeof(int);
 
@@ -1124,7 +1108,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 int offset = (int)(address & 0xFFFFFFFF);
 
                 var firstNode = Get(index);
-                var count = BitConverter.ToInt32(firstNode.Data, offset);
+                var count = BinaryPrimitives.ReadInt32LittleEndian(firstNode.Data.AsSpan(offset));
                 offset += sizeof(int);
 
                 var currentNode = firstNode;
@@ -1241,7 +1225,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-
             public void SaveNode(int id, byte[] data)
             {
                 var pageId = GetPageId(id);
@@ -1258,7 +1241,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-
             public byte[] ReadNode(int id)
             {
                 var pageId = GetPageId(id);
@@ -1269,18 +1251,15 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return data;
             }
 
-
             private int GetPageId(int id)
             {
                 return id / nodePerPage;
             }
 
-
             private int GetOffset(int id)
             {
                 return NodeData.Size(maxChildren) * (id % nodePerPage);
             }
-
 
             private byte[] GetPage(int pageId, uint footer, bool canBeNew)
             {
@@ -1298,7 +1277,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     }
                     else
                     {
-                        persistentStorage.ReadAll(CalculatePageOffset(pageId), rawBytes, 0, pageSize);
+                        persistentStorage.ReadAll(CalculatePageOffset(pageId), rawBytes.AsSpan(0, pageSize));
                     }
                     pageCache.Add(pageId, rawBytes);
                 }
@@ -1311,7 +1290,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
                 return rawBytes;
             }
-
 
             public ITransaction StartTransaction()
             {
@@ -1328,7 +1306,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
                 throw new NotSupportedException();
             }
-
 
             private void CommitCurrentTransaction(byte[] header, IEnumerable<int> changedPages)
             {
@@ -1356,12 +1333,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-
             public void ReadHeader(byte[] header)
             {
-                persistentStorage.ReadAll(0, header, 0, header.Length);
+                persistentStorage.ReadAll(0, header);
             }
-
 
             public void SaveHeader(byte[] header)
             {
@@ -1370,9 +1345,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 {
                     throw new InvalidOperationException("Bad header size");
                 }
-                persistentStorage.WriteAll(0, header, 0, header.Length);
+                persistentStorage.WriteAll(0, header);
             }
-
 
             private void RollbackCurrentTransaction()
             {
@@ -1386,12 +1360,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-
             private long CalculatePageOffset(int pageId)
             {
                 return headerSize + pageId * pageSize;
             }
-
 
             private sealed class Transaction : ITransaction
             {
@@ -1406,19 +1378,16 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     this.commited = false;
                 }
 
-
                 public void TouchPage(int pageId)
                 {
                     pages.Add(pageId);
                 }
-
 
                 public void Commit(byte[] header)
                 {
                     owner.CommitCurrentTransaction(header, pages);
                     commited = true;
                 }
-
 
                 public void Dispose()
                 {
@@ -1428,7 +1397,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     }
                 }
             }
-
 
             public void Dispose()
             {
@@ -1484,7 +1452,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public int ParentId
             {
-                get { return BitConverter.ToInt32(data, sizeof(int)); }
+                get { return BinaryPrimitives.ReadInt32LittleEndian(data.AsSpan(4)); }
                 set { Array.Copy(BitConverter.GetBytes(value), 0, data, sizeof(int), sizeof(int)); }
             }
 
@@ -1565,9 +1533,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
             public static NodeData ForId(int id, int maxChildren)
             {
                 var data = new byte[Size(maxChildren)];
-                Array.Copy(BitConverter.GetBytes(id), 0, data, 0, sizeof(int));
-                Array.Copy(BitConverter.GetBytes(0), 0, data, sizeof(int), sizeof(int));
-                Array.Copy(BitConverter.GetBytes(0), 0, data, sizeof(int), sizeof(int));
+
+                BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(0), id);
+                BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(4), 0);
+                BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(8), 0);
+
                 return new NodeData(data);
             }
 
@@ -1606,7 +1576,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     SetLink(i, GetLink(i + 1));
                 }
             }
-
 
             public void RemoveLinkAt(int position, int maxChildren)
             {
