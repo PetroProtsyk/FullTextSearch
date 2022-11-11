@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,7 +22,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         private readonly IFixedSizeDataSerializer<TValue> valueSerializer;
 
         private readonly IComparer<TKey> comparer;
-        private NodeManager nodeManager;
+        private readonly NodeManager nodeManager;
         #endregion
 
         #region Properties
@@ -177,7 +178,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return inserted;
             }
         }
-
 
         /// <summary>
         /// Match values in the tree
@@ -424,6 +424,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 set
                 {
                     var splitData = keySerializer.GetBytes(value);
+
                     Array.Copy(splitData, 0, data, 0, splitData.Length);
                 }
             }
@@ -470,7 +471,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             private void SetInt(int value, int index)
             {
-                Array.Copy(BitConverter.GetBytes(value), 0, data, valueSerializer.Size + keySerializer.Size + 1 + sizeof(int) * index, sizeof(int));
+                int offset = valueSerializer.Size + keySerializer.Size + 1 + sizeof(int) * index;
+
+                BinaryPrimitives.WriteInt32LittleEndian(data.AsSpan(offset), value);
             }
 
             private int GetInt(int index)
@@ -484,9 +487,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
             }
         }
 
-        private class Header
+        private sealed class Header
         {
-            private static readonly string HeaderText = "TDict-v01";
+            private static ReadOnlySpan<byte> HeaderBytes => "TDict-v01"u8;
             private readonly byte[] headerData;
 
             public byte[] Data
@@ -496,8 +499,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             private string Text
             {
-                get { return Encoding.UTF8.GetString(headerData, 0, HeaderText.Length); }
-                set { Array.Copy(Encoding.UTF8.GetBytes(HeaderText), 0, headerData, 0, HeaderText.Length); }
+                get { return Encoding.UTF8.GetString(headerData, 0, HeaderBytes.Length); }
             }
 
             public int Count
@@ -520,17 +522,16 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             private void SetInHeader(int value, int index)
             {
-                Array.Copy(BitConverter.GetBytes(value), 0, headerData, HeaderText.Length + sizeof(int) * index, sizeof(int));
+                Array.Copy(BitConverter.GetBytes(value), 0, headerData, HeaderBytes.Length + sizeof(int) * index, sizeof(int));
             }
 
             private int GetInHeader(int index)
             {
-                return BitConverter.ToInt32(headerData, HeaderText.Length + sizeof(int) * index);
+                return BitConverter.ToInt32(headerData, HeaderBytes.Length + sizeof(int) * index);
             }
 
-
             public Header()
-                : this(new byte[HeaderText.Length + 4 * sizeof(int)])
+                : this(new byte[HeaderBytes.Length + 4 * sizeof(int)])
             {
                 CleanHeader();
             }
@@ -545,13 +546,15 @@ namespace Protsyk.PMS.FullText.Core.Collections
             public Header Copy()
             {
                 var data = new byte[headerData.Length];
-                Array.Copy(headerData, 0, data, 0, data.Length);
+
+                headerData.CopyTo(data.AsSpan());
+
                 return new Header(data);
             }
 
             public void CleanHeader()
             {
-                Text = HeaderText;
+                HeaderBytes.CopyTo(headerData);
                 Count = 0;
                 NextId = 1;
                 RootNodeId = NodeManager.NewId;
@@ -561,12 +564,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
             {
                 persistentStorage.ReadAll(0, headerData);
 
-                if (Text != HeaderText)
+                if (!headerData.AsSpan(0, HeaderBytes.Length).SequenceEqual(HeaderBytes))
                 {
                     throw new InvalidOperationException("Header text mismatch");
                 }
             }
-
 
             public void SaveHeader(IPersistentStorage persistentStorage)
             {
@@ -588,19 +590,16 @@ namespace Protsyk.PMS.FullText.Core.Collections
             private readonly ITransaction transaction;
             private bool finalized;
 
-
             public Update(ITransaction transaction)
             {
                 this.transaction = transaction;
                 this.finalized = false;
             }
 
-
             public void Dispose()
             {
                 Rollback();
             }
-
 
             public void Commit()
             {
