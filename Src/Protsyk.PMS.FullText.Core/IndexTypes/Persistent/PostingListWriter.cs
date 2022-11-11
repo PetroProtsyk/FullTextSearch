@@ -1,6 +1,8 @@
 ﻿using System;
-using System.Globalization;
+using System.Buffers;
+using System.Buffers.Text;
 using System.IO;
+using System.Linq;
 using System.Text;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -12,12 +14,12 @@ namespace Protsyk.PMS.FullText.Core
         #region Fields
         public static readonly string Id = "Text";
 
-        internal static readonly string EmptyContinuationAddress = " -> FFFFFFFF";
+        internal static ReadOnlySpan<byte> EmptyContinuationAddress => " -> FFFFFFFF"u8;
 
-        private static readonly int MemoryBufferThreshold = 65536;
+        private static readonly int MemoryBufferThreshold = 65_536;
 
         private readonly IPersistentStorage persistentStorage;
-        private readonly StringBuilder buffer;
+        private readonly ArrayBufferWriter<byte> buffer;
 
         private long count;
         private PostingListAddress? currentList;
@@ -31,8 +33,7 @@ namespace Protsyk.PMS.FullText.Core
         public PostingListWriter(IPersistentStorage storage)
         {
             this.persistentStorage = storage;
-            this.buffer = new StringBuilder();
-            this.buffer.EnsureCapacity(MemoryBufferThreshold);
+            this.buffer = new ArrayBufferWriter<byte>(MemoryBufferThreshold);
         }
 
         #region API
@@ -50,22 +51,35 @@ namespace Protsyk.PMS.FullText.Core
 
         public void AddOccurrence(Occurrence occurrence)
         {
-            if (currentList == null)
+            if (currentList is null)
             {
                 throw new InvalidOperationException("Previous list was started");
             }
 
             if (count != 0)
             {
-                buffer.Append(';');
+                buffer.Write(";"u8);
             }
 
-            buffer.Append(CultureInfo.InvariantCulture, $"[{occurrence.DocumentId},{occurrence.FieldId},{occurrence.TokenId}]");
+            buffer.Write("["u8);
+            Utf8Formatter.TryFormat(occurrence.DocumentId, buffer.GetSpan(32), out int bytesWritten);
+            buffer.Advance(bytesWritten);
+
+            buffer.Write(","u8);
+            Utf8Formatter.TryFormat(occurrence.FieldId, buffer.GetSpan(32), out bytesWritten);
+            buffer.Advance(bytesWritten);
+
+            buffer.Write(","u8);
+            Utf8Formatter.TryFormat(occurrence.TokenId, buffer.GetSpan(32), out bytesWritten);
+            buffer.Advance(bytesWritten);
+
+            buffer.Write("]"u8);
+
             ++count;
 
-            if (buffer.Length + 128 >= MemoryBufferThreshold)
+            if (buffer.WrittenCount + 128 >= MemoryBufferThreshold)
             {
-                persistentStorage.AppendUtf8Bytes(buffer.ToString());
+                persistentStorage.Append(buffer.WrittenSpan);
                 buffer.Clear();
             }
         }
@@ -77,14 +91,14 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException("Previous list was started");
             }
 
-            if (buffer.Length > 0)
+            if (buffer.WrittenCount > 0)
             {
-                persistentStorage.AppendUtf8Bytes(buffer.ToString());
+                persistentStorage.Append(buffer.WrittenSpan);
                 buffer.Clear();
             }
 
             // This posting list does not have continuation
-            persistentStorage.AppendUtf8Bytes(EmptyContinuationAddress);
+            persistentStorage.Append(EmptyContinuationAddress);
 
             var listEnd = persistentStorage.Length;
 
@@ -113,6 +127,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             var offset = address.Offset;
             var buffer = new byte[PostingListReader.ReadBufferSize];
+
             while (true)
             {
                 int read = persistentStorage.Read(offset, buffer, 0, buffer.Length);

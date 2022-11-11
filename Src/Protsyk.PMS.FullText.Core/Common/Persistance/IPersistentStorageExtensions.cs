@@ -7,6 +7,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
 {
     internal static class IPersistentStorageExtensions
     {
+        public static void Append(this IPersistentStorage storage, ReadOnlySpan<byte> bytes)
+        {
+            storage.WriteAll(storage.Length, bytes);
+        }
+
         public static int AppendUtf8Bytes(this IPersistentStorage storage, ReadOnlySpan<char> chars)
         {
             var rentedBuffer = ArrayPool<byte>.Shared.Rent(Encoding.UTF8.GetMaxByteCount(chars.Length));
