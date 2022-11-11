@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 
 namespace Protsyk.PMS.FullText.Core.Common
 {
@@ -46,19 +47,15 @@ namespace Protsyk.PMS.FullText.Core.Common
 
         public static int WriteInt(int value, byte[] buffer, int startIndex)
         {
-            buffer[startIndex] = (byte)value;
-            buffer[startIndex + 1] = (byte)(value >> 8);
-            buffer[startIndex + 2] = (byte)(value >> 16);
-            buffer[startIndex + 3] = (byte)(value >> 24);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(startIndex), value);
+
             return 4;
         }
 
-        public static int WriteUInt(uint x, byte[] buffer, int startIndex)
+        public static int WriteUInt(uint value, byte[] buffer, int startIndex)
         {
-            buffer[startIndex] = (byte)x;
-            buffer[startIndex + 1] = (byte)(x >> 8);
-            buffer[startIndex + 2] = (byte)(x >> 16);
-            buffer[startIndex + 3] = (byte)(x >> 24);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(startIndex), value);
+
             return 4;
         }
     }
