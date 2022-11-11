@@ -1,5 +1,4 @@
 ﻿using System;
-using System.Buffers.Binary;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
@@ -11,7 +10,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
         private readonly IDataSerializer<TValue> valueSerializer;
         private readonly IPersistentStorage dataStorage;
         private readonly PersistentList<long> linearIndex;
-        private readonly byte[] sizeBuffer;
 
         private byte[] valueBuffer;
         #endregion
@@ -28,7 +26,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
         public PersistentDictionary(IPersistentStorage dataStorage, IPersistentStorage indexStorage)
         {
             this.valueSerializer = DataSerializer.GetDefault<TValue>();
-            this.sizeBuffer = new byte[sizeof(int)];
 
             this.dataStorage = dataStorage;
             this.linearIndex = new PersistentList<long>(indexStorage);
@@ -52,8 +49,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
 
-                dataStorage.ReadAll(offset, sizeBuffer);
-                int dataSize = BinaryPrimitives.ReadInt32LittleEndian(sizeBuffer);
+                int dataSize = dataStorage.ReadInt32LittleEndian(offset);
 
                 //TODO: Improve serializer, no need to reallocate
                 if (valueBuffer == null || valueBuffer.Length != dataSize)
@@ -61,7 +57,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     valueBuffer = new byte[dataSize];
                 }
 
-                dataStorage.ReadAll(offset + sizeBuffer.Length, valueBuffer);
+                dataStorage.ReadAll(offset + 4, valueBuffer);
 
                 return valueSerializer.GetValue(valueBuffer);
             }
