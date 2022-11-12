@@ -1,13 +1,10 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core
+﻿namespace Protsyk.PMS.FullText.Core
 {
     public static class PostingListExtensions
     {
         public static ISkipList AsSkipList(this IPostingList list)
         {
-            var native = list as ISkipList;
-            if (native != null)
+            if (list is ISkipList native)
             {
                 return native;
             }
@@ -15,5 +12,4 @@ namespace Protsyk.PMS.FullText.Core
             return new BasicSkipList(list);
         }
     }
-
 }

@@ -1,7 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
+
 using Protsyk.PMS.FullText.Core.Automata;
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Compression;
@@ -43,7 +43,7 @@ namespace Protsyk.PMS.FullText.Core
             if (storage.Length > 0)
             {
                 var buffer = new byte[storage.Length];
-                storage.ReadAll(0, buffer, 0, buffer.Length);
+                storage.ReadAll(0, buffer);
                 this.fst = FST<int>.FromBytesCompressed(buffer, FSTVarIntOutput.Instance);
             }
         }
@@ -54,8 +54,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             // var decodingMatcher = encoding.CreateMatcher(matcher.ToDfaMatcher(), maxTokenByteLength);
 
-            foreach (var term in fst.Match(matcher.ToDfaMatcher())
-                                    .Select(p => new string(p.ToArray())))
+            foreach (var term in fst.Match(matcher.ToDfaMatcher()))
             {
                 yield return GetTerm(term);
             }
@@ -84,7 +83,7 @@ namespace Protsyk.PMS.FullText.Core
         {
             private List<string> input = new List<string>();
             private List<int> output = new List<int>();
-            private IPersistentStorage storage;
+            private readonly IPersistentStorage storage;
 
             public Update(IPersistentStorage storage)
             {
@@ -103,7 +102,7 @@ namespace Protsyk.PMS.FullText.Core
                     Validate(fst); //TODO: Optional
                     {
                         var fstData = fst.GetBytesCompressed();
-                        storage.WriteAll(0, fstData, 0, fstData.Length);
+                        storage.WriteAll(0, fstData);
                     }
                     input = null;
                     output = null;
@@ -148,10 +147,8 @@ namespace Protsyk.PMS.FullText.Core
                 throw new NotSupportedException("It is not possible to update FST");
             }
 
-            if (update == null)
-            {
-                update = new Update(storage);
-            }
+            update ??= new Update(storage);
+
             return update;
         }
 

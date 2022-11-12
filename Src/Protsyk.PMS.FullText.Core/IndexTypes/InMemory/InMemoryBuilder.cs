@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class InMemoryBuilder : FullTextIndexBuilder
+    internal sealed class InMemoryBuilder : FullTextIndexBuilder
     {
         private readonly InMemoryIndexName name;
 

@@ -1,6 +1,8 @@
 ﻿using System;
+using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
@@ -458,7 +460,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             End();
 
             var data = new byte[storage.Length];
-            storage.ReadAll(0, data, 0, data.Length);
+            storage.ReadAll(0, data);
             return FST<T>.FromBytesCompressed(data, outputType);
         }
 
@@ -883,7 +885,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 if (stateOffset == initial)
                 {
-                    result.AppendFormat("{0}[label = \"{0}\", shape = circle, style = bold, fontsize = 14]", stateOffset);
+                    result.Append(CultureInfo.InvariantCulture, $"{stateOffset}[label = \"{stateOffset}\", shape = circle, style = bold, fontsize = 14]");
                     result.AppendLine();
                 }
                 else if (isFinal)
@@ -919,22 +921,17 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     }
                 }
 
-                if (result.Length > 65536)
+                if (result.Length > 65_536)
                 {
-                    AppendText(outputStorage, result.ToString());
+                    outputStorage.AppendUtf8Bytes(result.ToString());
                     result.Clear();
                 }
             }
 
             result.AppendLine("}");
-            AppendText(outputStorage, result.ToString());
+            outputStorage.AppendUtf8Bytes(result.ToString());
         }
 
-        private void AppendText(IPersistentStorage outputStorage, string text)
-        {
-            var bytes = Encoding.UTF8.GetBytes(text);
-            outputStorage.WriteAll(outputStorage.Length, bytes, 0, bytes.Length);
-        }
         #endregion
 
         #region IFST
@@ -1283,8 +1280,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
             result[4] = (byte)'0';
             result[5] = (byte)'1';
             result[6] = (byte)'S';
-            Array.Copy(BitConverter.GetBytes(names[Initial]), 0, result, 7, sizeof(long));
-            var writeIndex = 7 + sizeof(long);
+
+            int writeIndex = 7;
+            BinaryPrimitives.WriteInt64LittleEndian(result.AsSpan(writeIndex), names[Initial]);
+            writeIndex += sizeof(long);
 
             for (int i = 0; i < states.Count; ++i)
             {
@@ -1788,14 +1787,16 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public int WriteTo(string value, byte[] buffer, int startIndex)
         {
-            var bytes = Encoding.UTF8.GetBytes(value);
-            var size = VarInt.WriteVInt32(bytes.Length, buffer, startIndex);
-            Array.Copy(bytes, 0, buffer, startIndex + size, bytes.Length);
-            return size + bytes.Length;
+            int byteCount = Encoding.UTF8.GetByteCount(value);
+            var size = VarInt.WriteVInt32(byteCount, buffer, startIndex);
+
+            Encoding.UTF8.GetBytes(value, buffer.AsSpan(startIndex + size));
+
+            return size + byteCount;
         }
     }
 
-    internal class Utils
+    internal static class Utils
     {
         // Calculate length of the longest common prefix
         public static int LCP(string a, string b)

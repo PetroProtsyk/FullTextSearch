@@ -288,7 +288,7 @@ namespace Protsyk.PMS.FullText.Core
                 result.Append(Convert.ToString(code[i], 2).PadLeft(8, '0'));
                 if (i != code.Count - 1)
                 {
-                    result.Append(" ");
+                    result.Append(' ');
                 }
             }
             return result.ToString();

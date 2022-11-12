@@ -102,7 +102,7 @@ namespace Protsyk.PMS.FullText.Core
                 return true;
             }
 
-            if (c == '-' || c == '_')
+            if (c is '-' or '_')
             {
                 return true;
             }

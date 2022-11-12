@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class BasicSkipList : ISkipList
+    internal sealed class BasicSkipList : ISkipList
     {
         private readonly IPostingList list;
 

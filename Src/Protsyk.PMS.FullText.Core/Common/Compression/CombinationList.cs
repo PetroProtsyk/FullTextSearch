@@ -1,5 +1,5 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Globalization;
 using System.Text;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
@@ -219,7 +219,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression
                     if (r is TreeLeaf)
                         sb.Append(r.w);
                     else
-                        sb.Append("(" + r.w + ")");
+                        sb.Append(CultureInfo.InvariantCulture, $"({r.w})");
 
                     if (r.Next != null)
                     {

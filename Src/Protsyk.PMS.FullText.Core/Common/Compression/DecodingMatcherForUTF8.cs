@@ -1,10 +1,10 @@
 ﻿using System;
-using System.Text;
+
 using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression
 {
-    internal class DecodingMatcherForUTF8 : IDfaMatcher<byte>
+    internal sealed class DecodingMatcherForUTF8 : IDfaMatcher<byte>
     {
         private readonly IDfaMatcher<char> matcher;
         private int symbol;

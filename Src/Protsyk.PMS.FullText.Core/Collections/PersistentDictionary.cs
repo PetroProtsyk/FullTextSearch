@@ -1,4 +1,5 @@
 ﻿using System;
+
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core.Collections
@@ -9,7 +10,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
         private readonly IDataSerializer<TValue> valueSerializer;
         private readonly IPersistentStorage dataStorage;
         private readonly PersistentList<long> linearIndex;
-        private readonly byte[] sizeBuffer;
 
         private byte[] valueBuffer;
         #endregion
@@ -26,7 +26,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
         public PersistentDictionary(IPersistentStorage dataStorage, IPersistentStorage indexStorage)
         {
             this.valueSerializer = DataSerializer.GetDefault<TValue>();
-            this.sizeBuffer = new byte[sizeof(int)];
 
             this.dataStorage = dataStorage;
             this.linearIndex = new PersistentList<long>(indexStorage);
@@ -50,8 +49,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
 
-                dataStorage.ReadAll(offset, sizeBuffer, 0, sizeBuffer.Length);
-                int dataSize = BitConverter.ToInt32(sizeBuffer, 0);
+                int dataSize = dataStorage.ReadInt32LittleEndian(offset);
 
                 //TODO: Improve serializer, no need to reallocate
                 if (valueBuffer == null || valueBuffer.Length != dataSize)
@@ -59,7 +57,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     valueBuffer = new byte[dataSize];
                 }
 
-                dataStorage.ReadAll(offset + sizeBuffer.Length, valueBuffer, 0, valueBuffer.Length);
+                dataStorage.ReadAll(offset + 4, valueBuffer);
 
                 return valueSerializer.GetValue(valueBuffer);
             }
@@ -73,10 +71,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
 
                 var data = valueSerializer.GetBytes(value);
-                var dataSize = BitConverter.GetBytes(data.Length);
 
-                dataStorage.WriteAll(offset, dataSize, 0, dataSize.Length);
-                dataStorage.WriteAll(offset + dataSize.Length, data, 0, data.Length);
+                dataStorage.WriteInt32LittleEndian(offset, data.Length);
+                dataStorage.WriteAll(offset + sizeof(int), data);
             }
         }
         #endregion

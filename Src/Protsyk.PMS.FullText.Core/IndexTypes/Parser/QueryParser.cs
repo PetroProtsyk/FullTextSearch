@@ -6,7 +6,7 @@ namespace Protsyk.PMS.FullText.Core
 {
     public class QueryParser
     {
-        private static readonly Dictionary<string, Func<string, int, string, ParseResult>> argumentsParsers = new Dictionary<string, Func<string, int, string, ParseResult>>
+        private static readonly Dictionary<string, Func<string, int, string, ParseResult>> argumentsParsers = new()
         {
             { "OR", ParseArguments },
             { "AND", ParseArguments },
@@ -159,7 +159,7 @@ namespace Protsyk.PMS.FullText.Core
                     escaped.Append('\\');
                     pos = ParseEscapedCharacter(s, pos);
                 }
-                else if (s[pos] == '*' || s[pos] == '?')
+                else if (s[pos] is '*' or '?')
                 {
                     // Accepted wildcard characters
                 }
@@ -244,7 +244,7 @@ namespace Protsyk.PMS.FullText.Core
             return pos;
         }
 
-        private struct ParseResult
+        private readonly struct ParseResult
         {
             public readonly AstQuery query;
             public readonly int position;

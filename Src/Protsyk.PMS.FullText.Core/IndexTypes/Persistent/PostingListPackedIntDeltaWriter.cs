@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.IO;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
@@ -53,10 +54,10 @@ namespace Protsyk.PMS.FullText.Core
             listStart = persistentStorage.Length;
 
             // Reserve space for continuation offset
-            persistentStorage.WriteAll(listStart, BitConverter.GetBytes(0L), 0, sizeof(long));
+            persistentStorage.WriteInt64LittleEndian(listStart, 0L);
 
             // Reserve space for the length of the list
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(0), 0, sizeof(int));
+            persistentStorage.WriteInt32LittleEndian(listStart + sizeof(long), 0);
         }
 
         public void AddOccurrence(Occurrence occurrence)
@@ -141,7 +142,7 @@ namespace Protsyk.PMS.FullText.Core
                     if (remainingBlocks == 1)
                     {
                         var packed = PackedInts.Convert(buffer, 0, bufferIndex).GetBytes();
-                        persistentStorage.WriteAll(persistentStorage.Length, packed, 0, packed.Length);
+                        persistentStorage.WriteAll(persistentStorage.Length, packed);
                         totalSize += packed.Length;
 
                         deltaSelectorIndex = 0;
@@ -166,7 +167,7 @@ namespace Protsyk.PMS.FullText.Core
                 buffer[deltaSelectorIndex] = deltaSelector;
 
                 var packed = PackedInts.Convert(buffer, 0, bufferIndex).GetBytes();
-                persistentStorage.WriteAll(persistentStorage.Length, packed, 0, packed.Length);
+                persistentStorage.WriteAll(persistentStorage.Length, packed);
 
                 totalSize += packed.Length;
             }
@@ -186,16 +187,14 @@ namespace Protsyk.PMS.FullText.Core
 
         public void UpdateNextList(PostingListAddress address, PostingListAddress nextList)
         {
-            var buffer = new byte[sizeof(long)];
-            var offset = address.Offset;
+            long offset = address.Offset;
             while (true)
             {
-                persistentStorage.ReadAll(offset, buffer, 0, buffer.Length);
-                long continuationOffset = BitConverter.ToInt64(buffer, 0);
+                long continuationOffset = persistentStorage.ReadInt64LittleEndian(offset);
 
                 if (continuationOffset == 0)
                 {
-                    persistentStorage.WriteAll(offset, BitConverter.GetBytes(nextList.Offset), 0, sizeof(long));
+                    persistentStorage.WriteInt64LittleEndian(offset, nextList.Offset);
                     break;
                 }
                 else

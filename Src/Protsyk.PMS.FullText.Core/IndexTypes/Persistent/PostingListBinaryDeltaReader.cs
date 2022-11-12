@@ -1,8 +1,8 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
-
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
@@ -175,7 +175,7 @@ namespace Protsyk.PMS.FullText.Core
                         }
 
                         var buffer = new byte[HeaderLength];
-                        persistentStorage.ReadAll(readOffset, buffer, 0, buffer.Length);
+                        persistentStorage.ReadAll(readOffset, buffer);
 
                         continuationOffset = BitConverter.ToInt64(buffer, 0);
                         listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(buffer, sizeof(long));
@@ -296,18 +296,18 @@ namespace Protsyk.PMS.FullText.Core
         public IPostingList GetBasic(PostingListAddress address)
         {
             var offset = address.Offset;
-            var buffer = new byte[sizeof(long) + sizeof(int)];
+            Span<byte> buffer = stackalloc byte[8 + 4];
             var occurrences = new List<Occurrence>();
 
             while (true)
             {
-                persistentStorage.ReadAll(offset, buffer, 0, buffer.Length);
+                persistentStorage.ReadAll(offset, buffer);
 
-                long continuationOffset = BitConverter.ToInt64(buffer, 0);
-                int length = BitConverter.ToInt32(buffer, sizeof(long));
+                long continuationOffset = BinaryPrimitives.ReadInt64LittleEndian(buffer);
+                int length = BinaryPrimitives.ReadInt32LittleEndian(buffer[8..]);
 
                 var dataBuffer = new byte[length];
-                persistentStorage.ReadAll(offset + sizeof(long) + sizeof(int), dataBuffer, 0, dataBuffer.Length);
+                persistentStorage.ReadAll(offset + sizeof(long) + sizeof(int), dataBuffer);
 
                 ParseBufferTo(dataBuffer, occurrences);
 
@@ -324,7 +324,7 @@ namespace Protsyk.PMS.FullText.Core
             return new PostingListArray(occurrences.ToArray());
         }
 
-        private static void ParseBufferTo(byte[] buffer, IList<Occurrence> occurrences)
+        private static void ParseBufferTo(byte[] buffer, List<Occurrence> occurrences)
         {
             var numbers = GroupVarint.Decode(buffer);
 

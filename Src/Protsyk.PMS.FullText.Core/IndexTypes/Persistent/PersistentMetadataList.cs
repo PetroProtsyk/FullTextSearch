@@ -5,7 +5,7 @@ using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class PersistentMetadataList : IMetadataStorage<string>
+    internal sealed class PersistentMetadataList : IMetadataStorage<string>
     {
         private PersistentDictionary<string> fields;
         public static readonly string Id = "List";

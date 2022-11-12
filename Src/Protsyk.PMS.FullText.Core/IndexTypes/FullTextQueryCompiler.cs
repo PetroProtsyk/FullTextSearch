@@ -7,7 +7,7 @@ using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core
 {
-    internal class FullTextQueryCompiler : IFullTextQueryCompiler
+    internal sealed class FullTextQueryCompiler : IFullTextQueryCompiler
     {
         private readonly IFullTextIndex index;
         private readonly int maxTokenLength;
@@ -49,25 +49,19 @@ namespace Protsyk.PMS.FullText.Core
             {
                 return CompilePattern(index.GetTerms(BuildMatcher(ast)));
             }
-
-            var func = ast as FunctionAstQuery;
-            if (func != null)
+            else if (ast is FunctionAstQuery func)
             {
-                if (func.Name == "OR")
+                return func.Name switch
                 {
-                    return CompileOr(func);
-                }
-                else if (func.Name == "SEQ")
-                {
-                    return CompileSeq(func);
-                }
-                else
-                {
-                    throw new NotSupportedException($"Function {func.Name} is not supported");
-                }
+                    "OR"  => CompileOr(func),
+                    "SEQ" => CompileSeq(func),
+                    _     => throw new NotSupportedException($"Function {func.Name} is not supported")
+                };
             }
-
-            throw new NotSupportedException($"Query {ast.Name} is not supported");
+            else
+            {
+                throw new NotSupportedException($"Query {ast.Name} is not supported");
+            }
         }
 
         private ISearchQuery CompilePattern(IEnumerable<DictionaryTerm> terms)
@@ -94,25 +88,13 @@ namespace Protsyk.PMS.FullText.Core
 
         private ITermMatcher BuildMatcher(AstQuery ast)
         {
-            var wordQuery = ast as WordAstQuery;
-            if (wordQuery != null)
+            return ast switch
             {
-                return BuildWordMatcher(wordQuery);
-            }
-
-            var wildQuery = ast as WildcardAstQuery;
-            if (wildQuery != null)
-            {
-                return BuildWildcardMatcher(wildQuery);
-            }
-
-            var editQuery = ast as EditAstQuery;
-            if (editQuery != null)
-            {
-                return BuildEditMatcher(editQuery);
-            }
-
-            throw new Exception("Not a terminal query");
+                WordAstQuery wordQuery     => BuildWordMatcher(wordQuery),
+                WildcardAstQuery wildQuery => BuildWildcardMatcher(wildQuery),
+                EditAstQuery editQuery     => BuildEditMatcher(editQuery),
+                _                          => throw new Exception("Not a terminal query")
+            };
         }
 
         private ISearchQuery CompileOr(FunctionAstQuery func)

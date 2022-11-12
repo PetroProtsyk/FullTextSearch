@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Collections.Generic;
 
 namespace Protsyk.PMS.FullText.Core.Common
 {
@@ -23,5 +21,4 @@ namespace Protsyk.PMS.FullText.Core.Common
             return h;
         }
     }
-
 }

@@ -501,7 +501,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 text.Append(node.Keys[i]);
                 text.Append(" - ");
                 text.Append(node.Values[i]);
-                text.Append("|");
+                text.Append('|');
             }
             text.AppendFormat("<f{0}>", node.Keys.Count);
             text.Append("\"];");

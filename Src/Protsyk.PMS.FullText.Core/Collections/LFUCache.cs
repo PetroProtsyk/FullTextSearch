@@ -6,9 +6,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
 {
     public class LFUCache<TKey, TValue>
     {
-        private readonly GenericHeap<ValueTuple<int, int, TKey>> h = new GenericHeap<ValueTuple<int, int, TKey>>();
-        private readonly Dictionary<TKey, ValueTuple<TValue, GenericHeap<ValueTuple<int, int, TKey>>.IItemReference>> c
-                                    = new Dictionary<TKey, (TValue, GenericHeap<ValueTuple<int, int, TKey>>.IItemReference)>();
+        private readonly GenericHeap<ValueTuple<int, int, TKey>> h = new();
+        private readonly Dictionary<TKey, ValueTuple<TValue, GenericHeap<ValueTuple<int, int, TKey>>.IItemReference>> c = new();
         private readonly int capacity;
         private int nextOrder;
 
@@ -67,7 +66,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             if (!c.TryGetValue(key, out var valref))
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
             else
