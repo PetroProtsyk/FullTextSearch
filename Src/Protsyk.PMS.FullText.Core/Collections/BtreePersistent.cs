@@ -1428,11 +1428,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return buffer;
             }
 
-            public static DataLink FromBytes(byte[] buffer, int offset)
+            public static DataLink FromBytes(ReadOnlySpan<byte> buffer)
             {
-               return new DataLink(
-                    BitConverter.ToUInt64(buffer, offset),
-                    BitConverter.ToUInt64(buffer, offset + sizeof(long)));
+                return new DataLink(
+                     BinaryPrimitives.ReadUInt64LittleEndian(buffer),
+                     BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(sizeof(long))));
             }
         }
 
@@ -1507,7 +1507,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             public DataLink GetData(int index, int maxChildren)
             {
                 int offset = HeaderLength + (maxChildren + 1) * sizeof(int) + index * DataLink.SizeInBytes;
-                return DataLink.FromBytes(data, offset);
+                return DataLink.FromBytes(data.AsSpan(offset));
             }
 
             public void SetData(int index, int maxChildren, in DataLink location)
