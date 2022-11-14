@@ -149,7 +149,7 @@ namespace Protsyk.PMS.FullText.Core
                     indxInBuffer = 0;
                 }
 
-                indxInBuffer += VarInt.ReadVUInt64(buffer, indxInBuffer, out var result);
+                indxInBuffer += VarInt.ReadVUInt64(buffer.AsSpan(indxInBuffer), out var result);
                 return result;
             }
             #endregion
@@ -218,11 +218,11 @@ namespace Protsyk.PMS.FullText.Core
 
                                 // Block 1: Full value
                                 var j = 0;
-                                j += VarInt.ReadVUInt64(t, j, out var v1);
+                                j += VarInt.ReadVUInt64(t.AsSpan(j), out var v1);
 
                                 // Block 2: Full value
                                 j = buffer.Length;
-                                j += VarInt.ReadVUInt64(t, j, out var v2);
+                                j += VarInt.ReadVUInt64(t.AsSpan(j), out var v2);
 
                                 if (v1 < firstValue)
                                 {

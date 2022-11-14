@@ -10,6 +10,8 @@ using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
+using StringComparer = System.StringComparer;
+
 namespace Protsyk.PMS.FullText.Core.Automata
 {
     public static class FSTExtensions
@@ -43,7 +45,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         #region Fields
         private const int InitialWordSize = 64;
 
-        private int minimizedStateCacheSize = 65000;
+        private readonly int minimizedStateCacheSize = 65_000;
 
         private readonly IDictionary<int, StateWithTransitions> frozenStates;
 
@@ -191,7 +193,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         {
             if (!s.IsFronzen) throw new Exception("What?");
 
-            var startOffset = storage.Length;
+            long startOffset = storage.Length;
             var size = 0;
             var ts = s.Arcs;
 
@@ -239,12 +241,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (outputType.MaxByteSize() > 64)
             {
-                writeIndex += VarInt.WriteVInt32(size, writeBuffer, writeIndex);
+                writeIndex += VarInt.WriteVInt32(size, writeBuffer.AsSpan(writeIndex));
             }
 
             if (ts.Count > 0)
             {
-                writeIndex += VarInt.WriteVInt32((ts.Count << 1) | (s.IsFinal ? 1 : 0), writeBuffer, writeIndex);
+                writeIndex += VarInt.WriteVInt32((ts.Count << 1) | (s.IsFinal ? 1 : 0), writeBuffer.AsSpan(writeIndex));
                 var prev = 0;
                 for (int j = 0; j < ts.Count; ++j)
                 {
@@ -252,22 +254,22 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     if (toStateOffset <= 0) throw new Exception("What?");
 
                     var next = (int)ts[j].Input;
-                    writeIndex += VarInt.WriteVInt32((next - prev), writeBuffer, writeIndex);
+                    writeIndex += VarInt.WriteVInt32((next - prev), writeBuffer.AsSpan(writeIndex));
                     writeIndex += outputType.WriteTo(ts[j].Output, writeBuffer, writeIndex);
                     if (startOffset - toStateOffset < toStateOffset)
                     {
-                        writeIndex += VarInt.WriteVInt64(((startOffset - toStateOffset) << 1) | 0, writeBuffer, writeIndex);
+                        writeIndex += VarInt.WriteVInt64(((startOffset - toStateOffset) << 1) | 0, writeBuffer.AsSpan(writeIndex));
                     }
                     else
                     {
-                        writeIndex += VarInt.WriteVInt64(((toStateOffset) << 1) | 1, writeBuffer, writeIndex);
+                        writeIndex += VarInt.WriteVInt64(((toStateOffset) << 1) | 1, writeBuffer.AsSpan(writeIndex));
                     }
                     prev = next;
                 }
             }
             else
             {
-                writeIndex += VarInt.WriteVInt32(s.IsFinal ? 1 : 0, writeBuffer, writeIndex);
+                writeIndex += VarInt.WriteVInt32(s.IsFinal ? 1 : 0, writeBuffer.AsSpan(writeIndex));
             }
 
             if (writeIndex != toWrite)
@@ -652,7 +654,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         private IPersistentStorage storage;
 
-        private long storageLength;
+        private readonly long storageLength;
 
         private readonly long initial;
 
@@ -781,7 +783,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             if (outputType.MaxByteSize() > 64)
             {
-                var temp = VarInt.ReadVInt32(stateData, readIndex, out int size);
+                var temp = VarInt.ReadVInt32(stateData.AsSpan(readIndex), out int size);
                 if (size == 0)
                 {
                     throw new Exception("Incorrect size. Maybe in-memory format");
@@ -794,7 +796,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 readIndex = Ensure(offset, MaxSizeV32);
             }
 
-            var delta = VarInt.ReadVInt32(stateData, readIndex, out var v);
+            var delta = VarInt.ReadVInt32(stateData.AsSpan(readIndex), out var v);
             bool isFinal = ((v & 1) == 1);
 
             int tsCount = (int)(v >> 1);
@@ -821,13 +823,13 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 for (int i = 0; i < tsCount; ++i)
                 {
                     readIndex = hasSize ? delta : Ensure(offset + delta, MaxSizeV32);
-                    delta += VarInt.ReadVInt32(stateData, readIndex, out var input);
+                    delta += VarInt.ReadVInt32(stateData.AsSpan(readIndex), out var input);
 
                     readIndex = hasSize ? delta : Ensure(offset + delta, outputType.MaxByteSize());
                     delta += outputType.ReadFrom(stateData, readIndex, out var output);
 
                     readIndex = hasSize ? delta : Ensure(offset + delta, MaxSizeV64);
-                    delta += VarInt.ReadVInt64(stateData, readIndex, out var toOffset);
+                    delta += VarInt.ReadVInt64(stateData.AsSpan(readIndex), out var toOffset);
 
                     prev = (int)(input + prev);
 
@@ -1290,32 +1292,32 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 if (outputType.MaxByteSize() > 64)
                 {
                     var nodeSize = sizes[states[i].Id];
-                    writeIndex += VarInt.WriteVInt32(nodeSize, result, writeIndex);
+                    writeIndex += VarInt.WriteVInt32(nodeSize, result.AsSpan(writeIndex));
                 }
                 if (trans.TryGetValue(states[i].Id, out var ts) && (ts.Count > 0))
                 {
-                    writeIndex += VarInt.WriteVInt32((ts.Count << 1) | (IsFinal(states[i].Id) ? 1 : 0), result, writeIndex);
+                    writeIndex += VarInt.WriteVInt32((ts.Count << 1) | (IsFinal(states[i].Id) ? 1 : 0), result.AsSpan(writeIndex));
                     var prev = 0;
                     for (int j = 0; j < ts.Count; ++j)
                     {
                         var next = (int)ts[j].Input;
-                        writeIndex += VarInt.WriteVInt32((next - prev), result, writeIndex);
+                        writeIndex += VarInt.WriteVInt32((next - prev), result.AsSpan(writeIndex));
                         writeIndex += outputType.WriteTo(ts[j].Output, result, writeIndex);
                         var toOffset = names[ts[j].To];
                         if (startOffset - toOffset < toOffset)
                         {
-                            writeIndex += VarInt.WriteVInt64(((startOffset - toOffset) << 1) | 0, result, writeIndex);
+                            writeIndex += VarInt.WriteVInt64(((startOffset - toOffset) << 1) | 0, result.AsSpan(writeIndex));
                         }
                         else
                         {
-                            writeIndex += VarInt.WriteVInt64(((toOffset) << 1) | 1, result, writeIndex);
+                            writeIndex += VarInt.WriteVInt64(((toOffset) << 1) | 1, result.AsSpan(writeIndex));
                         }
                         prev = next;
                     }
                 }
                 else
                 {
-                    writeIndex += VarInt.WriteVInt32(IsFinal(states[i].Id) ? 1 : 0, result, writeIndex);
+                    writeIndex += VarInt.WriteVInt32(IsFinal(states[i].Id) ? 1 : 0, result.AsSpan(writeIndex));
                 }
             }
             if (writeIndex != result.Length)
@@ -1364,10 +1366,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 if (outputType.MaxByteSize() > 64)
                 {
-                    readIndex += VarInt.ReadVInt32(data, readIndex, out var nodeSize);
+                    readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var nodeSize);
                 }
 
-                readIndex += VarInt.ReadVInt32(data, readIndex, out var v);
+                readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var v);
                 if ((v & 1) == 1)
                 {
                     fst.SetFinal(s.Id, true);
@@ -1378,9 +1380,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 {
                     for (int i = 0; i < tsCount; ++i)
                     {
-                        readIndex += VarInt.ReadVInt32(data, readIndex, out var input);
+                        readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var input);
                         readIndex += outputType.ReadFrom(data, readIndex, out var output);
-                        readIndex += VarInt.ReadVInt64(data, readIndex, out var toOffset);
+                        readIndex += VarInt.ReadVInt64(data.AsSpan(readIndex), out var toOffset);
 
                         if ((toOffset & 1) == 1)
                         {
@@ -1403,10 +1405,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 if (outputType.MaxByteSize() > 64)
                 {
-                    readIndex += VarInt.ReadVInt32(data, readIndex, out var nodeSize);
+                    readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var nodeSize);
                 }
 
-                readIndex += VarInt.ReadVInt32(data, readIndex, out var v);
+                readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var v);
 
                 int tsCount = (int)(v >> 1);
                 if (tsCount > 0)
@@ -1414,9 +1416,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     int prev = 0;
                     for (int i = 0; i < tsCount; ++i)
                     {
-                        readIndex += VarInt.ReadVInt32(data, readIndex, out var input);
+                        readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var input);
                         readIndex += outputType.ReadFrom(data, readIndex, out var output);
-                        readIndex += VarInt.ReadVInt64(data, readIndex, out var toOffset);
+                        readIndex += VarInt.ReadVInt64(data.AsSpan(readIndex), out var toOffset);
 
                         if ((toOffset & 1) == 1)
                         {
@@ -1695,7 +1697,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
     {
         public static readonly FSTVarIntOutput Instance = new FSTVarIntOutput();
 
-        private static int maxByteSize = VarInt.GetByteSize(uint.MaxValue);
+        private static readonly int maxByteSize = VarInt.GetByteSize(uint.MaxValue);
 
         public override int GetByteSize(int value)
         {
@@ -1709,12 +1711,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override int ReadFrom(byte[] buffer, int startIndex, out int result)
         {
-            return VarInt.ReadVInt32(buffer, startIndex, out result);
+            return VarInt.ReadVInt32(buffer.AsSpan(startIndex), out result);
         }
 
         public override int WriteTo(int value, byte[] buffer, int startIndex)
         {
-            return VarInt.WriteVInt32(value, buffer, startIndex);
+            return VarInt.WriteVInt32(value, buffer.AsSpan(startIndex));
         }
     }
 
@@ -1745,7 +1747,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
     public class FSTStringOutput : IFSTOutput<string>
     {
-        public static readonly FSTStringOutput Instance = new ();
+        public static readonly FSTStringOutput Instance = new();
 
         private FSTStringOutput() { }
 
@@ -1779,7 +1781,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public int ReadFrom(byte[] buffer, int startIndex, out string result)
         {
-            var size = VarInt.ReadVInt32(buffer, startIndex, out var byteCount);
+            var size = VarInt.ReadVInt32(buffer.AsSpan(startIndex), out var byteCount);
             result = Encoding.UTF8.GetString(buffer, startIndex + size, byteCount);
             return size + byteCount;
         }
@@ -1787,7 +1789,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
         public int WriteTo(string value, byte[] buffer, int startIndex)
         {
             int byteCount = Encoding.UTF8.GetByteCount(value);
-            var size = VarInt.WriteVInt32(byteCount, buffer, startIndex);
+            var size = VarInt.WriteVInt32(byteCount, buffer.AsSpan(startIndex));
 
             Encoding.UTF8.GetBytes(value, buffer.AsSpan(startIndex + size));
 

@@ -73,7 +73,7 @@ namespace Protsyk.PMS.FullText.Core
 
             if (first)
             {
-                bufferIndex += VarInt.WriteVUInt64(value, buffer, bufferIndex);
+                bufferIndex += VarInt.WriteVUInt64(value, buffer.AsSpan(bufferIndex));
                 previous = value;
                 first = false;
             }
@@ -84,8 +84,8 @@ namespace Protsyk.PMS.FullText.Core
                     throw new ArgumentOutOfRangeException(nameof(value));
                 }
 
-                var previousIndex = bufferIndex;
-                bufferIndex += VarInt.WriteVUInt64((ulong)(value - previous), buffer, bufferIndex);
+                int previousIndex = bufferIndex;
+                bufferIndex += VarInt.WriteVUInt64(value - previous, buffer.AsSpan(bufferIndex));
 
                 if (bufferIndex > BlockSize)
                 {
@@ -95,7 +95,7 @@ namespace Protsyk.PMS.FullText.Core
                     // 3) Start new block and write full occurrence to a new block
                     bufferIndex = previousIndex;
                     FlushBlock(false);
-                    bufferIndex = VarInt.WriteVUInt64(value, buffer, 0);
+                    bufferIndex = VarInt.WriteVUInt64(value, buffer);
                 }
 
                 previous = value;
