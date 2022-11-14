@@ -87,16 +87,8 @@ namespace Protsyk.PMS.FullText.Core
             return obj is Occurrence other && Equals(other);
         }
 
-        public override int GetHashCode()
-        {
-            unchecked
-            {
-                var hashCode = DocumentId.GetHashCode();
-                hashCode = (hashCode * 397) ^ FieldId.GetHashCode();
-                hashCode = (hashCode * 397) ^ TokenId.GetHashCode();
-                return hashCode;
-            }
-        }
+        public override int GetHashCode() => HashCode.Combine(DocumentId, FieldId, TokenId);
+
         #endregion
 
         #region IComparable
