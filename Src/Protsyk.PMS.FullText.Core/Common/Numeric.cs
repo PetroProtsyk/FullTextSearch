@@ -33,28 +33,28 @@ namespace Protsyk.PMS.FullText.Core.Common
 
         public static int GetByteSize(uint value) => sizeof(uint);
 
-        public static int ReadInt(byte[] buffer, int startIndex, out int value)
+        public static int ReadInt(ReadOnlySpan<byte> buffer, out int value)
         {
-            value = BitConverter.ToInt32(buffer, startIndex);
+            value = BinaryPrimitives.ReadInt32LittleEndian(buffer);
             return sizeof(int);
         }
 
-        public static int ReadUInt(byte[] buffer, int startIndex, out uint value)
+        public static int ReadUInt(ReadOnlySpan<byte> buffer, out uint value)
         {
-            value = BitConverter.ToUInt32(buffer, startIndex);
+            value = BinaryPrimitives.ReadUInt32LittleEndian(buffer);
             return sizeof(uint);
         }
 
-        public static int WriteInt(int value, byte[] buffer, int startIndex)
+        public static int WriteInt(int value, Span<byte> buffer)
         {
-            BinaryPrimitives.WriteInt32LittleEndian(buffer.AsSpan(startIndex), value);
+            BinaryPrimitives.WriteInt32LittleEndian(buffer, value);
 
             return 4;
         }
 
-        public static int WriteUInt(uint value, byte[] buffer, int startIndex)
+        public static int WriteUInt(uint value, Span<byte> buffer)
         {
-            BinaryPrimitives.WriteUInt32LittleEndian(buffer.AsSpan(startIndex), value);
+            BinaryPrimitives.WriteUInt32LittleEndian(buffer, value);
 
             return 4;
         }

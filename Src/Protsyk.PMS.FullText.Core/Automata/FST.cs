@@ -1163,25 +1163,25 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
             var result = new byte[size];
             var writeIndex = 0;
-            writeIndex += Numeric.WriteInt(Initial, result, writeIndex);
+            writeIndex += Numeric.WriteInt(Initial, result.AsSpan(writeIndex));
             for (int i = 0; i < states.Count; ++i)
             {
                 // To read id (v & 0x3FFFFFFF)
                 // To check for final (v & 0x40000000) == 0x40000000
-                writeIndex += Numeric.WriteInt(states[i].Id | (IsFinal(states[i].Id) ? 0x40000000 : 0), result, writeIndex);
+                writeIndex += Numeric.WriteInt(states[i].Id | (IsFinal(states[i].Id) ? 0x40000000 : 0), result.AsSpan(writeIndex));
                 if (trans.TryGetValue(states[i].Id, out var ts))
                 {
-                    writeIndex += Numeric.WriteInt(ts.Count, result, writeIndex);
+                    writeIndex += Numeric.WriteInt(ts.Count, result.AsSpan(writeIndex));
                     for (int j = 0; j < ts.Count; ++j)
                     {
-                        writeIndex += Numeric.WriteInt(ts[j].Input, result, writeIndex);
+                        writeIndex += Numeric.WriteInt(ts[j].Input, result.AsSpan(writeIndex));
                         writeIndex += outputType.WriteTo(ts[j].Output, result, writeIndex);
-                        writeIndex += Numeric.WriteInt(ts[j].To, result, writeIndex);
+                        writeIndex += Numeric.WriteInt(ts[j].To, result.AsSpan(writeIndex));
                     }
                 }
                 else
                 {
-                    writeIndex += Numeric.WriteInt(0, result, writeIndex);
+                    writeIndex += Numeric.WriteInt(0, result.AsSpan(writeIndex));
                 }
             }
             if (writeIndex != result.Length)
@@ -1195,11 +1195,11 @@ namespace Protsyk.PMS.FullText.Core.Automata
         {
             var fst = new FST<T>(outputType);
             var readIndex = 0;
-            readIndex += Numeric.ReadInt(data, readIndex, out var v);
+            readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var v);
             fst.Initial = v;
             while (readIndex != data.Length)
             {
-                readIndex += Numeric.ReadInt(data, readIndex, out v);
+                readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out v);
                 var sId = v & 0x3FFFFFFF;
                 var s = fst.AddState();
                 if (s.Id != sId)
@@ -1212,12 +1212,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     fst.SetFinal(sId, true);
                 }
 
-                readIndex += Numeric.ReadInt(data, readIndex, out var tsCount);
+                readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var tsCount);
                 for (int i = 0; i < tsCount; ++i)
                 {
-                    readIndex += Numeric.ReadInt(data, readIndex, out var input);
+                    readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var input);
                     readIndex += outputType.ReadFrom(data, readIndex, out var output);
-                    readIndex += Numeric.ReadInt(data, readIndex, out var toId);
+                    readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var toId);
 
                     fst.AddTransition(sId, (char)input, toId, output);
                 }
@@ -1735,18 +1735,18 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public override int ReadFrom(byte[] buffer, int startIndex, out int result)
         {
-            return Numeric.ReadInt(buffer, startIndex, out result);
+            return Numeric.ReadInt(buffer.AsSpan(startIndex), out result);
         }
 
         public override int WriteTo(int value, byte[] buffer, int startIndex)
         {
-            return Numeric.WriteInt(value, buffer, startIndex);
+            return Numeric.WriteInt(value, buffer.AsSpan(startIndex));
         }
     }
 
     public class FSTStringOutput : IFSTOutput<string>
     {
-        public static readonly FSTStringOutput Instance = new FSTStringOutput();
+        public static readonly FSTStringOutput Instance = new ();
 
         private FSTStringOutput() { }
 
