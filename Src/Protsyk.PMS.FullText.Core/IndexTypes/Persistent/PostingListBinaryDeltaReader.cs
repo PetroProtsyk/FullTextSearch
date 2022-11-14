@@ -58,7 +58,7 @@ namespace Protsyk.PMS.FullText.Core
 
         private class ReaderEnumerator : IEnumerator<Occurrence>
         {
-            private static readonly int HeaderLength = sizeof(long) + sizeof(int);
+            private const int HeaderLength = sizeof(long) + sizeof(int);
             private readonly IPersistentStorage persistentStorage;
             private readonly PostingListAddress address;
             private long readOffset;
@@ -148,7 +148,7 @@ namespace Protsyk.PMS.FullText.Core
                     throw new Exception("Wrong data");
                 }
 
-                var result = GroupVarint.ReadInt(buffer, indxInBuffer, selectors[selectorIndex]);
+                var result = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selectors[selectorIndex]);
                 indxInBuffer += selectors[selectorIndex];
                 selectorIndex++;
                 return result;
@@ -324,7 +324,7 @@ namespace Protsyk.PMS.FullText.Core
             return new PostingListArray(occurrences.ToArray());
         }
 
-        private static void ParseBufferTo(byte[] buffer, List<Occurrence> occurrences)
+        private static void ParseBufferTo(ReadOnlySpan<byte> buffer, List<Occurrence> occurrences)
         {
             var numbers = GroupVarint.Decode(buffer);
 

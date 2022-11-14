@@ -178,7 +178,7 @@ namespace Protsyk.PMS.FullText.Core
                         var toKeep = bufferIndex % 4;
                         var toEncode = bufferIndex - toKeep;
 
-                        var encodedSize = GroupVarint.Encode(buffer, 0, toEncode, flushBuffer, 0);
+                        var encodedSize = GroupVarint.Encode(buffer.AsSpan(0, toEncode), flushBuffer);
                         persistentStorage.Append(flushBuffer.AsSpan(0, encodedSize));
                         totalSize += encodedSize;
 
@@ -207,7 +207,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 buffer[deltaSelectorIndex] = deltaSelector;
 
-                var encodedSize = GroupVarint.Encode(buffer, 0, bufferIndex, flushBuffer, 0);
+                var encodedSize = GroupVarint.Encode(buffer.AsSpan(0, bufferIndex), flushBuffer);
                 persistentStorage.Append(flushBuffer.AsSpan(0, encodedSize));
 
                 totalSize += encodedSize;

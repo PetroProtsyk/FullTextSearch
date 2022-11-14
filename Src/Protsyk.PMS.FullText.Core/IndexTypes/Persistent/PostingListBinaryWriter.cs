@@ -102,7 +102,7 @@ namespace Protsyk.PMS.FullText.Core
         }
         public void FlushBuffer()
         {
-            var encodedSize = GroupVarint.Encode(buffer, 0, bufferIndex, flushBuffer, 0);
+            var encodedSize = GroupVarint.Encode(buffer.AsSpan(0, bufferIndex), flushBuffer);
 
             // Write data
             persistentStorage.Append(flushBuffer.AsSpan(0, encodedSize));

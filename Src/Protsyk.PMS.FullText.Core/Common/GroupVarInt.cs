@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.InteropServices;
 using System.Text;
 
 namespace Protsyk.PMS.FullText.Core
@@ -47,43 +48,40 @@ namespace Protsyk.PMS.FullText.Core
             return 17 * (count + 3) / 4;
         }
 
-        public static int Encode(int[] source, int sourceOffset, int count, byte[] buffer, int offset)
+        public static int Encode(ReadOnlySpan<int> source, Span<byte> buffer)
         {
-            if (GetMaxEncodedSize(count) > buffer.Length - offset)
+            if (GetMaxEncodedSize(source.Length) > buffer.Length)
             {
                 throw new Exception($"Make sure {nameof(buffer)} is big enough");
             }
 
+            int count = source.Length;
             var encodedSize = 0;
             var encodedCount = 0;
             for (int i = 0; i < count / 4; ++i)
             {
-                int chunkSize = Encode(source[sourceOffset + 0],
-                                       source[sourceOffset + 1],
-                                       source[sourceOffset + 2],
-                                       source[sourceOffset + 3],
-                                       buffer,
-                                       offset);
-                offset += chunkSize;
+                int chunkSize = Encode(source[0],
+                                       source[1],
+                                       source[2],
+                                       source[3],
+                                       buffer);
+
+                buffer = buffer[chunkSize..];
+                source = source[4..];
+
                 encodedSize += chunkSize;
-                sourceOffset += 4;
                 encodedCount += 4;
             }
 
             // Encode remainder
             if (encodedCount < count)
             {
-                int n1 = source[sourceOffset];
-                int n2 = (encodedCount + 1 < count) ? source[sourceOffset + 1] : 0;
-                int n3 = (encodedCount + 2 < count) ? source[sourceOffset + 2] : 0;
-                int n4 = (encodedCount + 3 < count) ? source[sourceOffset + 3] : 0;
+                int n1 = source[0];
+                int n2 = (encodedCount + 1 < count) ? source[1] : 0;
+                int n3 = (encodedCount + 2 < count) ? source[2] : 0;
+                int n4 = (encodedCount + 3 < count) ? source[3] : 0;
 
-                int chunkSize = Encode(n1,
-                                       n2,
-                                       n3,
-                                       n4,
-                                       buffer,
-                                       offset);
+                int chunkSize = Encode(n1, n2, n3, n4, buffer);
 
                 encodedSize += chunkSize - (4 - (count - encodedCount));
             }
@@ -91,9 +89,9 @@ namespace Protsyk.PMS.FullText.Core
             return encodedSize;
         }
 
-        public static int Encode(int n1, int n2, int n3, int n4, byte[] buffer, int offset)
+        public static int Encode(int n1, int n2, int n3, int n4, Span<byte> buffer)
         {
-            int i = offset;
+            int i = 0;
             int s1 = GetNumOfBytes(n1);
             int s2 = GetNumOfBytes(n2);
             int s3 = GetNumOfBytes(n3);
@@ -103,30 +101,35 @@ namespace Protsyk.PMS.FullText.Core
 
             buffer[i++] = (byte)selector;
 
-            WriteInt(n1, s1, buffer, i);
+            WriteInt(n1, s1, buffer[i..]);
             i += s1;
-            WriteInt(n2, s2, buffer, i);
+            WriteInt(n2, s2, buffer[i..]);
             i += s2;
-            WriteInt(n3, s3, buffer, i);
+            WriteInt(n3, s3, buffer[i..]);
             i += s3;
-            WriteInt(n4, s4, buffer, i);
+            WriteInt(n4, s4, buffer[i..]);
             i += s4;
 
-            return i - offset;
+            return i;
         }
 
-        public static IList<byte> Encode(IList<int> input)
+        public static List<byte> Encode(List<int> input)
+        {
+            return Encode(CollectionsMarshal.AsSpan(input));
+        }
+
+        public static List<byte> Encode(ReadOnlySpan<int> input)
         {
             var result = new List<byte>();
             EncodeTo(input, result);
             return result;
         }
 
-        public static void EncodeTo(IList<int> input, IList<byte> result)
+        public static void EncodeTo(ReadOnlySpan<int> input, List<byte> result)
         {
             var offset = 0;
 
-            for (int i = 0; i < input.Count / 4; ++i)
+            for (int i = 0; i < input.Length / 4; ++i)
             {
                 int n1 = GetNumOfBytes(input[offset + 0]);
                 int n2 = GetNumOfBytes(input[offset + 1]);
@@ -145,30 +148,35 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             // Encode remainder
-            if (offset < input.Count)
+            if (offset < input.Length)
             {
                 int n1 = GetNumOfBytes(input[offset + 0]);
-                int n2 = (offset + 1 < input.Count) ? GetNumOfBytes(input[offset + 1]) : 1;
-                int n3 = (offset + 2 < input.Count) ? GetNumOfBytes(input[offset + 2]) : 1;
-                int n4 = (offset + 3 < input.Count) ? GetNumOfBytes(input[offset + 3]) : 1;
+                int n2 = (offset + 1 < input.Length) ? GetNumOfBytes(input[offset + 1]) : 1;
+                int n3 = (offset + 2 < input.Length) ? GetNumOfBytes(input[offset + 2]) : 1;
+                int n4 = (offset + 3 < input.Length) ? GetNumOfBytes(input[offset + 3]) : 1;
 
                 int selector = ((n1 - 1) << 6) | ((n2 - 1) << 4) | ((n3 - 1) << 2) | (n4 - 1);
 
                 result.Add((byte)selector);
 
                 WriteInt(input[offset + 0], n1, result);
-                if (offset + 1 < input.Count) WriteInt(input[offset + 1], n2, result);
-                if (offset + 2 < input.Count) WriteInt(input[offset + 2], n3, result);
-                if (offset + 3 < input.Count) WriteInt(input[offset + 3], n4, result);
+                if (offset + 1 < input.Length) WriteInt(input[offset + 1], n2, result);
+                if (offset + 2 < input.Length) WriteInt(input[offset + 2], n3, result);
+                if (offset + 3 < input.Length) WriteInt(input[offset + 3], n4, result);
             }
         }
 
-        public static IList<int> Decode(IList<byte> input)
+        public static List<int> Decode(List<byte> input)
+        {
+            return Decode(CollectionsMarshal.AsSpan(input));
+        }
+
+        public static List<int> Decode(ReadOnlySpan<byte> input)
         {
             var result = new List<int>();
 
             int index = 0;
-            while (index < input.Count)
+            while (index < input.Length)
             {
                 int selector = (int)input[index++];
 
@@ -177,26 +185,26 @@ namespace Protsyk.PMS.FullText.Core
                 var selector2 = ((selector >> 4) & 0b11) + 1;
                 var selector1 = ((selector >> 6) & 0b11) + 1;
 
-                result.Add(ReadInt(input, index, selector1));
+                result.Add(ReadInt(input.Slice(index), selector1));
                 index += selector1;
-                if (index >= input.Count) break;
+                if (index >= input.Length) break;
 
-                result.Add(ReadInt(input, index, selector2));
+                result.Add(ReadInt(input.Slice(index), selector2));
                 index += selector2;
-                if (index >= input.Count) break;
+                if (index >= input.Length) break;
 
-                result.Add(ReadInt(input, index, selector3));
+                result.Add(ReadInt(input.Slice(index), selector3));
                 index += selector3;
-                if (index >= input.Count) break;
+                if (index >= input.Length) break;
 
-                result.Add(ReadInt(input, index, selector4));
+                result.Add(ReadInt(input.Slice(index), selector4));
                 index += selector4;
             }
 
             return result;
         }
 
-        public static int ReadInt(IList<byte> input, int index, int selector)
+        public static int ReadInt(ReadOnlySpan<byte> input, int selector)
         {
             if (selector > 2)
             {
@@ -204,10 +212,10 @@ namespace Protsyk.PMS.FullText.Core
 
                 if (selector == 4)
                 {
-                    return ((int)input[index] << 24) | ((int)input[index + 1] << 16) | ((int)input[index + 2] << 8) | (int)input[index + 3];
+                    return ((int)input[0] << 24) | ((int)input[1] << 16) | ((int)input[2] << 8) | (int)input[3];
                 }
 
-                return ((int)input[index] << 16) | ((int)input[index + 1] << 8) | (int)input[index + 2];
+                return ((int)input[0] << 16) | ((int)input[1] << 8) | (int)input[2];
             }
             else
             {
@@ -215,15 +223,17 @@ namespace Protsyk.PMS.FullText.Core
 
                 if (selector == 2)
                 {
-                    return ((int)input[index] << 8) | (int)input[index + 1];
+                    return ((int)input[0] << 8) | (int)input[1];
                 }
 
-                return (int)input[index];
+                return (int)input[0];
             }
         }
 
-        private static void WriteInt(int value, int selector, byte[] result, int i)
+        private static void WriteInt(int value, int selector, Span<byte> result)
         {
+            int i = 0;
+
             if (selector > 2)
             {
                 // 4 or 3
@@ -251,7 +261,7 @@ namespace Protsyk.PMS.FullText.Core
         }
 
 
-        private static void WriteInt(int value, int selector, IList<byte> result)
+        private static void WriteInt(int value, int selector, List<byte> result)
         {
             if (selector > 2)
             {
@@ -279,7 +289,7 @@ namespace Protsyk.PMS.FullText.Core
             }
         }
 
-        public static string EncodeToBits(int[] input)
+        public static string EncodeToBits(ReadOnlySpan<int> input)
         {
             var code = Encode(input);
             var result = new StringBuilder();
