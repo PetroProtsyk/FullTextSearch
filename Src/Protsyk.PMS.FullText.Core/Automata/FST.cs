@@ -255,7 +255,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                     var next = (int)ts[j].Input;
                     writeIndex += VarInt.WriteVInt32((next - prev), writeBuffer.AsSpan(writeIndex));
-                    writeIndex += outputType.WriteTo(ts[j].Output, writeBuffer, writeIndex);
+                    writeIndex += outputType.WriteTo(ts[j].Output, writeBuffer.AsSpan(writeIndex));
                     if (startOffset - toStateOffset < toStateOffset)
                     {
                         writeIndex += VarInt.WriteVInt64(((startOffset - toStateOffset) << 1) | 0, writeBuffer.AsSpan(writeIndex));
@@ -826,7 +826,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     delta += VarInt.ReadVInt32(stateData.AsSpan(readIndex), out var input);
 
                     readIndex = hasSize ? delta : Ensure(offset + delta, outputType.MaxByteSize());
-                    delta += outputType.ReadFrom(stateData, readIndex, out var output);
+                    delta += outputType.ReadFrom(stateData.AsSpan(readIndex), out var output);
 
                     readIndex = hasSize ? delta : Ensure(offset + delta, MaxSizeV64);
                     delta += VarInt.ReadVInt64(stateData.AsSpan(readIndex), out var toOffset);
@@ -1176,7 +1176,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     for (int j = 0; j < ts.Count; ++j)
                     {
                         writeIndex += Numeric.WriteInt(ts[j].Input, result.AsSpan(writeIndex));
-                        writeIndex += outputType.WriteTo(ts[j].Output, result, writeIndex);
+                        writeIndex += outputType.WriteTo(ts[j].Output, result.AsSpan(writeIndex));
                         writeIndex += Numeric.WriteInt(ts[j].To, result.AsSpan(writeIndex));
                     }
                 }
@@ -1217,7 +1217,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 for (int i = 0; i < tsCount; ++i)
                 {
                     readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var input);
-                    readIndex += outputType.ReadFrom(data, readIndex, out var output);
+                    readIndex += outputType.ReadFrom(data.AsSpan(readIndex), out var output);
                     readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var toId);
 
                     fst.AddTransition(sId, (char)input, toId, output);
@@ -1302,7 +1302,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     {
                         var next = (int)ts[j].Input;
                         writeIndex += VarInt.WriteVInt32((next - prev), result.AsSpan(writeIndex));
-                        writeIndex += outputType.WriteTo(ts[j].Output, result, writeIndex);
+                        writeIndex += outputType.WriteTo(ts[j].Output, result.AsSpan(writeIndex));
                         var toOffset = names[ts[j].To];
                         if (startOffset - toOffset < toOffset)
                         {
@@ -1381,7 +1381,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     for (int i = 0; i < tsCount; ++i)
                     {
                         readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var input);
-                        readIndex += outputType.ReadFrom(data, readIndex, out var output);
+                        readIndex += outputType.ReadFrom(data.AsSpan(readIndex), out var output);
                         readIndex += VarInt.ReadVInt64(data.AsSpan(readIndex), out var toOffset);
 
                         if ((toOffset & 1) == 1)
@@ -1417,7 +1417,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     for (int i = 0; i < tsCount; ++i)
                     {
                         readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var input);
-                        readIndex += outputType.ReadFrom(data, readIndex, out var output);
+                        readIndex += outputType.ReadFrom(data.AsSpan(readIndex), out var output);
                         readIndex += VarInt.ReadVInt64(data.AsSpan(readIndex), out var toOffset);
 
                         if ((toOffset & 1) == 1)
@@ -1667,9 +1667,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         int MaxByteSize();
 
-        int ReadFrom(byte[] buffer, int startIndex, out T result);
+        int ReadFrom(ReadOnlySpan<byte> buffer, out T result);
 
-        int WriteTo(T value, byte[] buffer, int startIndex);
+        int WriteTo(T value, Span<byte> buffer);
     }
 
     public abstract class FSTIntOutputBase : IFSTOutput<int>
@@ -1688,12 +1688,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
         public abstract int GetByteSize(int value);
 
-        public abstract int ReadFrom(byte[] buffer, int startIndex, out int result);
+        public abstract int ReadFrom(ReadOnlySpan<byte> buffer, out int result);
 
-        public abstract int WriteTo(int value, byte[] buffer, int startIndex);
+        public abstract int WriteTo(int value, Span<byte> buffer);
     }
 
-    public class FSTVarIntOutput : FSTIntOutputBase
+    public sealed class FSTVarIntOutput : FSTIntOutputBase
     {
         public static readonly FSTVarIntOutput Instance = new FSTVarIntOutput();
 
@@ -1709,20 +1709,20 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return maxByteSize;
         }
 
-        public override int ReadFrom(byte[] buffer, int startIndex, out int result)
+        public override int ReadFrom(ReadOnlySpan<byte> buffer, out int result)
         {
-            return VarInt.ReadVInt32(buffer.AsSpan(startIndex), out result);
+            return VarInt.ReadVInt32(buffer, out result);
         }
 
-        public override int WriteTo(int value, byte[] buffer, int startIndex)
+        public override int WriteTo(int value, Span<byte> buffer)
         {
-            return VarInt.WriteVInt32(value, buffer.AsSpan(startIndex));
+            return VarInt.WriteVInt32(value, buffer);
         }
     }
 
-    public class FSTIntOutput : FSTIntOutputBase
+    public sealed class FSTIntOutput : FSTIntOutputBase
     {
-        public static readonly FSTIntOutput Instance = new FSTIntOutput();
+        public static readonly FSTIntOutput Instance = new();
 
         public override int GetByteSize(int value)
         {
@@ -1734,18 +1734,18 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return Numeric.GetByteSize(int.MaxValue);
         }
 
-        public override int ReadFrom(byte[] buffer, int startIndex, out int result)
+        public override int ReadFrom(ReadOnlySpan<byte> buffer, out int result)
         {
-            return Numeric.ReadInt(buffer.AsSpan(startIndex), out result);
+            return Numeric.ReadInt(buffer, out result);
         }
 
-        public override int WriteTo(int value, byte[] buffer, int startIndex)
+        public override int WriteTo(int value, Span<byte> buffer)
         {
-            return Numeric.WriteInt(value, buffer.AsSpan(startIndex));
+            return Numeric.WriteInt(value, buffer);
         }
     }
 
-    public class FSTStringOutput : IFSTOutput<string>
+    public sealed class FSTStringOutput : IFSTOutput<string>
     {
         public static readonly FSTStringOutput Instance = new();
 
@@ -1779,19 +1779,19 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return VarInt.GetByteSize((ulong)size) + size;
         }
 
-        public int ReadFrom(byte[] buffer, int startIndex, out string result)
+        public int ReadFrom(ReadOnlySpan<byte> buffer, out string result)
         {
-            var size = VarInt.ReadVInt32(buffer.AsSpan(startIndex), out var byteCount);
-            result = Encoding.UTF8.GetString(buffer, startIndex + size, byteCount);
+            var size = VarInt.ReadVInt32(buffer, out var byteCount);
+            result = Encoding.UTF8.GetString(buffer.Slice(size, byteCount));
             return size + byteCount;
         }
 
-        public int WriteTo(string value, byte[] buffer, int startIndex)
+        public int WriteTo(string value, Span<byte> buffer)
         {
             int byteCount = Encoding.UTF8.GetByteCount(value);
-            var size = VarInt.WriteVInt32(byteCount, buffer.AsSpan(startIndex));
+            var size = VarInt.WriteVInt32(byteCount, buffer);
 
-            Encoding.UTF8.GetBytes(value, buffer.AsSpan(startIndex + size));
+            Encoding.UTF8.GetBytes(value, buffer[size..]);
 
             return size + byteCount;
         }
