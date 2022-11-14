@@ -1,15 +1,14 @@
 ﻿using System;
-using System.Buffers;
 using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
+
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
-using StringComparer = System.StringComparer;
 
 namespace Protsyk.PMS.FullText.Core.Automata
 {
