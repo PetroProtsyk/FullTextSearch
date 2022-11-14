@@ -431,7 +431,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
             public TValue Value
             {
-                get { return valueSerializer.GetValue(data, keySerializer.Size); }
+                get { return valueSerializer.GetValue(data.AsSpan(keySerializer.Size)); }
                 set
                 {
                     var splitData = valueSerializer.GetBytes(value);

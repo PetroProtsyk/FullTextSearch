@@ -183,7 +183,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             dataStorage.ReadAll(dataOffset, valueBuffer.AsSpan(0, dataSize));
  
             int keySize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer);
-            var dataKey = keySerializer.GetValue(valueBuffer.Skip(sizeof(int)).Take(keySize).ToArray());
+            var dataKey = keySerializer.GetValue(valueBuffer.AsSpan(sizeof(int), keySize));
 
             int valueSize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(sizeof(int) + keySize));
             var dataValue = valueSerializer.GetValue(valueBuffer.Skip(sizeof(int)+keySize+sizeof(int)).Take(valueSize).ToArray());

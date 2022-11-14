@@ -70,12 +70,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             get
             {
-                var offset = GetFileBufferForIndex(index);
-                return serializer.GetValue(buffer, offset);
+                int offset = GetFileBufferForIndex(index);
+                return serializer.GetValue(buffer.AsSpan(offset));
             }
             set
             {
-                var offset = GetFileBufferForIndex(index);
+                int offset = GetFileBufferForIndex(index);
 
                 var valueBytes = serializer.GetBytes(value);
 
