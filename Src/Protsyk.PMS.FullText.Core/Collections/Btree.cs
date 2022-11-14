@@ -49,8 +49,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         #region Methods
         private bool ContainsKeyInternal(TKey key)
         {
-            Node temp;
-            return TryFindKeyOrLeaf(key, out temp);
+            return TryFindKeyOrLeaf(key, out _);
         }
 
         private void AddInternal(TKey key, TValue value)
@@ -65,7 +64,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 SplitUp(target);
             }
         }
-
 
         private bool RemoveInternal(TKey key)
         {
@@ -144,14 +142,14 @@ namespace Protsyk.PMS.FullText.Core.Collections
                             {
                                 throw new InvalidOperationException();
                             }
-                            nodeThatLostKey.Links[jj] = neighbor.Links[neighbor.Links.Count - 1];
+                            nodeThatLostKey.Links[jj] = neighbor.Links[^1];
                             if (nodeThatLostKey.Links[jj] != null)
                             {
                                 nodeThatLostKey.Links[jj].Parent = nodeThatLostKey;
                             }
 
-                            nodeThatLostKey.Parent.Keys[keyIndex] = neighbor.Keys[neighbor.Keys.Count - 1];
-                            nodeThatLostKey.Parent.Values[keyIndex] = neighbor.Values[neighbor.Values.Count - 1];
+                            nodeThatLostKey.Parent.Keys[keyIndex] = neighbor.Keys[^1];
+                            nodeThatLostKey.Parent.Values[keyIndex] = neighbor.Values[^1];
 
                             neighbor.Keys.RemoveAt(neighbor.Keys.Count - 1);
                             neighbor.Values.RemoveAt(neighbor.Values.Count - 1);
@@ -190,7 +188,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     {
                         int keyIndex = linkIndex - 1;
                         int jj = nodeThatLostKey.Put(nodeThatLostKey.Parent.Keys[keyIndex], nodeThatLostKey.Parent.Values[keyIndex], comparer);
-                        nodeThatLostKey.Links[jj] = neighbor.Links[neighbor.Links.Count - 1];
+                        nodeThatLostKey.Links[jj] = neighbor.Links[^1];
                         if (nodeThatLostKey.Links[jj] != null)
                         {
                             nodeThatLostKey.Links[jj].Parent = nodeThatLostKey;
@@ -215,8 +213,8 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     {
                         int keyIndex = linkIndex;
                         int jj = nodeThatLostKey.Put(nodeThatLostKey.Parent.Keys[keyIndex], nodeThatLostKey.Parent.Values[keyIndex], comparer);
-                        nodeThatLostKey.Links[jj] = nodeThatLostKey.Links[nodeThatLostKey.Links.Count - 1];
-                        nodeThatLostKey.Links[nodeThatLostKey.Links.Count - 1] = null;
+                        nodeThatLostKey.Links[jj] = nodeThatLostKey.Links[^1];
+                        nodeThatLostKey.Links[^1] = null;
 
                         for (int i = 0; i < neighbor.Keys.Count; ++i)
                         {
@@ -227,10 +225,10 @@ namespace Protsyk.PMS.FullText.Core.Collections
                                 nodeThatLostKey.Links[j].Parent = nodeThatLostKey;
                             }
                         }
-                        nodeThatLostKey.Links[nodeThatLostKey.Links.Count - 1] = neighbor.Links[neighbor.Links.Count - 1];
-                        if (nodeThatLostKey.Links[nodeThatLostKey.Links.Count - 1] != null)
+                        nodeThatLostKey.Links[^1] = neighbor.Links[^1];
+                        if (nodeThatLostKey.Links[^1] != null)
                         {
-                            nodeThatLostKey.Links[nodeThatLostKey.Links.Count - 1].Parent = nodeThatLostKey;
+                            nodeThatLostKey.Links[^1].Parent = nodeThatLostKey;
                         }
 
                         nodeThatLostKey.Parent.Keys.RemoveAt(keyIndex);
@@ -272,7 +270,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             leftNode.Links[0] = target.Links[order];
 
             var rightNode = new Node(targetParent);
-            rightNode.Links[0] = target.Links[target.Links.Count - 1];
+            rightNode.Links[0] = target.Links[^1];
 
             if (targetParent.Keys.Count > maxChildren)
             {
@@ -470,7 +468,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
             return text.ToString();
         }
 
-
         private void FormatLinks(StringBuilder text, Dictionary<Node, int> labels, Node node, int id)
         {
             for (int i = 0; i < node.Links.Count; ++i)
@@ -579,14 +576,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
             Add(item.Key, item.Value);
         }
 
-
         public void Clear()
         {
             this.rootNode = new Node(null);
             this.count = 0;
             this.depth = 0;
         }
-
 
         public bool Contains(KeyValuePair<TKey, TValue> item)
         {
@@ -598,55 +593,48 @@ namespace Protsyk.PMS.FullText.Core.Collections
             return false;
         }
 
-
         public void CopyTo(KeyValuePair<TKey, TValue>[] array, int arrayIndex)
         {
             throw new NotImplementedException();
         }
-
 
         public bool Remove(KeyValuePair<TKey, TValue> item)
         {
             throw new NotImplementedException();
         }
 
-
         public int Count => count;
 
         public bool IsReadOnly => false;
-
 
         public bool ContainsKey(TKey key)
         {
             return ContainsKeyInternal(key);
         }
 
-
         public void Add(TKey key, TValue value)
         {
             AddInternal(key, value);
         }
-
 
         public bool Remove(TKey key)
         {
             return RemoveInternal(key);
         }
 
-
         public bool TryGetValue(TKey key, out TValue value)
         {
             Node temp;
             if (!TryFindKeyOrLeaf(key, out temp))
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
 
             int index;
             if (!temp.TryFindUpperBound(key, comparer, out index))
             {
-                value = default(TValue);
+                value = default;
                 return false;
             }
 
@@ -659,12 +647,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             get
             {
-                TValue result;
-                if (!TryGetValue(key, out result))
-                {
-                    throw new KeyNotFoundException();
-                }
-                return result;
+                return TryGetValue(key, out TValue result) ? result : throw new KeyNotFoundException();
             }
             set
             {
