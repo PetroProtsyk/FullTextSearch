@@ -1192,15 +1192,15 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return result;
         }
 
-        public static FST<T> FromBytes(byte[] data, IFSTOutput<T> outputType)
+        public static FST<T> FromBytes(ReadOnlySpan<byte> data, IFSTOutput<T> outputType)
         {
             var fst = new FST<T>(outputType);
             var readIndex = 0;
-            readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var v);
+            readIndex += Numeric.ReadInt(data[readIndex..], out var v);
             fst.Initial = v;
             while (readIndex != data.Length)
             {
-                readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out v);
+                readIndex += Numeric.ReadInt(data[readIndex..], out v);
                 var sId = v & 0x3FFFFFFF;
                 var s = fst.AddState();
                 if (s.Id != sId)
@@ -1213,12 +1213,12 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     fst.SetFinal(sId, true);
                 }
 
-                readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var tsCount);
+                readIndex += Numeric.ReadInt(data[readIndex..], out var tsCount);
                 for (int i = 0; i < tsCount; ++i)
                 {
-                    readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var input);
-                    readIndex += outputType.ReadFrom(data.AsSpan(readIndex), out var output);
-                    readIndex += Numeric.ReadInt(data.AsSpan(readIndex), out var toId);
+                    readIndex += Numeric.ReadInt(data[readIndex..], out var input);
+                    readIndex += outputType.ReadFrom(data[readIndex..], out var output);
+                    readIndex += Numeric.ReadInt(data[readIndex..], out var toId);
 
                     fst.AddTransition(sId, (char)input, toId, output);
                 }
@@ -1327,7 +1327,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             return result;
         }
 
-        public static FST<T> FromBytesCompressed(byte[] data, IFSTOutput<T> outputType)
+        public static FST<T> FromBytesCompressed(ReadOnlySpan<byte> data, IFSTOutput<T> outputType)
         {
             var names = new Dictionary<long, int>(); // Maps offset to state id;
             var fst = new FST<T>(outputType);
@@ -1345,7 +1345,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
             readIndex += 7;
 
-            var initialOffset = BitConverter.ToInt64(data, readIndex);
+            var initialOffset = BinaryPrimitives.ReadInt64LittleEndian(data[readIndex..]);
             readIndex += sizeof(long);
 
             if (data[5] == (byte)'2')
@@ -1366,10 +1366,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 if (outputType.MaxByteSize() > 64)
                 {
-                    readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var nodeSize);
+                    readIndex += VarInt.ReadVInt32(data[readIndex..], out var nodeSize);
                 }
 
-                readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var v);
+                readIndex += VarInt.ReadVInt32(data[readIndex..], out var v);
                 if ((v & 1) == 1)
                 {
                     fst.SetFinal(s.Id, true);
@@ -1380,9 +1380,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 {
                     for (int i = 0; i < tsCount; ++i)
                     {
-                        readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var input);
-                        readIndex += outputType.ReadFrom(data.AsSpan(readIndex), out var output);
-                        readIndex += VarInt.ReadVInt64(data.AsSpan(readIndex), out var toOffset);
+                        readIndex += VarInt.ReadVInt32(data[readIndex..], out var input);
+                        readIndex += outputType.ReadFrom(data[readIndex..], out var output);
+                        readIndex += VarInt.ReadVInt64(data[readIndex..], out var toOffset);
 
                         if ((toOffset & 1) == 1)
                         {
@@ -1405,10 +1405,10 @@ namespace Protsyk.PMS.FullText.Core.Automata
 
                 if (outputType.MaxByteSize() > 64)
                 {
-                    readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var nodeSize);
+                    readIndex += VarInt.ReadVInt32(data[readIndex..], out var nodeSize);
                 }
 
-                readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var v);
+                readIndex += VarInt.ReadVInt32(data[readIndex..], out var v);
 
                 int tsCount = (int)(v >> 1);
                 if (tsCount > 0)
@@ -1416,9 +1416,9 @@ namespace Protsyk.PMS.FullText.Core.Automata
                     int prev = 0;
                     for (int i = 0; i < tsCount; ++i)
                     {
-                        readIndex += VarInt.ReadVInt32(data.AsSpan(readIndex), out var input);
-                        readIndex += outputType.ReadFrom(data.AsSpan(readIndex), out var output);
-                        readIndex += VarInt.ReadVInt64(data.AsSpan(readIndex), out var toOffset);
+                        readIndex += VarInt.ReadVInt32(data[readIndex..], out var input);
+                        readIndex += outputType.ReadFrom(data[readIndex..], out var output);
+                        readIndex += VarInt.ReadVInt64(data[readIndex..], out var toOffset);
 
                         if ((toOffset & 1) == 1)
                         {
