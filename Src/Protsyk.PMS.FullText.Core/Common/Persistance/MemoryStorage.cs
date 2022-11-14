@@ -3,7 +3,7 @@ using System.IO;
 
 namespace Protsyk.PMS.FullText.Core.Common.Persistance
 {
-    public class MemoryStorage : StreamStorage<MemoryStream>
+    public sealed class MemoryStorage : StreamStorage<MemoryStream>
     {
         public MemoryStorage()
             : base(new MemoryStream()) { }
@@ -33,24 +33,14 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
                 instance.Flush();
             }
 
-            public int Read(long fileOffset, byte[] buffer, int offset, int count)
+            public int Read(long fileOffset, Span<byte> buffer)
             {
-                return instance.Read(fileOffset, buffer, offset, count);
-            }
-
-            public void ReadAll(long fileOffset, byte[] buffer, int offset, int count)
-            {
-                instance.ReadAll(fileOffset, buffer, offset, count);
+                return instance.Read(fileOffset, buffer);
             }
 
             public void ReadAll(long fileOffset, Span<byte> buffer)
             {
                 instance.ReadAll(fileOffset, buffer);
-            }
-
-            public void WriteAll(long fileOffset, byte[] buffer, int offset, int count)
-            {
-                instance.WriteAll(fileOffset, buffer, offset, count);
             }
 
             public void WriteAll(long fileOffset, ReadOnlySpan<byte> buffer)

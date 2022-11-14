@@ -66,7 +66,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     {
                         toWrite = (capacity-i) % 1024;
                     }
-                    this.dataStorage.WriteAll(headerSize + i*IndexRecordSize, zero, 0, IndexRecordSize*toWrite);
+                    this.dataStorage.WriteAll(headerSize + i*IndexRecordSize, zero.AsSpan(0, IndexRecordSize * toWrite));
                     i += toWrite;
                 }
             }

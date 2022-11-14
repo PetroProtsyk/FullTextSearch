@@ -105,7 +105,7 @@ namespace Protsyk.PMS.FullText.Core
             var encodedSize = GroupVarint.Encode(buffer, 0, bufferIndex, flushBuffer, 0);
 
             // Write data
-            persistentStorage.WriteAll(persistentStorage.Length, flushBuffer, 0, encodedSize);
+            persistentStorage.WriteAll(persistentStorage.Length, flushBuffer.AsSpan(0, encodedSize));
 
             totalSize += encodedSize;
             bufferIndex = 0;

@@ -111,7 +111,7 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             // Write length of the list
-            persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(totalSize), 0, sizeof(int));
+            persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(totalSize).AsSpan(0, sizeof(int)));
 
             // Write record count of the list
             persistentStorage.WriteInt32LittleEndian(listStart + 1 + sizeof(int), recordCount);
@@ -185,9 +185,9 @@ namespace Protsyk.PMS.FullText.Core
             return listStart;
         }
 
-        public void WritePayload(byte[] buffer, int offset, int count)
+        public void WritePayload(ReadOnlySpan<byte> buffer)
         {
-            persistentStorage.WriteAll(persistentStorage.Length, buffer, offset, count);
+            persistentStorage.WriteAll(persistentStorage.Length, buffer);
         }
 
         public long EndPayload()

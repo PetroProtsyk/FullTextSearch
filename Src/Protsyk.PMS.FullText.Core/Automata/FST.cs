@@ -276,7 +276,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
                 throw new Exception($"What is going on? {writeIndex} != {toWrite}");
             }
 
-            storage.WriteAll(startOffset, writeBuffer, 0, toWrite);
+            storage.WriteAll(startOffset, writeBuffer.AsSpan(0, toWrite));
             stat.States++;
             return startOffset;
         }
@@ -756,7 +756,7 @@ namespace Protsyk.PMS.FullText.Core.Automata
             }
 
             readOffset = blockSize * startBlock;
-            readSize = storage.Read(readOffset, stateData, 0, sizeAdjusted);
+            readSize = storage.Read(readOffset, stateData.AsSpan(0, sizeAdjusted));
             if (readSize == 0)
             {
                 throw new Exception("What?");

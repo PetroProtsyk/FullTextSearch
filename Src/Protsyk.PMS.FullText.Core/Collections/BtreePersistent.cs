@@ -1318,9 +1318,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
                         throw new InvalidOperationException("Not in transaction");
                     }
 
-                    foreach (var pageId in changedPages.OrderBy(p => p))
+                    foreach (var pageId in changedPages.OrderBy(static p => p))
                     {
-                        persistentStorage.WriteAll(CalculatePageOffset(pageId), pageCache[pageId], 0, pageSize);
+                        persistentStorage.WriteAll(CalculatePageOffset(pageId), pageCache[pageId].AsSpan(0, pageSize));
 
                         if (pageCache.Count > maxPagesInCache)
                         {

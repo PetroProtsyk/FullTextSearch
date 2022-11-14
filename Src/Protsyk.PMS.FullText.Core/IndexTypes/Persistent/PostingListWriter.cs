@@ -120,7 +120,7 @@ namespace Protsyk.PMS.FullText.Core
                 throw new InvalidOperationException("Continuation is not found. The list might already have it");
             }
             var data = Encoding.UTF8.GetBytes($" -> {nextList.Offset:X8}");
-            persistentStorage.WriteAll(offset, data, 0, data.Length);
+            persistentStorage.WriteAll(offset, data);
         }
 
         private long FindContinuationOffset(PostingListAddress address)
@@ -130,7 +130,7 @@ namespace Protsyk.PMS.FullText.Core
 
             while (true)
             {
-                int read = persistentStorage.Read(offset, buffer, 0, buffer.Length);
+                int read = persistentStorage.Read(offset, buffer);
                 if (read == 0)
                 {
                     break;
@@ -142,7 +142,7 @@ namespace Protsyk.PMS.FullText.Core
                 {
                     if (buffer[i] == EmptyContinuationAddress[0])
                     {
-                        var readNext = persistentStorage.Read(offset - read + i, buffer, 0, EmptyContinuationAddress.Length);
+                        var readNext = persistentStorage.Read(offset - read + i, buffer.AsSpan(0, EmptyContinuationAddress.Length));
                         var nextOffsetText = Encoding.UTF8.GetString(buffer, 4, 8);
                         var nextOffset = Convert.ToInt32(nextOffsetText, 16);
                         if (nextOffset < 0)

@@ -98,7 +98,7 @@ namespace Protsyk.PMS.FullText.Core
             {
                 if (indxInBuffer + 1 >= dataInBuffer)
                 {
-                    int read = persistentStorage.Read(readOffset, buffer, 0, buffer.Length);
+                    int read = persistentStorage.Read(readOffset, buffer);
                     if (read == 0)
                     {
                         isEof = true;

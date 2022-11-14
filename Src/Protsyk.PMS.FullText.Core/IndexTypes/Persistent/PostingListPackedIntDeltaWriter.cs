@@ -173,7 +173,7 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             // Write length of the list
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize), 0, sizeof(int));
+            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize).AsSpan(0, sizeof(int)));
 
             var listEnd = persistentStorage.Length;
 

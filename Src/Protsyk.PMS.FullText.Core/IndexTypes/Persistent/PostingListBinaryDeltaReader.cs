@@ -107,7 +107,7 @@ namespace Protsyk.PMS.FullText.Core
                 if (indxInBuffer + size >= dataInBuffer)
                 {
                     Array.Copy(buffer, indxInBuffer, buffer, 0, dataInBuffer - indxInBuffer);
-                    dataInBuffer = dataInBuffer - indxInBuffer;
+                    dataInBuffer -= indxInBuffer;
                     indxInBuffer = 0;
                     var toRead = (int)Math.Min(buffer.Length - dataInBuffer, (listEndOffset - readOffset));
                     if (toRead == 0)
@@ -116,7 +116,7 @@ namespace Protsyk.PMS.FullText.Core
                     }
                     else
                     {
-                        persistentStorage.ReadAll(readOffset, buffer, dataInBuffer, toRead);
+                        persistentStorage.ReadAll(readOffset, buffer.AsSpan(dataInBuffer, toRead));
                         readOffset += toRead;
                         dataInBuffer += toRead;
                     }
