@@ -60,17 +60,17 @@ namespace Protsyk.PMS.FullText.Core
             throw new NotSupportedException();
         }
 
-        public static IPackedInts Load(byte[] bytes, int startIndex, int length)
+        public static IPackedInts Load(ReadOnlySpan<byte> bytes)
         {
-            var bits = (int)bytes[startIndex + 0];
-            var count = (int)bytes[startIndex + 1] | ((int)bytes[startIndex + 2] << 8) | ((int)bytes[startIndex + 3] << 16) | ((int)bytes[startIndex + 4] << 24);
+            var bits = (int)bytes[0];
+            var count = (int)bytes[1] | ((int)bytes[2] << 8) | ((int)bytes[3] << 16) | ((int)bytes[4] << 24);
 
             if (bits <= 8)
             {
                 var data = new byte[(count * bits + 7) / 8];
                 for (int i = 0; i < data.Length; ++i)
                 {
-                    data[i] = (byte)bytes[startIndex + 5 + i];
+                    data[i] = (byte)bytes[5 + i];
                 }
 
                 return bits == 8 ? (IPackedInts)new PackedInt8(count, data) : new PackedIntN8(bits, count, data);
@@ -81,10 +81,10 @@ namespace Protsyk.PMS.FullText.Core
                 var data = new ushort[(count * bits + 15) / 16];
                 for (int i = 0; i < data.Length; ++i)
                 {
-                    var r = (uint)bytes[startIndex + 5 + 2 * i];
+                    var r = (uint)bytes[5 + 2 * i];
                     if (5 + 2 * i + 1 < bytes.Length)
                     {
-                        r |= (uint)(bytes[startIndex + 5 + 2 * i + 1] << 8);
+                        r |= (uint)(bytes[5 + 2 * i + 1] << 8);
                     }
                     //if (i == data.Length - 1)
                     //{
@@ -100,18 +100,18 @@ namespace Protsyk.PMS.FullText.Core
                 var data = new uint[(count * bits + 31) / 32];
                 for (int i = 0; i < data.Length; i++)
                 {
-                    var r = (uint)bytes[startIndex + 5 + 4 * i];
+                    var r = (uint)bytes[5 + 4 * i];
                     if (5 + 4 * i + 1 < bytes.Length)
                     {
-                        r |= (uint)bytes[startIndex + 5 + 4 * i + 1] << 8;
+                        r |= (uint)bytes[5 + 4 * i + 1] << 8;
                     }
                     if (5 + 4 * i + 2 < bytes.Length)
                     {
-                        r |= (uint)bytes[startIndex + 5 + 4 * i + 2] << 16;
+                        r |= (uint)bytes[ 5 + 4 * i + 2] << 16;
                     }
                     if (5 + 4 * i + 3 < bytes.Length)
                     {
-                        r |= (uint)bytes[startIndex + 5 + 4 * i + 3] << 24;
+                        r |= (uint)bytes[ 5 + 4 * i + 3] << 24;
                     }
                     if (i == data.Length - 1)
                     {
@@ -119,7 +119,7 @@ namespace Protsyk.PMS.FullText.Core
                     }
                     data[i] = (uint)r;
                 }
-                return bits == 32 ? (IPackedInts)new PackedInt32(count, data) : new PackedIntN32(bits, count, data);
+                return bits == 32 ? new PackedInt32(count, data) : new PackedIntN32(bits, count, data);
             }
 
             if (bits <= 64)
@@ -127,34 +127,34 @@ namespace Protsyk.PMS.FullText.Core
                 var data = new ulong[(count * bits + 63) / 64];
                 for (int i = 0; i < data.Length; i++)
                 {
-                    var r = (ulong)bytes[startIndex + 5 + 8 * i];
+                    var r = (ulong)bytes[5 + 8 * i];
                     if (5 + 8 * i + 1 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 1] << 8;
+                        r |= (ulong)bytes[5 + 8 * i + 1] << 8;
                     }
                     if (5 + 8 * i + 2 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 2] << 16;
+                        r |= (ulong)bytes[5 + 8 * i + 2] << 16;
                     }
                     if (5 + 8 * i + 3 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 3] << 24;
+                        r |= (ulong)bytes[5 + 8 * i + 3] << 24;
                     }
                     if (5 + 8 * i + 4 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 4] << 32;
+                        r |= (ulong)bytes[5 + 8 * i + 4] << 32;
                     }
                     if (5 + 8 * i + 5 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 5] << 40;
+                        r |= (ulong)bytes[5 + 8 * i + 5] << 40;
                     }
                     if (5 + 8 * i + 6 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 6] << 48;
+                        r |= (ulong)bytes[5 + 8 * i + 6] << 48;
                     }
                     if (5 + 8 * i + 7 < bytes.Length)
                     {
-                        r |= (ulong)bytes[startIndex + 5 + 8 * i + 7] << 56;
+                        r |= (ulong)bytes[5 + 8 * i + 7] << 56;
                     }
                     if (i == data.Length - 1)
                     {
@@ -162,7 +162,7 @@ namespace Protsyk.PMS.FullText.Core
                     }
                     data[i] = r;
                 }
-                return bits == 64 ? (IPackedInts)new PackedInt64(count, data) : new PackedIntN64(bits, count, data);
+                return bits == 64 ? new PackedInt64(count, data) : new PackedIntN64(bits, count, data);
             }
 
             throw new NotSupportedException();

@@ -112,7 +112,7 @@ namespace Protsyk.PMS.FullText.Core
                 if (indxInBuffer + size >= dataInBuffer)
                 {
                     Array.Copy(buffer, indxInBuffer, buffer, 0, dataInBuffer - indxInBuffer);
-                    dataInBuffer = dataInBuffer - indxInBuffer;
+                    dataInBuffer -= indxInBuffer;
                     indxInBuffer = 0;
                     var toRead = (int)Math.Min(buffer.Length - dataInBuffer, (listEndOffset - readOffset));
                     if (toRead == 0)
@@ -149,7 +149,7 @@ namespace Protsyk.PMS.FullText.Core
 
                 // NOTE: Instead of creating instance of packed integers,
                 //       one can decode data from the read buffer directly.
-                var packed = PackedInts.Load(buffer, indxInBuffer, size);
+                var packed = PackedInts.Load(buffer.AsSpan(indxInBuffer, size));
                 indxInBuffer += size;
                 return packed;
             }
