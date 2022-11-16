@@ -834,7 +834,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
 
         private interface ITransaction : IDisposable
         {
-            void Commit(byte[] header);
+            void Commit(ReadOnlySpan<byte> header);
 
             void TouchPage(int pageId);
         }
@@ -1309,7 +1309,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 throw new NotSupportedException();
             }
 
-            private void CommitCurrentTransaction(byte[] header, IEnumerable<int> changedPages)
+            private void CommitCurrentTransaction(ReadOnlySpan<byte> header, IEnumerable<int> changedPages)
             {
                 lock (syncRoot)
                 {
@@ -1318,9 +1318,9 @@ namespace Protsyk.PMS.FullText.Core.Collections
                         throw new InvalidOperationException("Not in transaction");
                     }
 
-                    foreach (var pageId in changedPages.OrderBy(p => p))
+                    foreach (var pageId in changedPages.OrderBy(static p => p))
                     {
-                        persistentStorage.WriteAll(CalculatePageOffset(pageId), pageCache[pageId], 0, pageSize);
+                        persistentStorage.WriteAll(CalculatePageOffset(pageId), pageCache[pageId].AsSpan(0, pageSize));
 
                         if (pageCache.Count > maxPagesInCache)
                         {
@@ -1335,12 +1335,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 }
             }
 
-            public void ReadHeader(byte[] header)
+            public void ReadHeader(Span<byte> header)
             {
                 persistentStorage.ReadAll(0, header);
             }
 
-            public void SaveHeader(byte[] header)
+            public void SaveHeader(ReadOnlySpan<byte> header)
             {
                 var headerSizeCalculated = CalculatePageOffset(0);
                 if (header.Length != headerSizeCalculated)
@@ -1385,7 +1385,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     pages.Add(pageId);
                 }
 
-                public void Commit(byte[] header)
+                public void Commit(ReadOnlySpan<byte> header)
                 {
                     owner.CommitCurrentTransaction(header, pages);
                     commited = true;
@@ -1428,11 +1428,11 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 return buffer;
             }
 
-            public static DataLink FromBytes(byte[] buffer, int offset)
+            public static DataLink FromBytes(ReadOnlySpan<byte> buffer)
             {
-               return new DataLink(
-                    BitConverter.ToUInt64(buffer, offset),
-                    BitConverter.ToUInt64(buffer, offset + sizeof(long)));
+                return new DataLink(
+                     BinaryPrimitives.ReadUInt64LittleEndian(buffer),
+                     BinaryPrimitives.ReadUInt64LittleEndian(buffer.Slice(sizeof(long))));
             }
         }
 
@@ -1507,7 +1507,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             public DataLink GetData(int index, int maxChildren)
             {
                 int offset = HeaderLength + (maxChildren + 1) * sizeof(int) + index * DataLink.SizeInBytes;
-                return DataLink.FromBytes(data, offset);
+                return DataLink.FromBytes(data.AsSpan(offset));
             }
 
             public void SetData(int index, int maxChildren, in DataLink location)

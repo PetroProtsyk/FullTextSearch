@@ -178,8 +178,8 @@ namespace Protsyk.PMS.FullText.Core
                         var toKeep = bufferIndex % 4;
                         var toEncode = bufferIndex - toKeep;
 
-                        var encodedSize = GroupVarint.Encode(buffer, 0, toEncode, flushBuffer, 0);
-                        persistentStorage.WriteAll(persistentStorage.Length, flushBuffer, 0, encodedSize);
+                        var encodedSize = GroupVarint.Encode(buffer.AsSpan(0, toEncode), flushBuffer);
+                        persistentStorage.Append(flushBuffer.AsSpan(0, encodedSize));
                         totalSize += encodedSize;
 
                         // Copy not encoded bytes (0,1,2,3)
@@ -207,15 +207,15 @@ namespace Protsyk.PMS.FullText.Core
             {
                 buffer[deltaSelectorIndex] = deltaSelector;
 
-                var encodedSize = GroupVarint.Encode(buffer, 0, bufferIndex, flushBuffer, 0);
-                persistentStorage.WriteAll(persistentStorage.Length, flushBuffer, 0, encodedSize);
+                var encodedSize = GroupVarint.Encode(buffer.AsSpan(0, bufferIndex), flushBuffer);
+                persistentStorage.Append(flushBuffer.AsSpan(0, encodedSize));
 
                 totalSize += encodedSize;
             }
 
             // Write length of the list
             // POSSIBLE BUG -- writing 4 bytes, when totalSize is 8 bytes
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize), 0, sizeof(int));
+            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize).AsSpan(0, sizeof(int)));
 
             var listEnd = persistentStorage.Length;
 

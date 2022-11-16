@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections;
 using System.Collections.Generic;
 using System.IO;
@@ -105,7 +106,7 @@ namespace Protsyk.PMS.FullText.Core
                 if (indxInBuffer + size >= dataInBuffer)
                 {
                     Array.Copy(buffer, indxInBuffer, buffer, 0, dataInBuffer - indxInBuffer);
-                    dataInBuffer = dataInBuffer - indxInBuffer;
+                    dataInBuffer -= indxInBuffer;
                     indxInBuffer = 0;
                     var toRead = (int)Math.Min(buffer.Length - dataInBuffer, (listEndOffset - readOffset));
                     if (toRead == 0)
@@ -114,7 +115,7 @@ namespace Protsyk.PMS.FullText.Core
                     }
                     else
                     {
-                        persistentStorage.ReadAll(readOffset, buffer, dataInBuffer, toRead);
+                        persistentStorage.ReadAll(readOffset, buffer.AsSpan(dataInBuffer, toRead));
                         readOffset += toRead;
                         dataInBuffer += toRead;
                     }
@@ -144,9 +145,9 @@ namespace Protsyk.PMS.FullText.Core
                         }
 
                         var buffer = new byte[HeaderLength];
-                        persistentStorage.ReadAll(readOffset, buffer, 0, buffer.Length);
+                        persistentStorage.ReadAll(readOffset, buffer);
 
-                        continuationOffset = BitConverter.ToInt64(buffer, 0);
+                        continuationOffset = BinaryPrimitives.ReadInt64LittleEndian(buffer);
                         listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(buffer, sizeof(long));
 
                         readOffset += buffer.Length;
@@ -162,13 +163,13 @@ namespace Protsyk.PMS.FullText.Core
 
                         EnsureBuffer(selector1 + selector2 + selector3);
 
-                        var docId = GroupVarint.ReadInt(buffer, indxInBuffer, selector1);
+                        var docId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector1);
                         indxInBuffer += selector1;
 
-                        var fieldId = GroupVarint.ReadInt(buffer, indxInBuffer, selector2);
+                        var fieldId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector2);
                         indxInBuffer += selector2;
 
-                        var tokenId = GroupVarint.ReadInt(buffer, indxInBuffer, selector3);
+                        var tokenId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector3);
                         indxInBuffer += selector3;
 
                         state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 4;
@@ -181,7 +182,7 @@ namespace Protsyk.PMS.FullText.Core
                     {
                         EnsureBuffer(selector4);
 
-                        var docId = GroupVarint.ReadInt(buffer, indxInBuffer, selector4);
+                        var docId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector4);
                         indxInBuffer += selector4;
 
                         if (!ReadSelectors())
@@ -191,10 +192,10 @@ namespace Protsyk.PMS.FullText.Core
 
                         EnsureBuffer(selector1 + selector2);
 
-                        var fieldId = GroupVarint.ReadInt(buffer, indxInBuffer, selector1);
+                        var fieldId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector1);
                         indxInBuffer += selector1;
 
-                        var tokenId = GroupVarint.ReadInt(buffer, indxInBuffer, selector2);
+                        var tokenId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector2);
                         indxInBuffer += selector2;
 
                         state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 3;
@@ -207,10 +208,10 @@ namespace Protsyk.PMS.FullText.Core
                     {
                         EnsureBuffer(selector3 + selector4);
 
-                        var docId = GroupVarint.ReadInt(buffer, indxInBuffer, selector3);
+                        var docId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector3);
                         indxInBuffer += selector3;
 
-                        var fieldId = GroupVarint.ReadInt(buffer, indxInBuffer, selector4);
+                        var fieldId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector4);
                         indxInBuffer += selector4;
 
                         if (!ReadSelectors())
@@ -220,7 +221,7 @@ namespace Protsyk.PMS.FullText.Core
 
                         EnsureBuffer(selector1);
 
-                        var tokenId = GroupVarint.ReadInt(buffer, indxInBuffer, selector1);
+                        var tokenId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector1);
                         indxInBuffer += selector1;
 
                         state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 2;
@@ -233,13 +234,13 @@ namespace Protsyk.PMS.FullText.Core
                     {
                         EnsureBuffer(selector2 + selector3 + selector4);
 
-                        var docId = GroupVarint.ReadInt(buffer, indxInBuffer, selector2);
+                        var docId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector2);
                         indxInBuffer += selector2;
 
-                        var fieldId = GroupVarint.ReadInt(buffer, indxInBuffer, selector3);
+                        var fieldId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector3);
                         indxInBuffer += selector3;
 
-                        var tokenId = GroupVarint.ReadInt(buffer, indxInBuffer, selector4);
+                        var tokenId = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selector4);
                         indxInBuffer += selector4;
 
                         state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 1;

@@ -66,7 +66,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
                     {
                         toWrite = (capacity-i) % 1024;
                     }
-                    this.dataStorage.WriteAll(headerSize + i*IndexRecordSize, zero, 0, IndexRecordSize*toWrite);
+                    this.dataStorage.WriteAll(headerSize + i*IndexRecordSize, zero.AsSpan(0, IndexRecordSize * toWrite));
                     i += toWrite;
                 }
             }
@@ -180,16 +180,18 @@ namespace Protsyk.PMS.FullText.Core.Collections
                 valueBuffer = new byte[256 * (1 + (dataSize+255)/256)];
             }
 
-            dataStorage.ReadAll(dataOffset, valueBuffer.AsSpan(0, dataSize));
+            var recordData = valueBuffer.AsSpan(0, dataSize);
+
+            dataStorage.ReadAll(dataOffset, recordData);
  
-            int keySize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer);
-            var dataKey = keySerializer.GetValue(valueBuffer.Skip(sizeof(int)).Take(keySize).ToArray());
+            int keySize = BinaryPrimitives.ReadInt32LittleEndian(recordData);
+            var dataKey = keySerializer.GetValue(recordData.Slice(sizeof(int), keySize));
 
-            int valueSize = BinaryPrimitives.ReadInt32LittleEndian(valueBuffer.AsSpan(sizeof(int) + keySize));
-            var dataValue = valueSerializer.GetValue(valueBuffer.Skip(sizeof(int)+keySize+sizeof(int)).Take(valueSize).ToArray());
+            int valueSize = BinaryPrimitives.ReadInt32LittleEndian(recordData.Slice(sizeof(int) + keySize));
+            var dataValue = valueSerializer.GetValue(recordData.Slice(sizeof(int) + keySize + sizeof(int), valueSize));
 
-            long nextOffset = BitConverter.ToInt64(valueBuffer, dataSize - sizeof(long) - sizeof(int));
-            int nextSize = BitConverter.ToInt32(valueBuffer, dataSize - sizeof(int));
+            long nextOffset = BinaryPrimitives.ReadInt64LittleEndian(recordData.Slice(dataSize - sizeof(long) - sizeof(int)));
+            int nextSize = BinaryPrimitives.ReadInt32LittleEndian(recordData.Slice(dataSize - sizeof(int)));
             return (dataKey, dataValue, nextOffset, nextSize);
         }
         #endregion

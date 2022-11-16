@@ -90,27 +90,27 @@ namespace Protsyk.PMS.FullText.Core
                     {
                         if (previous.TokenId == occurrence.TokenId)
                         {
-                            bufferIndex += VarInt.WriteVUInt32(1, buffer, bufferIndex);
+                            bufferIndex += VarInt.WriteVUInt32(1, buffer.AsSpan(bufferIndex));
                         }
                         else
                         {
-                            bufferIndex += VarInt.WriteVUInt32(2, buffer, bufferIndex);
-                            bufferIndex += VarInt.WriteVUInt64((ulong)(occurrence.TokenId - previous.TokenId), buffer, bufferIndex);
+                            bufferIndex += VarInt.WriteVUInt32(2, buffer.AsSpan(bufferIndex));
+                            bufferIndex += VarInt.WriteVUInt64((ulong)(occurrence.TokenId - previous.TokenId), buffer.AsSpan(bufferIndex));
                         }
                     }
                     else
                     {
-                        bufferIndex += VarInt.WriteVUInt32(3, buffer, bufferIndex);
-                        bufferIndex += VarInt.WriteVUInt64((ulong)(occurrence.FieldId - previous.FieldId), buffer, bufferIndex);
-                        bufferIndex += VarInt.WriteVUInt64(occurrence.TokenId, buffer, bufferIndex);
+                        bufferIndex += VarInt.WriteVUInt32(3, buffer.AsSpan(bufferIndex));
+                        bufferIndex += VarInt.WriteVUInt64((ulong)(occurrence.FieldId - previous.FieldId), buffer.AsSpan(bufferIndex));
+                        bufferIndex += VarInt.WriteVUInt64(occurrence.TokenId, buffer.AsSpan(bufferIndex));
                     }
                 }
                 else
                 {
-                    bufferIndex += VarInt.WriteVUInt32(4, buffer, bufferIndex);
-                    bufferIndex += VarInt.WriteVUInt64((ulong)(occurrence.DocumentId - previous.DocumentId), buffer, bufferIndex);
-                    bufferIndex += VarInt.WriteVUInt64(occurrence.FieldId, buffer, bufferIndex);
-                    bufferIndex += VarInt.WriteVUInt64(occurrence.TokenId, buffer, bufferIndex);
+                    bufferIndex += VarInt.WriteVUInt32(4, buffer.AsSpan(bufferIndex));
+                    bufferIndex += VarInt.WriteVUInt64(occurrence.DocumentId - previous.DocumentId, buffer.AsSpan(bufferIndex));
+                    bufferIndex += VarInt.WriteVUInt64(occurrence.FieldId, buffer.AsSpan(bufferIndex));
+                    bufferIndex += VarInt.WriteVUInt64(occurrence.TokenId, buffer.AsSpan(bufferIndex));
                 }
 
                 if (bufferIndex > BlockSize)
@@ -136,7 +136,7 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             // Write length of the list
-            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize), 0, sizeof(int));
+            persistentStorage.WriteAll(listStart + sizeof(long), BitConverter.GetBytes(totalSize).AsSpan(0, sizeof(int)));
 
             var listEnd = persistentStorage.Length;
 
@@ -170,9 +170,9 @@ namespace Protsyk.PMS.FullText.Core
         private int WriteFullOccurrence(Occurrence occurrence)
         {
             int index = 0;
-            index += VarInt.WriteVUInt64(occurrence.DocumentId, buffer, index);
-            index += VarInt.WriteVUInt64(occurrence.FieldId, buffer, index);
-            index += VarInt.WriteVUInt64(occurrence.TokenId, buffer, index);
+            index += VarInt.WriteVUInt64(occurrence.DocumentId, buffer.AsSpan(index));
+            index += VarInt.WriteVUInt64(occurrence.FieldId, buffer.AsSpan(index));
+            index += VarInt.WriteVUInt64(occurrence.TokenId, buffer.AsSpan(index));
             return index;
         }
 
@@ -185,7 +185,7 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             int writeSize = last ? bufferIndex : BlockSize;
-            persistentStorage.WriteAll(persistentStorage.Length, buffer, 0, writeSize);
+            persistentStorage.WriteAll(persistentStorage.Length, buffer.AsSpan(0, writeSize));
             totalSize += writeSize;
         }
 

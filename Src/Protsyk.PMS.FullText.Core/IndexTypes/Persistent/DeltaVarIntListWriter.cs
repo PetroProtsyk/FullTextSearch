@@ -73,7 +73,7 @@ namespace Protsyk.PMS.FullText.Core
 
             if (first)
             {
-                bufferIndex += VarInt.WriteVUInt64(value, buffer, bufferIndex);
+                bufferIndex += VarInt.WriteVUInt64(value, buffer.AsSpan(bufferIndex));
                 previous = value;
                 first = false;
             }
@@ -84,8 +84,8 @@ namespace Protsyk.PMS.FullText.Core
                     throw new ArgumentOutOfRangeException(nameof(value));
                 }
 
-                var previousIndex = bufferIndex;
-                bufferIndex += VarInt.WriteVUInt64((ulong)(value - previous), buffer, bufferIndex);
+                int previousIndex = bufferIndex;
+                bufferIndex += VarInt.WriteVUInt64(value - previous, buffer.AsSpan(bufferIndex));
 
                 if (bufferIndex > BlockSize)
                 {
@@ -95,7 +95,7 @@ namespace Protsyk.PMS.FullText.Core
                     // 3) Start new block and write full occurrence to a new block
                     bufferIndex = previousIndex;
                     FlushBlock(false);
-                    bufferIndex = VarInt.WriteVUInt64(value, buffer, 0);
+                    bufferIndex = VarInt.WriteVUInt64(value, buffer);
                 }
 
                 previous = value;
@@ -111,7 +111,7 @@ namespace Protsyk.PMS.FullText.Core
             }
 
             // Write length of the list
-            persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(totalSize), 0, sizeof(int));
+            persistentStorage.WriteAll(listStart + 1, BitConverter.GetBytes(totalSize).AsSpan(0, sizeof(int)));
 
             // Write record count of the list
             persistentStorage.WriteInt32LittleEndian(listStart + 1 + sizeof(int), recordCount);
@@ -185,9 +185,9 @@ namespace Protsyk.PMS.FullText.Core
             return listStart;
         }
 
-        public void WritePayload(byte[] buffer, int offset, int count)
+        public void WritePayload(ReadOnlySpan<byte> buffer)
         {
-            persistentStorage.WriteAll(persistentStorage.Length, buffer, offset, count);
+            persistentStorage.WriteAll(persistentStorage.Length, buffer);
         }
 
         public long EndPayload()

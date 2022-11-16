@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Text;
 
@@ -10,9 +11,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
 
         int GetByteSize(T value);
 
-        T GetValue(byte[] bytes);
-
-        T GetValue(byte[] bytes, int startIndex);
+        T GetValue(ReadOnlySpan<byte> bytes);
     }
 
     public interface IFixedSizeDataSerializer<T> : IDataSerializer<T>
@@ -24,7 +23,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
     {
         public static readonly NoValue Instance = new NoValue();
 
-        private NoValue() {}
+        private NoValue() { }
     }
 
     public static class DataSerializer
@@ -72,19 +71,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return new byte[1] { value };
         }
 
-        public int GetByteSize(byte value)
-        {
-            return Size;
-        }
+        public int GetByteSize(byte value) => Size;
 
-        public byte GetValue(byte[] bytes)
+        public byte GetValue(ReadOnlySpan<byte> bytes)
         {
             return bytes[0];
-        }
-
-        public byte GetValue(byte[] bytes, int startIndex)
-        {
-            return bytes[startIndex];
         }
     }
 
@@ -101,14 +92,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return Encoding.UTF8.GetByteCount(value);
         }
 
-        public string GetValue(byte[] bytes)
+        public string GetValue(ReadOnlySpan<byte> bytes)
         {
-            return GetValue(bytes, 0);
-        }
-
-        public string GetValue(byte[] bytes, int startIndex)
-        {
-            return Encoding.UTF8.GetString(bytes, startIndex, bytes.Length - startIndex);
+            return Encoding.UTF8.GetString(bytes);
         }
     }
 
@@ -121,19 +107,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return BitConverter.GetBytes(value);
         }
 
-        public int GetByteSize(int value)
-        {
-            return Size;
-        }
+        public int GetByteSize(int value) => Size;
 
-        public int GetValue(byte[] bytes)
+        public int GetValue(ReadOnlySpan<byte> bytes)
         {
-            return GetValue(bytes, 0);
-        }
-
-        public int GetValue(byte[] bytes, int startIndex)
-        {
-            return BitConverter.ToInt32(bytes, startIndex);
+            return BinaryPrimitives.ReadInt32LittleEndian(bytes);
         }
     }
 
@@ -151,14 +129,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return Size;
         }
 
-        public long GetValue(byte[] bytes)
+        public long GetValue(ReadOnlySpan<byte> bytes)
         {
-            return GetValue(bytes, 0);
-        }
-
-        public long GetValue(byte[] bytes, int startIndex)
-        {
-            return BitConverter.ToInt64(bytes, startIndex);
+            return BinaryPrimitives.ReadInt64LittleEndian(bytes);
         }
     }
 
@@ -176,14 +149,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return Size;
         }
 
-        public ulong GetValue(byte[] bytes)
+        public ulong GetValue(ReadOnlySpan<byte> bytes)
         {
-            return GetValue(bytes, 0);
-        }
-
-        public ulong GetValue(byte[] bytes, int startIndex)
-        {
-            return BitConverter.ToUInt64(bytes, startIndex);
+            return BinaryPrimitives.ReadUInt64LittleEndian(bytes);
         }
     }
 
@@ -197,29 +165,21 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return result;
         }
 
-        public int GetByteSize(Guid value)
-        {
-            return Size;
-        }
+        public int GetByteSize(Guid value) => Size;
 
-        public Guid GetValue(byte[] bytes)
+        public Guid GetValue(ReadOnlySpan<byte> bytes)
         {
-            return GetValue(bytes, 0);
-        }
-
-        public Guid GetValue(byte[] bytes, int startIndex)
-        {
-            return new Guid(BitConverter.ToUInt32(bytes, startIndex),
-                            BitConverter.ToUInt16(bytes, startIndex + sizeof(uint)),
-                            BitConverter.ToUInt16(bytes, startIndex + sizeof(uint) + sizeof(ushort)),
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort)],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 1],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 2],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 3],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 4],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 5],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 6],
-                            bytes[startIndex + sizeof(uint) + 2 * sizeof(ushort) + 7]);
+            return new Guid(BinaryPrimitives.ReadUInt32LittleEndian(bytes),
+                            BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(sizeof(uint))),
+                            BinaryPrimitives.ReadUInt16LittleEndian(bytes.Slice(sizeof(uint) + sizeof(ushort))),
+                            bytes[sizeof(uint) + 2 * sizeof(ushort)],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 1],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 2],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 3],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 4],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 5],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 6],
+                            bytes[sizeof(uint) + 2 * sizeof(ushort) + 7]);
         }
     }
 
@@ -232,24 +192,18 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return BitConverter.GetBytes(value);
         }
 
-        public int GetByteSize(char value)
-        {
-            return Size;
-        }
+        public int GetByteSize(char value) => Size;
 
-        public char GetValue(byte[] bytes)
+        public char GetValue(ReadOnlySpan<byte> bytes)
         {
-            return GetValue(bytes, 0);
-        }
-
-        public char GetValue(byte[] bytes, int startIndex)
-        {
-            return BitConverter.ToChar(bytes, startIndex);
+            return BitConverter.ToChar(bytes);
         }
     }
 
     internal sealed class NoValueSerializer : IFixedSizeDataSerializer<NoValue>
     {
+        public int Size => 0;
+
         public byte[] GetBytes(NoValue value)
         {
             return Array.Empty<byte>();
@@ -260,19 +214,9 @@ namespace Protsyk.PMS.FullText.Core.Common.Persistance
             return Size;
         }
 
-        public NoValue GetValue(byte[] bytes)
+        public NoValue GetValue(ReadOnlySpan<byte> bytes)
         {
             return NoValue.Instance;
-        }
-
-        public NoValue GetValue(byte[] bytes, int startIndex)
-        {
-            return NoValue.Instance;
-        }
-
-        public int Size
-        {
-            get { return 0; }
         }
     }
 }

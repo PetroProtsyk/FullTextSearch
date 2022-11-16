@@ -1,4 +1,6 @@
-﻿namespace Protsyk.PMS.FullText.Core.Common
+﻿using System;
+
+namespace Protsyk.PMS.FullText.Core.Common
 {
     public static class VarInt
     {
@@ -24,43 +26,43 @@
             return result;
         }
 
-        public static int WriteVUInt64(ulong value, byte[] buffer, int startIndex)
+        public static int WriteVUInt64(ulong value, Span<byte> buffer)
         {
-            var index = startIndex;
+            var index = 0;
             while (value > 0x7F)
             {
                 buffer[index++] = (byte)(value | 0x80);
                 value >>= 7;
             }
             buffer[index++] = (byte)value;
-            return index - startIndex;
+            return index;
         }
 
-        public static int WriteVInt64(long value, byte[] buffer, int startIndex)
+        public static int WriteVInt64(long value, Span<byte> buffer)
         {
-            return WriteVUInt64((ulong)value, buffer, startIndex);
+            return WriteVUInt64((ulong)value, buffer);
         }
 
-        public static int WriteVUInt32(uint value, byte[] buffer, int startIndex)
+        public static int WriteVUInt32(uint value, Span<byte> buffer)
         {
-            var index = startIndex;
+            var index = 0;
             while (value > 0x7F)
             {
                 buffer[index++] = (byte)(value | 0x80);
                 value >>= 7;
             }
             buffer[index++] = (byte)value;
-            return index - startIndex;
+            return index;
         }
 
-        public static int WriteVInt32(int value, byte[] buffer, int startIndex)
+        public static int WriteVInt32(int value, Span<byte> buffer)
         {
-            return WriteVUInt32((uint)value, buffer, startIndex);
+            return WriteVUInt32((uint)value, buffer);
         }
 
-        public static int ReadVUInt64(byte[] buffer, int startIndex, out ulong result)
+        public static int ReadVUInt64(ReadOnlySpan<byte> buffer, out ulong result)
         {
-            int index = startIndex;
+            int index = 0;
             int shift = 0;
             result = 0;
             while ((buffer[index] & 0x80) != 0)
@@ -69,19 +71,19 @@
                 shift += 7;
             }
             result |= ((ulong)buffer[index++]) << shift;
-            return index - startIndex;
+            return index;
         }
 
-        public static int ReadVInt64(byte[] buffer, int startIndex, out long result)
+        public static int ReadVInt64(ReadOnlySpan<byte> buffer, out long result)
         {
-            var count = ReadVUInt64(buffer, startIndex, out var value);
+            var count = ReadVUInt64(buffer, out var value);
             result = (long)value;
             return count;
         }
 
-        public static int ReadVUInt32(byte[] buffer, int startIndex, out uint result)
+        public static int ReadVUInt32(ReadOnlySpan<byte> buffer, out uint result)
         {
-            var index = startIndex;
+            var index = 0;
             var shift = 0;
             result = 0;
             while ((buffer[index] & 0x80) > 0)
@@ -90,12 +92,12 @@
                 shift += 7;
             }
             result |= (uint)(buffer[index++] << shift);
-            return index - startIndex;
+            return index;
         }
 
-        public static int ReadVInt32(byte[] buffer, int startIndex, out int result)
+        public static int ReadVInt32(ReadOnlySpan<byte> buffer, out int result)
         {
-            var count = ReadVUInt32(buffer, startIndex, out var value);
+            var count = ReadVUInt32(buffer, out var value);
             result = (int)value;
             return count;
         }

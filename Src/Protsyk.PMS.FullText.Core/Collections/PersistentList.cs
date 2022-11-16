@@ -33,7 +33,6 @@ namespace Protsyk.PMS.FullText.Core.Collections
             this.bufferDataSize = 0;
         }
 
-
         private int GetFileBufferForIndex(long index)
         {
             var offset = index * recordSize + headerSize;
@@ -42,7 +41,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
             {
                 FlushBuffer();
 
-                int read = persistentStorage.Read(offset, buffer, 0, buffer.Length);
+                int read = persistentStorage.Read(offset, buffer);
                 Array.Clear(buffer, read, buffer.Length - read);
 
                 bufferFileOffset = offset;
@@ -60,7 +59,7 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             if (dataChanged)
             {
-                persistentStorage.WriteAll(bufferFileOffset, buffer, 0, bufferDataSize);
+                persistentStorage.WriteAll(bufferFileOffset, buffer.AsSpan(0, bufferDataSize));
                 dataChanged = false;
             }
         }
@@ -71,12 +70,12 @@ namespace Protsyk.PMS.FullText.Core.Collections
         {
             get
             {
-                var offset = GetFileBufferForIndex(index);
-                return serializer.GetValue(buffer, offset);
+                int offset = GetFileBufferForIndex(index);
+                return serializer.GetValue(buffer.AsSpan(offset));
             }
             set
             {
-                var offset = GetFileBufferForIndex(index);
+                int offset = GetFileBufferForIndex(index);
 
                 var valueBytes = serializer.GetBytes(value);
 
