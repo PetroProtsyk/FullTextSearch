@@ -1,25 +1,21 @@
-﻿using Xunit;
-
-namespace Protsyk.PMS.FullText.Core.UnitTests;
+﻿namespace Protsyk.PMS.FullText.Core.UnitTests;
 
 public class TextPositionTests: TestWithFolderBase
 {
     [Fact]
     public void TextPositionsPersistentIndex()
     {
-        using (var index = TestHelper.PrepareIndexForSearch(new PersistentIndexName(TestFolder)))
-        {
-            TextIndex(index);
-        }
+        using var index = TestHelper.PrepareIndexForSearch(new PersistentIndexName(TestFolder));
+
+        TextIndex(index);
     }
 
     [Fact]
     public void TextPositionsMemoryIndex()
     {
-        using (var index = TestHelper.PrepareIndexForSearch(new InMemoryIndexName()))
-        {
-            TextIndex(index);
-        }
+        using var index = TestHelper.PrepareIndexForSearch(new InMemoryIndexName());
+
+        TextIndex(index);
     }
 
     private void TextIndex(IFullTextIndex index)

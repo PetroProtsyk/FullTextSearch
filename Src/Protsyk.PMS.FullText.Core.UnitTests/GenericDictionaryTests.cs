@@ -53,7 +53,6 @@ internal class GenericDictionaryTests
         }
     }
 
-
     public static void TheOrderByTest<T>(int n) where T : IDictionary<int, string>, new()
     {
         var rnd = Enumerable.Range(1, n).ToArray().Shuffle();
@@ -98,7 +97,6 @@ internal class GenericDictionaryTests
             Assert.Equal(orderArray[i], orderTree[i]);
         }
     }
-
 
     public static void TheRemoveTestFull<T>(int n) where T : IDictionary<int, string>, new()
     {

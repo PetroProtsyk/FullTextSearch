@@ -70,10 +70,9 @@ public class SearchTest
     [Fact]
     public void TestTermSearchMemoryIndex()
     {
-        using (var index = TestHelper.PrepareIndexForSearch(new InMemoryIndexName()))
-        {
-            TestTermSearch(index, "WORD(this)", "{[3,1,1]}, {[4,1,1]}, {[5,1,1]}, {[6,1,8]}");
-        }
+        using var index = TestHelper.PrepareIndexForSearch(new InMemoryIndexName());
+
+        TestTermSearch(index, "WORD(this)", "{[3,1,1]}, {[4,1,1]}, {[5,1,1]}, {[6,1,8]}");
     }
 
     private void TestTermSearch(IFullTextIndex index, string query, string expected)

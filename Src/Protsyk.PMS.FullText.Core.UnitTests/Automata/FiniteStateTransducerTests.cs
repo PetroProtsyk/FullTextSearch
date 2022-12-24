@@ -1,5 +1,3 @@
-using Xunit;
-
 namespace Protsyk.PMS.FullText.Core.Automata.UnitTests;
 
 public class FiniteStateTransducerTests
