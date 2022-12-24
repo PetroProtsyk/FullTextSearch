@@ -1,177 +1,176 @@
 using System;
 using System.Runtime.InteropServices;
 
-namespace Protsyk.PMS.FullText.Core.Common.Compression
+namespace Protsyk.PMS.FullText.Core.Common.Compression;
+
+// Variation of Shannon Fano coding
+// https://en.wikipedia.org/wiki/Shannon%E2%80%93Fano_coding
+public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
 {
-    // Variation of Shannon Fano coding
-    // https://en.wikipedia.org/wiki/Shannon%E2%80%93Fano_coding
-    public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
+    private readonly int optimiziationType;
+
+    public BalancedByWeightBuilder()
+        : this(1)
     {
-        private readonly int optimiziationType;
+    }
 
-        public BalancedByWeightBuilder()
-            : this(1)
+    public BalancedByWeightBuilder(int type)
+    {
+        optimiziationType = type;
+    }
+
+    protected override VarLenCharEncoding DoBuild()
+    {
+        return new BalancedByWeightEncoding(DivEqually(CollectionsMarshal.AsSpan(symbols)));
+    }
+
+    private double Score(BaseNode n, int depth)
+    {
+        var d = n as Node;
+        if (d != null)
         {
+            return Score(d.left, depth + 1) + Score(d.right, depth + 1);
         }
 
-        public BalancedByWeightBuilder(int type)
+        var l = n as LeafNode;
+        if (l != null)
         {
-            optimiziationType = type;
+            return l.m * depth;
         }
 
-        protected override VarLenCharEncoding DoBuild()
+        throw new Exception("What?");
+    }
+
+    private BaseNode DivEqually(ReadOnlySpan<CharFrequency> v)
+    {
+        if (v.Length < 1)
+            throw new ArgumentException("Empty input");
+
+        Span<double> sums = v.Length <= 64
+            ? (stackalloc double[64]).Slice(0, v.Length)
+            : new double[v.Length];
+        
+        sums[0] = v[0].f;
+        for (int i=1; i<v.Length; ++i)
         {
-            return new BalancedByWeightEncoding(DivEqually(CollectionsMarshal.AsSpan(symbols)));
+            sums[i] = sums[i-1] + v[i].f;
         }
 
-        private double Score(BaseNode n, int depth)
+        return DivEqually(v, 0, v.Length, sums);
+    }
+
+    private BaseNode DivEqually(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
+    {
+        if (end - start <= 0)
         {
-            var d = n as Node;
-            if (d != null)
-            {
-                return Score(d.left, depth + 1) + Score(d.right, depth + 1);
-            }
-
-            var l = n as LeafNode;
-            if (l != null)
-            {
-                return l.m * depth;
-            }
-
-            throw new Exception("What?");
+            throw new ArgumentException();
+        }
+        
+        if (end - start == 1)
+        {
+            return new LeafNode {
+                v = v[start],
+                m = v[start].f
+            };
+        }
+        else if (end - start == 2)
+        {
+            var l = DivEqually(v, start, start + 1, sums);
+            var r = DivEqually(v, start + 1, end, sums);
+            return new Node {
+                left = l,
+                right = r,
+                m = l.m + r.m
+            };
         }
 
-        private BaseNode DivEqually(ReadOnlySpan<CharFrequency> v)
+        if (optimiziationType == 1)
         {
-            if (v.Length < 1)
-                throw new ArgumentException("Empty input");
-
-            Span<double> sums = v.Length <= 64
-                ? (stackalloc double[64]).Slice(0, v.Length)
-                : new double[v.Length];
-            
-            sums[0] = v[0].f;
-            for (int i=1; i<v.Length; ++i)
-            {
-                sums[i] = sums[i-1] + v[i].f;
-            }
-
-            return DivEqually(v, 0, v.Length, sums);
+            return DivRangeEquallyV1(v, start, end, sums);
         }
-
-        private BaseNode DivEqually(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
+        else
         {
-            if (end - start <= 0)
+            return DivRangeEquallyV2(v, start, end, sums);
+        }
+    }
+
+    private BaseNode DivRangeEquallyV1(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
+    {
+        var leftSum = (start > 0) ? sums[start - 1] : 0;
+        var mid = (sums[end - 1] - leftSum) / 2;
+
+        for (int i = start; i<end - 1; ++i)
+        {
+            var d1 = Math.Abs(mid - sums[i] + leftSum);
+            var d2 = Math.Abs(mid - sums[end - 1] + sums[i]);
+
+            var n1 = Math.Abs(mid - sums[i + 1] + leftSum);
+            var n2 = Math.Abs(mid - sums[end - 1] + sums[i + 1]);
+
+            // Is the distance to the center gets better?
+            if (d1 + d2 <= n1 + n2)
             {
-                throw new ArgumentException();
-            }
-            
-            if (end - start == 1)
-            {
-                return new LeafNode {
-                    v = v[start],
-                    m = v[start].f
-                };
-            }
-            else if (end - start == 2)
-            {
-                var l = DivEqually(v, start, start + 1, sums);
-                var r = DivEqually(v, start + 1, end, sums);
+                var l = DivEqually(v, start, i + 1, sums);
+                var r = DivEqually(v, i + 1, end, sums);
                 return new Node {
                     left = l,
                     right = r,
                     m = l.m + r.m
                 };
             }
+        }
 
-            if (optimiziationType == 1)
+        throw new Exception("Terrible");
+    }
+
+    private BaseNode DivRangeEquallyV2(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
+    {
+        var leftSum = (start > 0) ? sums[start - 1] : 0;
+        var mid = (sums[end - 1] - leftSum) / 2;
+
+        for (int i = start; i<end - 1; ++i)
+        {
+            if (((sums[i]-leftSum) <= (sums[end - 1] - sums[i]) && (sums[i+1]-leftSum) > (sums[end - 1] - sums[i+1])) ||
+                ((sums[i]-leftSum) > (sums[end - 1] - sums[i])))
             {
-                return DivRangeEquallyV1(v, start, end, sums);
+                var l = DivEqually(v, start, i + 1, sums);
+                var r = DivEqually(v, i + 1, end, sums);
+                return new Node {
+                    left = l,
+                    right = r,
+                    m = l.m + r.m
+                };
             }
-            else
-            {
-                return DivRangeEquallyV2(v, start, end, sums);
-            }
         }
 
-        private BaseNode DivRangeEquallyV1(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
+        throw new Exception("Terrible");
+    }
+
+
+    class BaseNode : IEncodingNode
+    {
+        public double m;
+    }
+
+    class Node : BaseNode, IEncodingTreeNode
+    {
+        public IEncodingNode Left => left;
+        public IEncodingNode Right => right;
+        public BaseNode left;
+        public BaseNode right;
+    }
+
+    class LeafNode : BaseNode, IEncodingLeafNode
+    {
+        public CharFrequency v;
+        public char V => v.c;
+    }
+
+    class BalancedByWeightEncoding : VarLenCharEncoding
+    {
+        public BalancedByWeightEncoding(IEncodingNode root)
+            : base(root)
         {
-            var leftSum = (start > 0) ? sums[start - 1] : 0;
-            var mid = (sums[end - 1] - leftSum) / 2;
-
-            for (int i = start; i<end - 1; ++i)
-            {
-                var d1 = Math.Abs(mid - sums[i] + leftSum);
-                var d2 = Math.Abs(mid - sums[end - 1] + sums[i]);
-
-                var n1 = Math.Abs(mid - sums[i + 1] + leftSum);
-                var n2 = Math.Abs(mid - sums[end - 1] + sums[i + 1]);
-
-                // Is the distance to the center gets better?
-                if (d1 + d2 <= n1 + n2)
-                {
-                    var l = DivEqually(v, start, i + 1, sums);
-                    var r = DivEqually(v, i + 1, end, sums);
-                    return new Node {
-                        left = l,
-                        right = r,
-                        m = l.m + r.m
-                    };
-                }
-            }
-
-            throw new Exception("Terrible");
-        }
-
-        private BaseNode DivRangeEquallyV2(ReadOnlySpan<CharFrequency> v, int start, int end, Span<double> sums)
-        {
-            var leftSum = (start > 0) ? sums[start - 1] : 0;
-            var mid = (sums[end - 1] - leftSum) / 2;
-
-            for (int i = start; i<end - 1; ++i)
-            {
-                if (((sums[i]-leftSum) <= (sums[end - 1] - sums[i]) && (sums[i+1]-leftSum) > (sums[end - 1] - sums[i+1])) ||
-                    ((sums[i]-leftSum) > (sums[end - 1] - sums[i])))
-                {
-                    var l = DivEqually(v, start, i + 1, sums);
-                    var r = DivEqually(v, i + 1, end, sums);
-                    return new Node {
-                        left = l,
-                        right = r,
-                        m = l.m + r.m
-                    };
-                }
-            }
-
-            throw new Exception("Terrible");
-        }
-
-
-        class BaseNode : IEncodingNode
-        {
-            public double m;
-        }
-
-        class Node : BaseNode, IEncodingTreeNode
-        {
-            public IEncodingNode Left => left;
-            public IEncodingNode Right => right;
-            public BaseNode left;
-            public BaseNode right;
-        }
-
-        class LeafNode : BaseNode, IEncodingLeafNode
-        {
-            public CharFrequency v;
-            public char V => v.c;
-        }
-
-        class BalancedByWeightEncoding : VarLenCharEncoding
-        {
-            public BalancedByWeightEncoding(IEncodingNode root)
-                : base(root)
-            {
-            }
         }
     }
 }
