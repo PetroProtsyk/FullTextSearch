@@ -4,34 +4,33 @@ using System.IO;
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+internal sealed class PersistentMetadataHashTable : IMetadataStorage<string>
 {
-    internal sealed class PersistentMetadataHashTable : IMetadataStorage<string>
+    private const int InitialHashCapacity = 65536;
+
+    public static readonly string Id = "HashTable";
+
+    private readonly PersistentHashTable<ulong, string> fields;
+
+    public PersistentMetadataHashTable(string folder, string fileNameFields)
     {
-        private const int InitialHashCapacity = 65536;
+        fields = new PersistentHashTable<ulong, string>(new FileStorage(Path.Combine(folder, fileNameFields)), InitialHashCapacity, EqualityComparer<ulong>.Default);
+    }
 
-        public static readonly string Id = "HashTable";
+    public string GetMetadata(ulong id)
+    {
+        return fields[id];
+    }
 
-        private readonly PersistentHashTable<ulong, string> fields;
+    public void SaveMetadata(ulong id, string data)
+    {
+        fields[id] = data;
+    }
 
-        public PersistentMetadataHashTable(string folder, string fileNameFields)
-        {
-            fields = new PersistentHashTable<ulong, string>(new FileStorage(Path.Combine(folder, fileNameFields)), InitialHashCapacity, EqualityComparer<ulong>.Default);
-        }
-
-        public string GetMetadata(ulong id)
-        {
-            return fields[id];
-        }
-
-        public void SaveMetadata(ulong id, string data)
-        {
-            fields[id] = data;
-        }
-
-        public void Dispose()
-        {
-            fields?.Dispose();
-        }
+    public void Dispose()
+    {
+        fields?.Dispose();
     }
 }

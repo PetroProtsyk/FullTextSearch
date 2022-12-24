@@ -3,38 +3,37 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public class PostingListArray : IPostingList
 {
-    public class PostingListArray : IPostingList
+    private readonly Occurrence[] values;
+
+    public PostingListArray(Occurrence[] values)
     {
-        private readonly Occurrence[] values;
+        this.values = values;
+    }
 
-        public PostingListArray(Occurrence[] values)
-        {
-            this.values = values;
-        }
+    public override string ToString()
+    {
+        return string.Join(", ", values);
+    }
 
-        public override string ToString()
-        {
-            return string.Join(", ", values);
-        }
+    public IEnumerator<Occurrence> GetEnumerator()
+    {
+        return values.AsEnumerable().GetEnumerator();
+    }
 
-        public IEnumerator<Occurrence> GetEnumerator()
-        {
-            return values.AsEnumerable().GetEnumerator();
-        }
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
+    }
 
-        IEnumerator IEnumerable.GetEnumerator()
-        {
-            return GetEnumerator();
-        }
-
-        public static IPostingList Parse(string text)
-        {
-            return new PostingListArray(text
-                                            .Split(new string[] {", "}, StringSplitOptions.RemoveEmptyEntries)
-                                            .Select(Occurrence.Parse)
-                                            .ToArray());
-        }
+    public static IPostingList Parse(string text)
+    {
+        return new PostingListArray(text
+                                        .Split(new string[] {", "}, StringSplitOptions.RemoveEmptyEntries)
+                                        .Select(Occurrence.Parse)
+                                        .ToArray());
     }
 }

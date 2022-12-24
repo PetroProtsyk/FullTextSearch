@@ -1,15 +1,14 @@
 ﻿using System;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public interface IOccurrenceWriter : IDisposable
 {
-    public interface IOccurrenceWriter : IDisposable
-    {
-        void StartList(string token);
+    void StartList(string token);
 
-        void AddOccurrence(Occurrence occurrence);
+    void AddOccurrence(Occurrence occurrence);
 
-        PostingListAddress EndList();
+    PostingListAddress EndList();
 
-        void UpdateNextList(PostingListAddress address, PostingListAddress nextList);
-    }
+    void UpdateNextList(PostingListAddress address, PostingListAddress nextList);
 }

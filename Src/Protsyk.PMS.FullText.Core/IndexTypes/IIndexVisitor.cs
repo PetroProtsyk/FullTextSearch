@@ -1,9 +1,6 @@
-﻿using System;
+﻿namespace Protsyk.PMS.FullText.Core;
 
-namespace Protsyk.PMS.FullText.Core
+public interface IIndexVisitor
 {
-    public interface IIndexVisitor
-    {
-        bool VisitTerm(DictionaryTerm term);
-    }
+    bool VisitTerm(DictionaryTerm term);
 }

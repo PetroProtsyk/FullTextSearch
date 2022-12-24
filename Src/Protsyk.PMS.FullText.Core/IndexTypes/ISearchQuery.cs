@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public interface ISearchQuery : IDisposable
 {
-    public interface ISearchQuery : IDisposable
-    {
-        IMatch NextMatch();
-    }
+    IMatch NextMatch();
 }

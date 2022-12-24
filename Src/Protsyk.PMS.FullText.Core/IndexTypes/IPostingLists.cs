@@ -1,9 +1,8 @@
 ﻿using System;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public interface IPostingLists : IDisposable
 {
-    public interface IPostingLists : IDisposable
-    {
-        IPostingList Get(PostingListAddress address);
-    }
+    IPostingList Get(PostingListAddress address);
 }

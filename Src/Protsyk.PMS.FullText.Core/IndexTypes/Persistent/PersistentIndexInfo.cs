@@ -4,56 +4,55 @@ using System.Text.Json;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+internal sealed class PersistentIndexInfo : IDisposable
 {
-    internal sealed class PersistentIndexInfo : IDisposable
+    private readonly FileStorage persistentStorage;
+
+    public static bool Exists(string folder, string fileName)
     {
-        private readonly FileStorage persistentStorage;
+        return FileStorage.Exists(Path.Combine(folder, fileName));
+    }
 
-        public static bool Exists(string folder, string fileName)
+    public PersistentIndexInfo(string folder, string fileName)
+    {
+        persistentStorage = new FileStorage(Path.Combine(folder, fileName));
+    }
+
+    public IndexHeaderData Read()
+    {
+        if (persistentStorage.Length == 0)
         {
-            return FileStorage.Exists(Path.Combine(folder, fileName));
+            return null;
         }
 
-        public PersistentIndexInfo(string folder, string fileName)
+        var buffer = new byte[persistentStorage.Length];
+        persistentStorage.ReadAll(0, buffer);
+
+        var result = JsonSerializer.Deserialize<IndexHeaderData>(buffer);
+        return result;
+    }
+
+    public void Write(IFullTextIndexHeader header)
+    {
+        var headerData = new IndexHeaderData
         {
-            persistentStorage = new FileStorage(Path.Combine(folder, fileName));
-        }
+            Type = header.Type,
+            MaxTokenSize = header.MaxTokenSize,
+            NextDocumentId = header.NextDocumentId,
+            CreatedDate = header.CreatedDate,
+            ModifiedDate = header.ModifiedDate,
+        };
 
-        public IndexHeaderData Read()
-        {
-            if (persistentStorage.Length == 0)
-            {
-                return null;
-            }
+        var data = JsonSerializer.SerializeToUtf8Bytes(headerData, new JsonSerializerOptions() { WriteIndented = true });
 
-            var buffer = new byte[persistentStorage.Length];
-            persistentStorage.ReadAll(0, buffer);
+        persistentStorage.Truncate(data.Length);
+        persistentStorage.WriteAll(0, data);
+    }
 
-            var result = JsonSerializer.Deserialize<IndexHeaderData>(buffer);
-            return result;
-        }
-
-        public void Write(IFullTextIndexHeader header)
-        {
-            var headerData = new IndexHeaderData
-            {
-                Type = header.Type,
-                MaxTokenSize = header.MaxTokenSize,
-                NextDocumentId = header.NextDocumentId,
-                CreatedDate = header.CreatedDate,
-                ModifiedDate = header.ModifiedDate,
-            };
-
-            var data = JsonSerializer.SerializeToUtf8Bytes(headerData, new JsonSerializerOptions() { WriteIndented = true });
-
-            persistentStorage.Truncate(data.Length);
-            persistentStorage.WriteAll(0, data);
-        }
-
-        public void Dispose()
-        {
-            persistentStorage?.Dispose();
-        }
+    public void Dispose()
+    {
+        persistentStorage?.Dispose();
     }
 }

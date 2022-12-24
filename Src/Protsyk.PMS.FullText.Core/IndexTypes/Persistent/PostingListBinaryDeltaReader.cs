@@ -5,347 +5,220 @@ using System.Collections.Generic;
 using System.IO;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public class PostingListBinaryDeltaReader : IOccurrenceReader
 {
-    public class PostingListBinaryDeltaReader : IOccurrenceReader
+    #region Fields
+    internal static readonly int ReadBufferSize = 4096;
+
+    private readonly IPersistentStorage persistentStorage;
+    #endregion
+
+    public PostingListBinaryDeltaReader(string folder, string fileNamePostingLists)
+        : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
     {
-        #region Fields
-        internal static readonly int ReadBufferSize = 4096;
+    }
 
-        private readonly IPersistentStorage persistentStorage;
-        #endregion
+    public PostingListBinaryDeltaReader(IPersistentStorage storage)
+    {
+        this.persistentStorage = storage;
+    }
 
-        public PostingListBinaryDeltaReader(string folder, string fileNamePostingLists)
-            : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
+    #region API
+    public IPostingList Get(PostingListAddress address)
+    {
+        // return GetBasic(address);
+        return new PostingListReaderImpl(persistentStorage, address);
+    }
+    #endregion
+
+    #region ReaderEnumerator
+    private class PostingListReaderImpl : IPostingList
+    {
+        private readonly IPersistentStorage storage;
+        private readonly PostingListAddress address;
+
+        public PostingListReaderImpl(IPersistentStorage storage, PostingListAddress address)
         {
+            this.storage = storage;
+            this.address = address;
         }
 
-        public PostingListBinaryDeltaReader(IPersistentStorage storage)
+        public IEnumerator<Occurrence> GetEnumerator()
+        {
+            return new ReaderEnumerator(storage, address);
+        }
+
+        IEnumerator IEnumerable.GetEnumerator()
+        {
+            return GetEnumerator();
+        }
+    }
+
+    private class ReaderEnumerator : IEnumerator<Occurrence>
+    {
+        private const int HeaderLength = sizeof(long) + sizeof(int);
+        private readonly IPersistentStorage persistentStorage;
+        private readonly PostingListAddress address;
+        private long readOffset;
+        private readonly byte[] buffer;
+        private readonly int[] selectors;
+        private int dataInBuffer;
+        private int indxInBuffer;
+        private bool isEof;
+        private long continuationOffset;
+        private long listEndOffset;
+        private uint deltaSelector;
+        private int selectorIndex; // Selector for GroupVarInt
+        private int state;
+        private Occurrence current;
+
+        public ReaderEnumerator(IPersistentStorage storage, PostingListAddress address)
         {
             this.persistentStorage = storage;
+            this.address = address;
+            this.buffer = new byte[ReadBufferSize];
+            this.selectors = new int[4];
+            this.selectorIndex = 4;
+            Reset();
         }
 
-        #region API
-        public IPostingList Get(PostingListAddress address)
+        public Occurrence Current => current;
+
+        object IEnumerator.Current => current;
+
+        public void Dispose()
         {
-            // return GetBasic(address);
-            return new PostingListReaderImpl(persistentStorage, address);
-        }
-        #endregion
-
-        #region ReaderEnumerator
-        private class PostingListReaderImpl : IPostingList
-        {
-            private readonly IPersistentStorage storage;
-            private readonly PostingListAddress address;
-
-            public PostingListReaderImpl(IPersistentStorage storage, PostingListAddress address)
-            {
-                this.storage = storage;
-                this.address = address;
-            }
-
-            public IEnumerator<Occurrence> GetEnumerator()
-            {
-                return new ReaderEnumerator(storage, address);
-            }
-
-            IEnumerator IEnumerable.GetEnumerator()
-            {
-                return GetEnumerator();
-            }
         }
 
-        private class ReaderEnumerator : IEnumerator<Occurrence>
+        private bool EnsureBuffer(int size)
         {
-            private const int HeaderLength = sizeof(long) + sizeof(int);
-            private readonly IPersistentStorage persistentStorage;
-            private readonly PostingListAddress address;
-            private long readOffset;
-            private readonly byte[] buffer;
-            private readonly int[] selectors;
-            private int dataInBuffer;
-            private int indxInBuffer;
-            private bool isEof;
-            private long continuationOffset;
-            private long listEndOffset;
-            private uint deltaSelector;
-            private int selectorIndex; // Selector for GroupVarInt
-            private int state;
-            private Occurrence current;
-
-            public ReaderEnumerator(IPersistentStorage storage, PostingListAddress address)
+            if (isEof)
             {
-                this.persistentStorage = storage;
-                this.address = address;
-                this.buffer = new byte[ReadBufferSize];
-                this.selectors = new int[4];
-                this.selectorIndex = 4;
-                Reset();
+                return (size <= (dataInBuffer - indxInBuffer));
             }
 
-            public Occurrence Current => current;
-
-            object IEnumerator.Current => current;
-
-            public void Dispose()
+            if (size > buffer.Length)
             {
+                throw new Exception("Resize buffer");
             }
 
-            private bool EnsureBuffer(int size)
+            if (indxInBuffer + size >= dataInBuffer)
             {
-                if (isEof)
+                Array.Copy(buffer, indxInBuffer, buffer, 0, dataInBuffer - indxInBuffer);
+                dataInBuffer -= indxInBuffer;
+                indxInBuffer = 0;
+                var toRead = (int)Math.Min(buffer.Length - dataInBuffer, (listEndOffset - readOffset));
+                if (toRead == 0)
                 {
-                    return (size <= (dataInBuffer - indxInBuffer));
+                    isEof = true;
                 }
-
-                if (size > buffer.Length)
+                else
                 {
-                    throw new Exception("Resize buffer");
+                    persistentStorage.ReadAll(readOffset, buffer.AsSpan(dataInBuffer, toRead));
+                    readOffset += toRead;
+                    dataInBuffer += toRead;
                 }
-
-                if (indxInBuffer + size >= dataInBuffer)
-                {
-                    Array.Copy(buffer, indxInBuffer, buffer, 0, dataInBuffer - indxInBuffer);
-                    dataInBuffer -= indxInBuffer;
-                    indxInBuffer = 0;
-                    var toRead = (int)Math.Min(buffer.Length - dataInBuffer, (listEndOffset - readOffset));
-                    if (toRead == 0)
-                    {
-                        isEof = true;
-                    }
-                    else
-                    {
-                        persistentStorage.ReadAll(readOffset, buffer.AsSpan(dataInBuffer, toRead));
-                        readOffset += toRead;
-                        dataInBuffer += toRead;
-                    }
-                    return (size <= dataInBuffer);
-                }
-
-                return true;
+                return (size <= dataInBuffer);
             }
 
-            private int NextInteger()
+            return true;
+        }
+
+        private int NextInteger()
+        {
+            if (selectorIndex == 4)
             {
-                if (selectorIndex == 4)
-                {
-                    if (!EnsureBuffer(1))
-                    {
-                        throw new Exception("Wrong data");
-                    }
-
-                    int selector = (int)buffer[indxInBuffer++];
-                    selectors[3] = (selector & 0b11) + 1;
-                    selectors[2] = ((selector >> 2) & 0b11) + 1;
-                    selectors[1] = ((selector >> 4) & 0b11) + 1;
-                    selectors[0] = ((selector >> 6) & 0b11) + 1;
-                    selectorIndex = 0;
-                }
-
-                if (!EnsureBuffer(selectors[selectorIndex]))
+                if (!EnsureBuffer(1))
                 {
                     throw new Exception("Wrong data");
                 }
 
-                var result = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selectors[selectorIndex]);
-                indxInBuffer += selectors[selectorIndex];
-                selectorIndex++;
-                return result;
+                int selector = (int)buffer[indxInBuffer++];
+                selectors[3] = (selector & 0b11) + 1;
+                selectors[2] = ((selector >> 2) & 0b11) + 1;
+                selectors[1] = ((selector >> 4) & 0b11) + 1;
+                selectors[0] = ((selector >> 6) & 0b11) + 1;
+                selectorIndex = 0;
             }
 
-
-            public bool MoveNext()
+            if (!EnsureBuffer(selectors[selectorIndex]))
             {
-                while (true)
+                throw new Exception("Wrong data");
+            }
+
+            var result = GroupVarint.ReadInt(buffer.AsSpan(indxInBuffer), selectors[selectorIndex]);
+            indxInBuffer += selectors[selectorIndex];
+            selectorIndex++;
+            return result;
+        }
+
+
+        public bool MoveNext()
+        {
+            while (true)
+            {
+                if (state == 0)
                 {
-                    if (state == 0)
+                    if (continuationOffset > 0)
                     {
-                        if (continuationOffset > 0)
-                        {
-                            readOffset = continuationOffset;
-                            isEof = false;
-                            dataInBuffer = 0;
-                            indxInBuffer = 0;
-                        }
-
-                        if (isEof)
-                        {
-                            return false;
-                        }
-
-                        var buffer = new byte[HeaderLength];
-                        persistentStorage.ReadAll(readOffset, buffer);
-
-                        continuationOffset = BitConverter.ToInt64(buffer, 0);
-                        listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(buffer, sizeof(long));
-
-                        readOffset += buffer.Length;
-                        state = 1;
-                        selectorIndex = 4;
+                        readOffset = continuationOffset;
+                        isEof = false;
+                        dataInBuffer = 0;
+                        indxInBuffer = 0;
                     }
 
-                    if (state == 1)
+                    if (isEof)
                     {
-                        current = Occurrence.O((ulong)NextInteger(),
-                                               (ulong)NextInteger(),
-                                               (ulong)NextInteger());
-                        state = 2;
-                        return true;
+                        return false;
                     }
 
-                    if (state == 2)
+                    var buffer = new byte[HeaderLength];
+                    persistentStorage.ReadAll(readOffset, buffer);
+
+                    continuationOffset = BitConverter.ToInt64(buffer, 0);
+                    listEndOffset = readOffset + HeaderLength + BitConverter.ToInt32(buffer, sizeof(long));
+
+                    readOffset += buffer.Length;
+                    state = 1;
+                    selectorIndex = 4;
+                }
+
+                if (state == 1)
+                {
+                    current = Occurrence.O((ulong)NextInteger(),
+                                           (ulong)NextInteger(),
+                                           (ulong)NextInteger());
+                    state = 2;
+                    return true;
+                }
+
+                if (state == 2)
+                {
+                    if (isEof && indxInBuffer >= dataInBuffer)
                     {
-                        if (isEof && indxInBuffer >= dataInBuffer)
+                        state = 0;
+                    }
+                    else
+                    {
+                        deltaSelector = (uint)NextInteger();
+
+                        if (deltaSelector == 0)
                         {
                             state = 0;
                         }
                         else
                         {
-                            deltaSelector = (uint)NextInteger();
-
-                            if (deltaSelector == 0)
-                            {
-                                state = 0;
-                            }
-                            else
-                            {
-                                state = 3;
-                            }
+                            state = 3;
                         }
                     }
-
-                    if (state == 3)
-                    {
-                        int delta = (int)(deltaSelector & 0b00000011);
-                        deltaSelector >>= 2;
-
-                        switch (delta)
-                        {
-                            case 0:
-                                {
-                                    throw new Exception("Zero delta is not used, see comments in DeltaWriter");
-                                }
-                            case 1:
-                                {
-                                    var deltaToken = (ulong)NextInteger();
-                                    current = Occurrence.O(current.DocumentId,
-                                                           current.FieldId,
-                                                           current.TokenId + deltaToken);
-                                    break;
-                                }
-                            case 2:
-                                {
-                                    var deltaFieldId = (ulong)NextInteger();
-                                    var token = (ulong)NextInteger();
-                                    current = Occurrence.O(current.DocumentId,
-                                                           current.FieldId + deltaFieldId,
-                                                           token);
-                                    break;
-                                }
-                            case 3:
-                                {
-                                    var deltaDocId = (ulong)NextInteger();
-                                    var fieldId = (ulong)NextInteger();
-                                    var token = (ulong)NextInteger();
-
-                                    current = Occurrence.O(current.DocumentId + deltaDocId,
-                                                           fieldId,
-                                                           token);
-                                    break;
-                                }
-                            default:
-                                {
-                                    throw new Exception("Something wrong");
-                                }
-                        }
-
-                        if (deltaSelector == 0)
-                        {
-                            state = 2;
-                        }
-
-                        return true;
-                    }
                 }
-            }
 
-            public void Reset()
-            {
-                state = 0;
-                dataInBuffer = 0;
-                indxInBuffer = 0;
-                readOffset = address.Offset;
-                isEof = false;
-                listEndOffset = 0;
-                continuationOffset = 0;
-                selectorIndex = 4;
-            }
-        }
-        #endregion
-
-        #region IDisposable
-        public void Dispose()
-        {
-            persistentStorage?.Dispose();
-        }
-        #endregion
-
-        #region API
-        // TODO: Need unit test for this
-        public IPostingList GetBasic(PostingListAddress address)
-        {
-            var offset = address.Offset;
-            Span<byte> buffer = stackalloc byte[8 + 4];
-            var occurrences = new List<Occurrence>();
-
-            while (true)
-            {
-                persistentStorage.ReadAll(offset, buffer);
-
-                long continuationOffset = BinaryPrimitives.ReadInt64LittleEndian(buffer);
-                int length = BinaryPrimitives.ReadInt32LittleEndian(buffer[8..]);
-
-                var dataBuffer = new byte[length];
-                persistentStorage.ReadAll(offset + sizeof(long) + sizeof(int), dataBuffer);
-
-                ParseBufferTo(dataBuffer, occurrences);
-
-                if (continuationOffset == 0)
-                {
-                    break;
-                }
-                else
-                {
-                    offset = continuationOffset;
-                }
-            }
-
-            return new PostingListArray(occurrences.ToArray());
-        }
-
-        private static void ParseBufferTo(ReadOnlySpan<byte> buffer, List<Occurrence> occurrences)
-        {
-            var numbers = GroupVarint.Decode(buffer);
-
-            var o = new Occurrence((ulong)numbers[0],
-                                   (ulong)numbers[1],
-                                   (ulong)numbers[2]);
-            occurrences.Add(o);
-            int i = 3;
-            while (i < numbers.Count)
-            {
-                uint deltaSelector = (uint)numbers[i];
-                ++i;
-                while (deltaSelector > 0)
+                if (state == 3)
                 {
                     int delta = (int)(deltaSelector & 0b00000011);
                     deltaSelector >>= 2;
-
-                    if (i + delta > numbers.Count)
-                    {
-                        throw new Exception("Attempt to read above data");
-                    }
 
                     switch (delta)
                     {
@@ -355,23 +228,30 @@ namespace Protsyk.PMS.FullText.Core
                             }
                         case 1:
                             {
-                                o = Occurrence.O(o.DocumentId, o.FieldId, o.TokenId + (ulong)numbers[i]);
-                                i += 1;
-                                occurrences.Add(o);
+                                var deltaToken = (ulong)NextInteger();
+                                current = Occurrence.O(current.DocumentId,
+                                                       current.FieldId,
+                                                       current.TokenId + deltaToken);
                                 break;
                             }
                         case 2:
                             {
-                                o = Occurrence.O(o.DocumentId, o.FieldId + (ulong)numbers[i], (ulong)numbers[i + 1]);
-                                i += 2;
-                                occurrences.Add(o);
+                                var deltaFieldId = (ulong)NextInteger();
+                                var token = (ulong)NextInteger();
+                                current = Occurrence.O(current.DocumentId,
+                                                       current.FieldId + deltaFieldId,
+                                                       token);
                                 break;
                             }
                         case 3:
                             {
-                                o = Occurrence.O(o.DocumentId + (ulong)numbers[i], (ulong)numbers[i + 1], (ulong)numbers[i + 2]);
-                                i += 3;
-                                occurrences.Add(o);
+                                var deltaDocId = (ulong)NextInteger();
+                                var fieldId = (ulong)NextInteger();
+                                var token = (ulong)NextInteger();
+
+                                current = Occurrence.O(current.DocumentId + deltaDocId,
+                                                       fieldId,
+                                                       token);
                                 break;
                             }
                         default:
@@ -379,10 +259,129 @@ namespace Protsyk.PMS.FullText.Core
                                 throw new Exception("Something wrong");
                             }
                     }
+
+                    if (deltaSelector == 0)
+                    {
+                        state = 2;
+                    }
+
+                    return true;
                 }
             }
         }
 
-        #endregion
+        public void Reset()
+        {
+            state = 0;
+            dataInBuffer = 0;
+            indxInBuffer = 0;
+            readOffset = address.Offset;
+            isEof = false;
+            listEndOffset = 0;
+            continuationOffset = 0;
+            selectorIndex = 4;
+        }
     }
+    #endregion
+
+    #region IDisposable
+    public void Dispose()
+    {
+        persistentStorage?.Dispose();
+    }
+    #endregion
+
+    #region API
+    // TODO: Need unit test for this
+    public IPostingList GetBasic(PostingListAddress address)
+    {
+        var offset = address.Offset;
+        Span<byte> buffer = stackalloc byte[8 + 4];
+        var occurrences = new List<Occurrence>();
+
+        while (true)
+        {
+            persistentStorage.ReadAll(offset, buffer);
+
+            long continuationOffset = BinaryPrimitives.ReadInt64LittleEndian(buffer);
+            int length = BinaryPrimitives.ReadInt32LittleEndian(buffer[8..]);
+
+            var dataBuffer = new byte[length];
+            persistentStorage.ReadAll(offset + sizeof(long) + sizeof(int), dataBuffer);
+
+            ParseBufferTo(dataBuffer, occurrences);
+
+            if (continuationOffset == 0)
+            {
+                break;
+            }
+            else
+            {
+                offset = continuationOffset;
+            }
+        }
+
+        return new PostingListArray(occurrences.ToArray());
+    }
+
+    private static void ParseBufferTo(ReadOnlySpan<byte> buffer, List<Occurrence> occurrences)
+    {
+        var numbers = GroupVarint.Decode(buffer);
+
+        var o = new Occurrence((ulong)numbers[0],
+                               (ulong)numbers[1],
+                               (ulong)numbers[2]);
+        occurrences.Add(o);
+        int i = 3;
+        while (i < numbers.Count)
+        {
+            uint deltaSelector = (uint)numbers[i];
+            ++i;
+            while (deltaSelector > 0)
+            {
+                int delta = (int)(deltaSelector & 0b00000011);
+                deltaSelector >>= 2;
+
+                if (i + delta > numbers.Count)
+                {
+                    throw new Exception("Attempt to read above data");
+                }
+
+                switch (delta)
+                {
+                    case 0:
+                        {
+                            throw new Exception("Zero delta is not used, see comments in DeltaWriter");
+                        }
+                    case 1:
+                        {
+                            o = Occurrence.O(o.DocumentId, o.FieldId, o.TokenId + (ulong)numbers[i]);
+                            i += 1;
+                            occurrences.Add(o);
+                            break;
+                        }
+                    case 2:
+                        {
+                            o = Occurrence.O(o.DocumentId, o.FieldId + (ulong)numbers[i], (ulong)numbers[i + 1]);
+                            i += 2;
+                            occurrences.Add(o);
+                            break;
+                        }
+                    case 3:
+                        {
+                            o = Occurrence.O(o.DocumentId + (ulong)numbers[i], (ulong)numbers[i + 1], (ulong)numbers[i + 2]);
+                            i += 3;
+                            occurrences.Add(o);
+                            break;
+                        }
+                    default:
+                        {
+                            throw new Exception("Something wrong");
+                        }
+                }
+            }
+        }
+    }
+
+    #endregion
 }
