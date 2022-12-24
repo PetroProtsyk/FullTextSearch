@@ -23,5 +23,9 @@
   <ItemGroup>
     <ProjectReference Include="..\Protsyk.PMS.FullText.Core\Protsyk.PMS.FullText.Core.csproj" />
   </ItemGroup>
+	
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
 
 </Project>
