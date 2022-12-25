@@ -1,202 +1,201 @@
 ﻿using System;
-using System.Linq;
 using System.Collections.Generic;
+using System.Linq;
 using System.Runtime.InteropServices;
 
-namespace Protsyk.PMS.FullText.Core.Common.Compression
+namespace Protsyk.PMS.FullText.Core.Common.Compression;
+
+// http://www-math.mit.edu/~shor/PAM/hu-tucker_algorithm.html
+public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
 {
-    // http://www-math.mit.edu/~shor/PAM/hu-tucker_algorithm.html
-    public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
+    protected override VarLenCharEncoding DoBuild()
     {
-        protected override VarLenCharEncoding DoBuild()
-        {
-            var input = symbols;
-            var combine = Combine(CollectionsMarshal.AsSpan(input)).ToArray();
+        var input = symbols;
+        var combine = Combine(CollectionsMarshal.AsSpan(input)).ToArray();
 
-            // Rebuild tree based on the depth
-            var nodes = Enumerable.Range(0, input.Count).Select(v => new Leaf { index = v, c = input[v].c, freq = input[v].f }).Cast<Node>().ToArray();
+        // Rebuild tree based on the depth
+        var nodes = Enumerable.Range(0, input.Count).Select(v => new Leaf { index = v, c = input[v].c, freq = input[v].f }).Cast<Node>().ToArray();
 
-            // TODO: Use heap
-            var heap = new SortedSet<ValueTuple<int, int>>(combine,
-                                                            Comparer<(int, int)>.Create((x, y) =>
+        // TODO: Use heap
+        var heap = new SortedSet<ValueTuple<int, int>>(combine,
+                                                        Comparer<(int, int)>.Create((x, y) =>
+                                                        {
+                                                            if (x.Item2 == y.Item2)
                                                             {
-                                                                if (x.Item2 == y.Item2)
-                                                                {
-                                                                    return x.Item1 - y.Item1;
-                                                                }
+                                                                return x.Item1 - y.Item1;
+                                                            }
 
-                                                                return y.Item2 - x.Item2;
-                                                            }));
+                                                            return y.Item2 - x.Item2;
+                                                        }));
 
-            while (heap.Count > 1)
+        while (heap.Count > 1)
+        {
+            var m1 = heap.Min;
+            heap.Remove(m1);
+
+            var m2 = heap.Min;
+            heap.Remove(m2);
+
+            if (m1.Item2 != m2.Item2)
             {
-                var m1 = heap.Min;
-                heap.Remove(m1);
-
-                var m2 = heap.Min;
-                heap.Remove(m2);
-
-                if (m1.Item2 != m2.Item2)
-                {
-                    throw new Exception("What?");
-                }
-
-                var f1 = GetFrequency(nodes[m1.Item1]);
-                var f2 = GetFrequency(nodes[m2.Item1]);
-
-                nodes[m1.Item1] = new MergeNode
-                {
-                    left = nodes[m1.Item1],
-                    right = nodes[m2.Item1],
-                    freq = f1 + f2
-                };
-
-                heap.Add(new ValueTuple<int, int>(m1.Item1, m1.Item2 - 1));
+                throw new Exception("What?");
             }
 
-            return new HuTuckerEncoding(nodes[heap.Single().Item1]);
+            var f1 = GetFrequency(nodes[m1.Item1]);
+            var f2 = GetFrequency(nodes[m2.Item1]);
+
+            nodes[m1.Item1] = new MergeNode
+            {
+                left = nodes[m1.Item1],
+                right = nodes[m2.Item1],
+                freq = f1 + f2
+            };
+
+            heap.Add(new ValueTuple<int, int>(m1.Item1, m1.Item2 - 1));
         }
 
-        private ValueTuple<int, int>[] Combine(ReadOnlySpan<CharFrequency> input)
+        return new HuTuckerEncoding(nodes[heap.Single().Item1]);
+    }
+
+    private ValueTuple<int, int>[] Combine(ReadOnlySpan<CharFrequency> input)
+    {
+        if (input == null || input.Length < 2)
         {
-            if (input == null || input.Length < 2)
+            throw new ArgumentException("Input should have at least two items", nameof(input));
+        }
+
+        // Merge compatible blocks b1 and b2 with the lowest combined frequency until all blocks are merged
+        // Blocks are compatible if there are no original blocks (leaves) left between them
+        var list = new LinkedList<Node>();
+
+        for (int i = 0; i < input.Length; i++)
+        {
+            list.AddLast(new Leaf { 
+                index = i,
+                c = input[i].c, 
+                freq = input[i].f 
+            });
+        }
+
+        while (list.Count > 1)
+        {
+            LinkedListNode<Node> b1 = null;
+            LinkedListNode<Node> b2 = null;
+            int bestF = int.MaxValue;
+
+            var n1 = list.First;
+
+            while (n1 != null)
             {
-                throw new ArgumentException("Input should have at least two items", nameof(input));
-            }
-
-            // Merge compatible blocks b1 and b2 with the lowest combined frequency until all blocks are merged
-            // Blocks are compatible if there are no original blocks (leaves) left between them
-            var list = new LinkedList<Node>();
-
-            for (int i = 0; i < input.Length; i++)
-            {
-                list.AddLast(new Leaf { 
-                    index = i,
-                    c = input[i].c, 
-                    freq = input[i].f 
-                });
-            }
-
-            while (list.Count > 1)
-            {
-                LinkedListNode<Node> b1 = null;
-                LinkedListNode<Node> b2 = null;
-                int bestF = int.MaxValue;
-
-                var n1 = list.First;
-
-                while (n1 != null)
+                var n2 = n1.Next;
+                while (n2 != null)
                 {
-                    var n2 = n1.Next;
-                    while (n2 != null)
+                    var f1 = GetFrequency(n1.Value);
+                    var f2 = GetFrequency(n2.Value);
+
+                    if (f1 + f2 < bestF)
                     {
-                        var f1 = GetFrequency(n1.Value);
-                        var f2 = GetFrequency(n2.Value);
-
-                        if (f1 + f2 < bestF)
-                        {
-                            bestF = f1 + f2;
-                            b1 = n1;
-                            b2 = n2;
-                        }
-
-                        if (n2.Value is Leaf)
-                        {
-                            break;
-                        }
-
-                        n2 = n2.Next;
+                        bestF = f1 + f2;
+                        b1 = n1;
+                        b2 = n2;
                     }
 
-                    n1 = n1.Next;
+                    if (n2.Value is Leaf)
+                    {
+                        break;
+                    }
+
+                    n2 = n2.Next;
                 }
 
-                list.AddBefore(b1, new MergeNode
-                {
-                    left = b1.Value,
-                    right = b2.Value,
-                    freq = bestF
-                });
-                list.Remove(b1);
-                list.Remove(b2);
+                n1 = n1.Next;
             }
 
-            // Label each input item with the depth in the tree
-            var depth = new int[input.Length];
-            var s = new Stack<ValueTuple<Node, int>>();
-            s.Push(new ValueTuple<Node, int>(list.Single(), 0));
-            while (s.Count > 0)
+            list.AddBefore(b1, new MergeNode
             {
-                var current = s.Pop();
-
-                var leaf = current.Item1 as Leaf;
-                if (leaf != null)
-                {
-                    depth[leaf.index] = current.Item2;
-                }
-
-                var merge = current.Item1 as MergeNode;
-                if (merge != null)
-                {
-                    s.Push(new ValueTuple<Node, int>(merge.left, current.Item2 + 1));
-                    s.Push(new ValueTuple<Node, int>(merge.right, current.Item2 + 1));
-                }
-            }
-
-            var result = new ValueTuple<int, int>[input.Length];
-            for (int i = 0; i < input.Length; ++i)
-            {
-                result[i] = new ValueTuple<int, int>(i, depth[i]);
-            }
-            return result;
+                left = b1.Value,
+                right = b2.Value,
+                freq = bestF
+            });
+            list.Remove(b1);
+            list.Remove(b2);
         }
 
-        private int GetFrequency(Node node)
+        // Label each input item with the depth in the tree
+        var depth = new int[input.Length];
+        var s = new Stack<ValueTuple<Node, int>>();
+        s.Push(new ValueTuple<Node, int>(list.Single(), 0));
+        while (s.Count > 0)
         {
-            var leaf = node as Leaf;
+            var current = s.Pop();
+
+            var leaf = current.Item1 as Leaf;
             if (leaf != null)
             {
-                return leaf.freq;
+                depth[leaf.index] = current.Item2;
             }
 
-            var merge = node as MergeNode;
+            var merge = current.Item1 as MergeNode;
             if (merge != null)
             {
-                return merge.freq;
+                s.Push(new ValueTuple<Node, int>(merge.left, current.Item2 + 1));
+                s.Push(new ValueTuple<Node, int>(merge.right, current.Item2 + 1));
             }
-
-            throw new Exception();
         }
 
-        abstract class Node : IEncodingNode
+        var result = new ValueTuple<int, int>[input.Length];
+        for (int i = 0; i < input.Length; ++i)
         {
-            public int freq { get; set; }
+            result[i] = new ValueTuple<int, int>(i, depth[i]);
+        }
+        return result;
+    }
+
+    private int GetFrequency(Node node)
+    {
+        var leaf = node as Leaf;
+        if (leaf != null)
+        {
+            return leaf.freq;
         }
 
-        class MergeNode : Node, IEncodingTreeNode
+        var merge = node as MergeNode;
+        if (merge != null)
         {
-            public IEncodingNode Left => left;
-            public IEncodingNode Right => right;
-
-            public Node left { get; set; }
-            public Node right { get; set; }
+            return merge.freq;
         }
 
-        class Leaf : Node, IEncodingLeafNode
+        throw new Exception();
+    }
+
+    abstract class Node : IEncodingNode
+    {
+        public int freq { get; set; }
+    }
+
+    class MergeNode : Node, IEncodingTreeNode
+    {
+        public IEncodingNode Left => left;
+        public IEncodingNode Right => right;
+
+        public Node left { get; set; }
+        public Node right { get; set; }
+    }
+
+    class Leaf : Node, IEncodingLeafNode
+    {
+        public char V => c;
+
+        public char c {get; set;}
+
+        public int index { get; set; }
+    }
+
+    class HuTuckerEncoding : VarLenCharEncoding
+    {
+        internal HuTuckerEncoding(Node root)
+            : base(root)
         {
-            public char V => c;
-
-            public char c {get; set;}
-
-            public int index { get; set; }
-        }
-
-        class HuTuckerEncoding : VarLenCharEncoding
-        {
-            internal HuTuckerEncoding(Node root)
-                : base(root)
-            {
-            }
         }
     }
 }

@@ -2,26 +2,25 @@
 using System.Collections.Generic;
 using System.IO;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public interface IFullTextIndex : IDisposable
 {
-    public interface IFullTextIndex : IDisposable
-    {
-        IFullTextIndexHeader Header { get; }
+    IFullTextIndexHeader Header { get; }
 
-        ITermDictionary Dictionary { get; }
+    ITermDictionary Dictionary { get; }
 
-        IPostingLists PostingLists { get; }
+    IPostingLists PostingLists { get; }
 
-        IMetadataStorage<string> Fields { get; }
+    IMetadataStorage<string> Fields { get; }
 
-        IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher);
+    IEnumerable<DictionaryTerm> GetTerms(ITermMatcher matcher);
 
-        IEnumerable<TextPosition> GetPositions(ulong docId, ulong fieldId);
+    IEnumerable<TextPosition> GetPositions(ulong docId, ulong fieldId);
 
-        TextReader GetText(ulong docId, ulong fieldId);
+    TextReader GetText(ulong docId, ulong fieldId);
 
-        ITermMatcher CompilePattern(string pattern);
+    ITermMatcher CompilePattern(string pattern);
 
-        ISearchQuery Compile(string query);
-    }
+    ISearchQuery Compile(string query);
 }

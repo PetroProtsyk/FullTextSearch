@@ -1,31 +1,30 @@
 ﻿using System;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public readonly struct PostingListAddress : IEquatable<PostingListAddress>
 {
-    public readonly struct PostingListAddress : IEquatable<PostingListAddress>
+    public static PostingListAddress Null = new PostingListAddress(-1);
+
+    public readonly long Offset;
+
+    public PostingListAddress(long offset)
     {
-        public static PostingListAddress Null = new PostingListAddress(-1);
+        this.Offset = offset;
+    }
 
-        public readonly long Offset;
+    public override bool Equals(object obj)
+    {
+        return obj is PostingListAddress other && Equals(other);
+    }
 
-        public PostingListAddress(long offset)
-        {
-            this.Offset = offset;
-        }
+    public bool Equals(PostingListAddress other)
+    {
+        return Offset == other.Offset;
+    }
 
-        public override bool Equals(object obj)
-        {
-            return obj is PostingListAddress other && Equals(other);
-        }
-
-        public bool Equals(PostingListAddress other)
-        {
-            return Offset == other.Offset;
-        }
-
-        public override int GetHashCode()
-        {
-            return Offset.GetHashCode();
-        }
+    public override int GetHashCode()
+    {
+        return Offset.GetHashCode();
     }
 }

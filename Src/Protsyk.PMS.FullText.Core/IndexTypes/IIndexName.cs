@@ -1,13 +1,10 @@
-﻿using System;
+﻿namespace Protsyk.PMS.FullText.Core;
 
-namespace Protsyk.PMS.FullText.Core
+/// <summary>
+/// Name of the index.
+/// Different index types will have different implementations of this
+/// interface.
+/// </summary>
+public interface IIndexName
 {
-    /// <summary>
-    /// Name of the index.
-    /// Different index types will have different implementations of this
-    /// interface.
-    /// </summary>
-    public interface IIndexName
-    {
-    }
 }

@@ -1,6 +1,5 @@
-﻿namespace Protsyk.PMS.FullText.Core
+﻿namespace Protsyk.PMS.FullText.Core;
+
+public interface IOccurrenceReader : IPostingLists
 {
-    public interface IOccurrenceReader : IPostingLists
-    {
-    }
 }

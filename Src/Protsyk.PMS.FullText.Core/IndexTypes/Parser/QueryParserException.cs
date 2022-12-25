@@ -1,20 +1,19 @@
 ﻿using System;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public class QueryParserException : Exception
 {
-    public class QueryParserException : Exception
+    public int Position { get; }
+
+    public QueryParserException(string message)
+        : this(message, -1)
     {
-        public int Position { get; }
+    }
 
-        public QueryParserException(string message)
-            : this(message, -1)
-        {
-        }
-
-        public QueryParserException(string message, int position)
-            : base(message)
-        {
-            Position = position;
-        }
+    public QueryParserException(string message, int position)
+        : base(message)
+    {
+        Position = position;
     }
 }

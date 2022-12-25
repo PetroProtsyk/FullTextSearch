@@ -1,22 +1,21 @@
 ﻿using System.Collections.Generic;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+/// <summary>
+/// Match of the query. One or more occurrences
+/// </summary>
+public interface IMatch
 {
-    /// <summary>
-    /// Match of the query. One or more occurrences
-    /// </summary>
-    public interface IMatch
-    {
-        IEnumerable<Occurrence> GetOccurrences();
+    IEnumerable<Occurrence> GetOccurrences();
 
-        Occurrence Left { get; }
+    Occurrence Left { get; }
 
-        Occurrence Right { get; }
+    Occurrence Right { get; }
 
-        Occurrence Max { get; }
+    Occurrence Max { get; }
 
-        Occurrence Min { get; }
+    Occurrence Min { get; }
 
-        ulong DocumentId { get; }
-    }
+    ulong DocumentId { get; }
 }

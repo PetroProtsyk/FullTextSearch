@@ -1,22 +1,18 @@
-﻿using System;
-using System.Collections.Generic;
-using Protsyk.PMS.FullText.Core.Collections;
-using Xunit;
+﻿using Protsyk.PMS.FullText.Core.Collections;
 
-namespace Protsyk.PMS.FullText.Core.UnitTests
+namespace Protsyk.PMS.FullText.Core.UnitTests;
+
+public class BtreeTests
 {
-    public class BtreeTests
+    [Theory]
+    [InlineData(1000)]
+    public void BtreeTests_Base(int size)
     {
-        [Theory]
-        [InlineData(1000)]
-        public void BtreeTests_Base(int size)
-        {
-            GenericDictionaryTests.TheFirstTest<Btree<int, string>>();
-            GenericDictionaryTests.TheSecondTest<Btree<int, string>>(size);
-            GenericDictionaryTests.TheOrderByTest<Btree<int, string>>(size);
-            GenericDictionaryTests.TheRemoveTest<Btree<int, string>>();
-            GenericDictionaryTests.TheRemoveTestFull<Btree<int, string>>(size);
-            GenericDictionaryTests.TheDictionaryTest<Btree<int, string>>();
-        }
+        GenericDictionaryTests.TheFirstTest<Btree<int, string>>();
+        GenericDictionaryTests.TheSecondTest<Btree<int, string>>(size);
+        GenericDictionaryTests.TheOrderByTest<Btree<int, string>>(size);
+        GenericDictionaryTests.TheRemoveTest<Btree<int, string>>();
+        GenericDictionaryTests.TheRemoveTestFull<Btree<int, string>>(size);
+        GenericDictionaryTests.TheDictionaryTest<Btree<int, string>>();
     }
 }

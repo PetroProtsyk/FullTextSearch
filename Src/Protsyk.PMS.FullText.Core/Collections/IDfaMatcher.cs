@@ -1,14 +1,12 @@
-﻿
-namespace Protsyk.PMS.FullText.Core.Collections
+﻿namespace Protsyk.PMS.FullText.Core.Collections;
+
+public interface IDfaMatcher<in T>
 {
-    public interface IDfaMatcher<in T>
-    {
-        void Reset();
+    void Reset();
 
-        bool Next(T p);
+    bool Next(T p);
 
-        bool IsFinal();
+    bool IsFinal();
 
-        void Pop();
-    }
+    void Pop();
 }

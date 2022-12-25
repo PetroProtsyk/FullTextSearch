@@ -1,10 +1,8 @@
-﻿using System;
-using Protsyk.PMS.FullText.Core.Collections;
+﻿using Protsyk.PMS.FullText.Core.Collections;
 
-namespace Protsyk.PMS.FullText.Core
+namespace Protsyk.PMS.FullText.Core;
+
+public interface ITermMatcher
 {
-    public interface ITermMatcher
-    {
-        IDfaMatcher<char> ToDfaMatcher();
-    }
+    IDfaMatcher<char> ToDfaMatcher();
 }

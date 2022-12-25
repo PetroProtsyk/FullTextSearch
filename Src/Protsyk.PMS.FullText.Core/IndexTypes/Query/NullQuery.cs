@@ -1,24 +1,23 @@
-﻿namespace Protsyk.PMS.FullText.Core
+﻿namespace Protsyk.PMS.FullText.Core;
+
+/// <summary>
+/// Query that returns no results
+/// </summary>
+public class NullQuery : ISearchQuery
 {
-    /// <summary>
-    /// Query that returns no results
-    /// </summary>
-    public class NullQuery : ISearchQuery
-    {
-        #region Fields
-        public static readonly ISearchQuery Instance = new NullQuery();
-        #endregion
+    #region Fields
+    public static readonly ISearchQuery Instance = new NullQuery();
+    #endregion
 
-        #region Methods
-        private NullQuery() { }
-        #endregion
+    #region Methods
+    private NullQuery() { }
+    #endregion
 
-        #region ISearchQuery
+    #region ISearchQuery
 
-        public IMatch NextMatch() => null;
+    public IMatch NextMatch() => null;
 
-        public void Dispose() { }
+    public void Dispose() { }
 
-        #endregion
-    }
+    #endregion
 }

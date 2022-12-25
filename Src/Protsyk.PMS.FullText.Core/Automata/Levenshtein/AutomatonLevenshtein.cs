@@ -1,71 +1,70 @@
 using System;
 
-namespace Protsyk.PMS.FullText.Core.Automata
+namespace Protsyk.PMS.FullText.Core.Automata;
+
+/// <summary>
+/// Calculate Levenshtein distance between two strings using Levenshtein automaton
+/// https://en.wikipedia.org/wiki/Levenshtein_automaton
+/// </summary>
+public static class LevenshteinAutomaton
 {
-    /// <summary>
-    /// Calculate Levenshtein distance between two strings using Levenshtein automaton
-    /// https://en.wikipedia.org/wiki/Levenshtein_automaton
-    /// </summary>
-    public static class LevenshteinAutomaton
+    public static bool Match(string pattern, string text, int d)
     {
-        public static bool Match(string pattern, string text, int d)
+        var dfa = CreateAutomaton(pattern, d).Determinize();
+        var s = 0;
+        for (int i=0; i<text.Length; ++i)
         {
-            var dfa = CreateAutomaton(pattern, d).Determinize();
-            var s = 0;
-            for (int i=0; i<text.Length; ++i)
+            s = dfa.Next(s, text[i]);
+            if (s == DFA.NoState)
             {
-                s = dfa.Next(s, text[i]);
-                if (s == DFA.NoState)
-                {
-                    return false;
-                }
+                return false;
             }
-            return dfa.IsFinal(s);
+        }
+        return dfa.IsFinal(s);
+    }
+
+    public static NFA CreateAutomaton(string a, int k)
+    {
+        if (a.Contains('*'))
+        {
+            throw new ArgumentException("Star is a reserved character");
         }
 
-        public static NFA CreateAutomaton(string a, int k)
+        var result = new NFA();
+        var m = a.Length + 1;
+
+        /* Create |a|*k states */
+        for (int i = 0; i < m; ++i)
         {
-            if (a.Contains('*'))
+            for (int j = 0; j <= k; ++j)
             {
-                throw new ArgumentException("Star is a reserved character");
+                result.AddState(i + m * j, i == a.Length);
             }
+        }
 
-            var result = new NFA();
-            var m = a.Length + 1;
-
-            /* Create |a|*k states */
-            for (int i = 0; i < m; ++i)
+        /* Create transitions */
+        for (int i = 0; i < m; ++i)
+        {
+            for (int j = 0; j <= k; ++j)
             {
-                for (int j = 0; j <= k; ++j)
+                if (i < m - 1)
                 {
-                    result.AddState(i + m * j, i == a.Length);
+                    result.AddTransition(i + m * j, i + 1 + m * j, CharRange.SingleChar(a[i]));
                 }
-            }
 
-            /* Create transitions */
-            for (int i = 0; i < m; ++i)
-            {
-                for (int j = 0; j <= k; ++j)
+                if (j < k)
                 {
                     if (i < m - 1)
                     {
-                        result.AddTransition(i + m * j, i + 1 + m * j, CharRange.SingleChar(a[i]));
+                        result.AddTransition(i + m * j, i + 1 + m * (j + 1), NFA.Any);
+                        result.AddTransition(i + m * j, i + 1 + m * (j + 1), NFA.Epsilon);
                     }
 
-                    if (j < k)
-                    {
-                        if (i < m - 1)
-                        {
-                            result.AddTransition(i + m * j, i + 1 + m * (j + 1), NFA.Any);
-                            result.AddTransition(i + m * j, i + 1 + m * (j + 1), NFA.Epsilon);
-                        }
-
-                        result.AddTransition(i + m * j, i + m * (j + 1), NFA.Any);
-                    }
+                    result.AddTransition(i + m * j, i + m * (j + 1), NFA.Any);
                 }
             }
-
-            return result;
         }
+
+        return result;
     }
 }

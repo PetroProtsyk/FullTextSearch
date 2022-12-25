@@ -2,64 +2,63 @@
 
 using Protsyk.PMS.FullText.Core.Collections;
 
-namespace Protsyk.PMS.FullText.Core.Common.Compression
+namespace Protsyk.PMS.FullText.Core.Common.Compression;
+
+internal sealed class DecodingMatcher : IDfaMatcher<byte>
 {
-    internal sealed class DecodingMatcher : IDfaMatcher<byte>
+    private readonly IDfaMatcher<char> matcher;
+    private readonly int maxLength;
+    private readonly ITextEncoding encoding;
+    private readonly byte[] data;
+
+    private int dataIndex;
+
+    public DecodingMatcher(IDfaMatcher<char> matcher, int maxLength, ITextEncoding encoding)
     {
-        private readonly IDfaMatcher<char> matcher;
-        private readonly int maxLength;
-        private readonly ITextEncoding encoding;
-        private readonly byte[] data;
+        this.matcher = matcher;
+        this.maxLength = maxLength;
+        this.encoding = encoding;
+        this.data = new byte[maxLength];
+        this.dataIndex = 0;
+    }
 
-        private int dataIndex;
-
-        public DecodingMatcher(IDfaMatcher<char> matcher, int maxLength, ITextEncoding encoding)
+    public bool IsFinal()
+    {
+        var token = encoding.GetString(data, 0, dataIndex);
+        matcher.Reset();
+        for (int i = 0; i < token.Length; ++i)
         {
-            this.matcher = matcher;
-            this.maxLength = maxLength;
-            this.encoding = encoding;
-            this.data = new byte[maxLength];
-            this.dataIndex = 0;
-        }
-
-        public bool IsFinal()
-        {
-            var token = encoding.GetString(data, 0, dataIndex);
-            matcher.Reset();
-            for (int i = 0; i < token.Length; ++i)
+            if (!matcher.Next(token[i]))
             {
-                if (!matcher.Next(token[i]))
-                {
-                    return false;
-                }
+                return false;
             }
-            return matcher.IsFinal();
         }
+        return matcher.IsFinal();
+    }
 
-        public bool Next(byte p)
+    public bool Next(byte p)
+    {
+        if (dataIndex >= maxLength)
         {
-            if (dataIndex >= maxLength)
-            {
-                throw new Exception("Data exceeds maximum length");
-            }
-
-            data[dataIndex++] = p;
-            return true;
+            throw new Exception("Data exceeds maximum length");
         }
 
-        public void Pop()
+        data[dataIndex++] = p;
+        return true;
+    }
+
+    public void Pop()
+    {
+        if (dataIndex == 0)
         {
-            if (dataIndex == 0)
-            {
-                throw new InvalidOperationException();
-            }
-            --dataIndex;
+            throw new InvalidOperationException();
         }
+        --dataIndex;
+    }
 
-        public void Reset()
-        {
-            dataIndex = 0;
-            matcher.Reset();
-        }
+    public void Reset()
+    {
+        dataIndex = 0;
+        matcher.Reset();
     }
 }
