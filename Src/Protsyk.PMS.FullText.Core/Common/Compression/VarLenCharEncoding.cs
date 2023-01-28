@@ -403,6 +403,7 @@ public class VarLenCharEncoding
     private sealed class BaseNode : IEncodingTreeNode
     {
         public IEncodingNode Left { get; set; }
+
         public IEncodingNode Right { get; set; }
     }
 
@@ -439,12 +440,10 @@ public class VarLenCharEncoding
             this.data = data;
         }
 
-
         public IEnumerator<byte> GetEnumerator()
         {
             return new ByteToBitEn(data.GetEnumerator());
         }
-
 
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -524,8 +523,7 @@ public class VarLenCharEncoding
 
         foreach (var bit in data)
         {
-            var node = current as IEncodingTreeNode;
-            if (node != null)
+            if (current is IEncodingTreeNode node)
             {
                 if (bit == LeftValue)
                 {
@@ -537,8 +535,7 @@ public class VarLenCharEncoding
                 }
             }
 
-            var leaf = current as IEncodingLeafNode;
-            if (leaf != null)
+            if (current is IEncodingLeafNode leaf)
             {
                 current = root;
 
@@ -561,11 +558,8 @@ public class VarLenCharEncoding
         return result.ToString();
     }
 
-    public IBitDecoder GetDecoder()
-    {
-        return new BitDecoder(root);
-    }
-
+    public IBitDecoder GetDecoder() => new BitDecoder(root);
+   
     public static VarLenCharEncoding FromFrequency<T>(IDictionary<char, int> charFrequencies, bool extend = false)
                      where T : VarLenCharEncodingBuilder, new()
     {
@@ -702,7 +696,7 @@ public abstract class VarLenCharEncodingBuilder
         int maxWeight = 0;
         foreach (var item in symbols)
         {
-            maxWeight = Math.Max(maxWeight, item.f);
+            maxWeight = Math.Max(maxWeight, item.F);
         }
 
         symbols.Add(new CharFrequency(VarLenCharEncoding.TerminalChar, maxWeight));
@@ -727,13 +721,14 @@ public abstract class VarLenCharEncodingBuilder
 
     protected readonly struct CharFrequency
     {
-        public readonly char c;
-        public readonly int f;
-
         public CharFrequency(char c, int f)
         {
-            this.c = c;
-            this.f = f;
+            C = c;
+            F = f;
         }
+
+        public char C { get; }
+
+        public int F { get; }
     }
 }
