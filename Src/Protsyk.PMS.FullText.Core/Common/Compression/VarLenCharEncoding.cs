@@ -40,15 +40,13 @@ public class VarLenCharEncoding
 
     private void Traverse(IEncodingNode root, Dictionary<char, byte[]> codes, List<byte> current)
     {
-        var leaf = root as IEncodingLeafNode;
-        if (leaf != null)
+        if (root is IEncodingLeafNode leaf)
         {
             codes[leaf.V] = current.ToArray();
             return;
         }
 
-        var node = root as IEncodingTreeNode;
-        if (node != null)
+        if (root is IEncodingTreeNode node)
         {
             current.Add(LeftValue);
             Traverse(node.Left, codes, current);
@@ -378,7 +376,7 @@ public class VarLenCharEncoding
         {
             if (c.Code[index] == LeftValue)
             {
-                parent.Left = parent.Left != null ? parent.Left : new BaseNode();
+                parent.Left ??= new BaseNode();
                 if (parent.Left is IEncodingLeafNode)
                 {
                     throw new Exception("Bad code");
@@ -387,7 +385,7 @@ public class VarLenCharEncoding
             }
             else
             {
-                parent.Right = parent.Right != null ? parent.Right : new BaseNode();
+                parent.Right ??= new BaseNode();
                 if (parent.Right is IEncodingLeafNode)
                 {
                     throw new Exception("Bad code");
@@ -397,12 +395,12 @@ public class VarLenCharEncoding
         }
     }
 
-    private class BaseLeafNode : IEncodingLeafNode
+    private sealed class BaseLeafNode : IEncodingLeafNode
     {
         public char V { get; set; }
     }
 
-    private class BaseNode : IEncodingTreeNode
+    private sealed class BaseNode : IEncodingTreeNode
     {
         public IEncodingNode Left { get; set; }
         public IEncodingNode Right { get; set; }
@@ -419,11 +417,17 @@ public class VarLenCharEncoding
         public char Symbol { get; init; }
     }
 
-    public class CodeSymbol
+    public readonly struct CodeSymbol
     {
-        public byte[] Code { get; set; }
+        public CodeSymbol(byte[] code, char symbol)
+        {
+            Code = code;
+            Symbol = symbol;
+        }
 
-        public char Symbol { get; set; }
+        public byte[] Code { get; }
+
+        public char Symbol { get; }
     }
 
     public class ByteToBit : IEnumerable<byte>
@@ -622,8 +626,7 @@ public class VarLenCharEncoding
         {
             states.Push(current);
 
-            var node = current as IEncodingTreeNode;
-            if (node != null)
+            if (current is IEncodingTreeNode node)
             {
                 if (p == (LeftValue == 1))
                 {
@@ -635,8 +638,7 @@ public class VarLenCharEncoding
                 }
             }
 
-            var leaf = current as IEncodingLeafNode;
-            if (leaf != null)
+            if (current is IEncodingLeafNode leaf)
             {
                 current = root;
 

@@ -35,22 +35,22 @@ public class TextEncodingTests
     public void EncodingReconstruction()
     {
         var codes = new VarLenCharEncoding.CodeSymbol[] {
-            new VarLenCharEncoding.CodeSymbol{Symbol ='_', Code = new byte[] {1, 1, 1 }},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='a', Code = new byte[] {0, 1, 0 }},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='e', Code = new byte[] {0, 0, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='f', Code = new byte[] {1, 1, 0, 1}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='h', Code = new byte[] {1, 0, 1, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='i', Code = new byte[] {1, 0, 0, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='m', Code = new byte[] {0, 1, 1, 1}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='n', Code = new byte[] {0, 0, 1, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='s', Code = new byte[] {1, 0, 1, 1}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='t', Code = new byte[] {0, 1, 1, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='l', Code = new byte[] {1, 1, 0, 0, 1}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='o', Code = new byte[] {0, 0, 1, 1, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='p', Code = new byte[] {1, 0, 0, 1, 1}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='r', Code = new byte[] {1, 1, 0, 0, 0}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='u', Code = new byte[] {0, 0, 1, 1, 1}},
-            new VarLenCharEncoding.CodeSymbol{Symbol ='x', Code = new byte[] {1, 0, 0, 1, 0}},
+            new (symbol: '_', code: new byte[] { 1, 1, 1 }),
+            new (symbol: 'a', code: new byte[] { 0, 1, 0 }),
+            new (symbol: 'e', code: new byte[] { 0, 0, 0 }),
+            new (symbol: 'f', code: new byte[] { 1, 1, 0, 1 }),
+            new (symbol: 'h', code: new byte[] { 1, 0, 1, 0 }),
+            new (symbol: 'i', code: new byte[] { 1, 0, 0, 0 }),
+            new (symbol: 'm', code: new byte[] { 0, 1, 1, 1 }),
+            new (symbol: 'n', code: new byte[] { 0, 0, 1, 0 }),
+            new (symbol: 's', code: new byte[] { 1, 0, 1, 1 }),
+            new (symbol: 't', code: new byte[] { 0, 1, 1, 0 }),
+            new (symbol: 'l', code: new byte[] { 1, 1, 0, 0, 1 }),
+            new (symbol: 'o', code: new byte[] { 0, 0, 1, 1, 0 }),
+            new (symbol: 'p', code: new byte[] { 1, 0, 0, 1, 1 }),
+            new (symbol: 'r', code: new byte[] { 1, 1, 0, 0, 0 }),
+            new (symbol: 'u', code: new byte[] { 0, 0, 1, 1, 1 }),
+            new (symbol: 'x', code: new byte[] { 1, 0, 0, 1, 0 }),
         };
 
         var encoding = VarLenCharEncoding.FromCodes(codes);
