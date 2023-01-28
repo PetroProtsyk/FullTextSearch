@@ -145,7 +145,7 @@ class Program
             writer.StartList(string.Empty);
             for (ulong i = 0; i < count; ++i)
             {
-                writer.AddOccurrence(Occurrence.O(1, 1, skip + i));
+                writer.AddOccurrence(new Occurrence(1, 1, skip + i));
             }
             address = writer.EndList();
         }
@@ -162,7 +162,7 @@ class Program
                 ulong i = 0;
                 foreach (var actual in reader.Get(address))
                 {
-                    var target = Occurrence.O(1, 1, skip + i);
+                    var target = new Occurrence(1, 1, skip + i);
                     if (target != actual)
                     {
                         throw new Exception();
@@ -174,7 +174,7 @@ class Program
             var list = reader.Get(address).AsSkipList();
             for (ulong i = 0; i < count; ++i)
             {
-                var target = Occurrence.O(1, 1, skip + i);
+                var target = new Occurrence(1, 1, skip + i);
                 var actual = list.LowerBound(target).FirstOrDefault();
                 if (target != actual)
                 {
@@ -184,9 +184,9 @@ class Program
 
             for (ulong i = 1; i < skip; ++i)
             {
-                var target = Occurrence.O(1, 1, i);
+                var target = new Occurrence(1, 1, i);
                 var actual = list.LowerBound(target).FirstOrDefault();
-                if (actual != Occurrence.O(1, 1, skip))
+                if (actual != new Occurrence(1, 1, skip))
                 {
                     throw new Exception();
                 }
@@ -194,7 +194,7 @@ class Program
 
             for (ulong i = count + 1; i < count + skip; ++i)
             {
-                var target = Occurrence.O(1, 1, skip + i);
+                var target = new Occurrence(1, 1, skip + i);
                 var actual = list.LowerBound(target).FirstOrDefault();
                 if (actual != Occurrence.Empty)
                 {

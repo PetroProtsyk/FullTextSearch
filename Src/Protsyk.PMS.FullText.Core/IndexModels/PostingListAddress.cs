@@ -1,10 +1,8 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 public readonly struct PostingListAddress : IEquatable<PostingListAddress>
 {
-    public static PostingListAddress Null = new PostingListAddress(-1);
+    public static PostingListAddress Null = new(-1);
 
     public readonly long Offset;
 

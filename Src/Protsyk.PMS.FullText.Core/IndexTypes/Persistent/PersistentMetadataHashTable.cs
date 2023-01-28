@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -8,7 +7,7 @@ namespace Protsyk.PMS.FullText.Core;
 
 internal sealed class PersistentMetadataHashTable : IMetadataStorage<string>
 {
-    private const int InitialHashCapacity = 65536;
+    private const int InitialHashCapacity = 65_536;
 
     public static readonly string Id = "HashTable";
 

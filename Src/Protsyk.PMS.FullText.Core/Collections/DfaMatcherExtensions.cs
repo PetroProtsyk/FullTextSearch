@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core.Collections;
+﻿namespace Protsyk.PMS.FullText.Core.Collections;
 
 public static class DfaMatcherExtensions
 {

@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-using Protsyk.PMS.FullText.Core.Automata;
+﻿using Protsyk.PMS.FullText.Core.Automata;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests;
 

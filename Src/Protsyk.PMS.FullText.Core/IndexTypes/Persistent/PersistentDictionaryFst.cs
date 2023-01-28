@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 
 using Protsyk.PMS.FullText.Core.Automata;
 using Protsyk.PMS.FullText.Core.Collections;
@@ -62,8 +60,7 @@ public class PersistentDictionaryFst : ITermDictionary, IUpdateTermDictionary, I
 
     public DictionaryTerm GetTerm(string term)
     {
-        int offset = 0;
-        if (!fst.TryMatch(term, out offset))
+        if (!fst.TryMatch(term, out int offset))
         {
             throw new InvalidOperationException();
         }
@@ -81,8 +78,8 @@ public class PersistentDictionaryFst : ITermDictionary, IUpdateTermDictionary, I
 
     class Update : IUpdate
     {
-        private List<string> input = new List<string>();
-        private List<int> output = new List<int>();
+        private List<string> input = new();
+        private List<int> output = new();
         private readonly IPersistentStorage storage;
 
         public Update(IPersistentStorage storage)

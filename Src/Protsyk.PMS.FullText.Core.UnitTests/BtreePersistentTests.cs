@@ -1,7 +1,4 @@
-﻿using System.IO;
-using System.Linq;
-
-using Protsyk.PMS.FullText.Core.Collections;
+﻿using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core.UnitTests;

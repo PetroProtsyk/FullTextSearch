@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core.Common.Persistance
+﻿namespace Protsyk.PMS.FullText.Core.Common.Persistance
 {
     public interface IPersistentStorage : IDisposable
     {

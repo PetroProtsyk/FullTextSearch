@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Concurrent;
-using System.Collections.Generic;
+﻿using System.Collections.Concurrent;
 using System.IO;
 using System.Linq;
 
@@ -77,18 +75,16 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
 
     public ITermMatcher CompilePattern(string pattern)
     {
-        using (var compiler = new FullTextQueryCompiler(this))
-        {
-            return compiler.CompilePattern(pattern);
-        }
+        using var compiler = new FullTextQueryCompiler(this);
+
+        return compiler.CompilePattern(pattern);
     }
 
     public ISearchQuery Compile(string query)
     {
-        using (var compiler = new FullTextQueryCompiler(this))
-        {
-            return compiler.Compile(query);
-        }
+        using var compiler = new FullTextQueryCompiler(this);
+
+        return compiler.Compile(query);
     }
     #endregion
 
@@ -175,7 +171,7 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
         });
     }
 
-    private class TextWriterWrapper : StringWriter
+    private sealed class TextWriterWrapper : StringWriter
     {
         private readonly Action<string> whenDisposed;
 

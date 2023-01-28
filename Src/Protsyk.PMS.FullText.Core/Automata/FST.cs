@@ -1,10 +1,7 @@
-﻿using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
+﻿using System.Buffers.Binary;
 using System.Globalization;
 using System.Runtime.InteropServices;
 using System.Text;
-using System.Threading;
 
 using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common;
@@ -91,7 +88,7 @@ public class FSTBuilder<T> : IDisposable
         this.writeBuffer = new byte[4096];
     }
 
-    private class StateWithTransitions
+    private sealed class StateWithTransitions
     {
         private static int NextId = 0;
 
@@ -1001,7 +998,7 @@ public class PersistentFST<T> : IDisposable
         }
 
         toOffset = -1;
-        o = default(T);
+        o = default;
         return false;
     }
 
@@ -1405,7 +1402,7 @@ public class FST<T> : IFST<T>
 
             if (outputType.MaxByteSize() > 64)
             {
-                readIndex += VarInt.ReadVInt32(data[readIndex..], out var nodeSize);
+                readIndex += VarInt.ReadVInt32(data[readIndex..], out _);
             }
 
             readIndex += VarInt.ReadVInt32(data[readIndex..], out var v);
@@ -1535,7 +1532,7 @@ public class FST<T> : IFST<T>
         }
 
         toId = -1;
-        o = default(T);
+        o = default;
         return false;
     }
 
@@ -1575,7 +1572,7 @@ public class FST<T> : IFST<T>
 
 public readonly struct State : IEquatable<State>
 {
-    public static readonly State NoState = new State { Id = -1 };
+    public static readonly State NoState = new() { Id = -1 };
 
     public int Id { get; init; }
 
@@ -1591,8 +1588,7 @@ public readonly struct State : IEquatable<State>
 
     public override bool Equals(object obj)
     {
-        if (obj == null) return false;
-        return Equals((State)obj);
+        return obj is State other && Equals(other);
     }
 }
 
@@ -1613,16 +1609,15 @@ public readonly struct Arc<T> : IEquatable<Arc<T>>
 
     public bool Equals(Arc<T> other)
     {
-        return From.Equals(other.From) &&
-                To.Equals(other.To) &&
-                Input.Equals(other.Input) &&
-                Output.Equals(other.Output);
+        return From.Equals(other.From) 
+            && To.Equals(other.To) 
+            && Input.Equals(other.Input) 
+            && Output.Equals(other.Output);
     }
 
     public override bool Equals(object obj)
     {
-        if (obj == null) return false;
-        return Equals((Arc<T>)obj);
+        return obj is Arc<T> other && Equals(other);
     }
 }
 
@@ -1641,15 +1636,14 @@ public readonly struct ArcOffset<T> : IEquatable<ArcOffset<T>>
 
     public bool Equals(ArcOffset<T> other)
     {
-        return ToOffset.Equals(other.ToOffset) &&
-                Input.Equals(other.Input) &&
-                Output.Equals(other.Output);
+        return ToOffset.Equals(other.ToOffset) 
+            && Input.Equals(other.Input) 
+            && Output.Equals(other.Output);
     }
 
     public override bool Equals(object obj)
     {
-        if (obj == null) return false;
-        return Equals((ArcOffset<T>)obj);
+        return obj is ArcOffset<T> other && Equals(other);
     }
 }
 
@@ -1695,7 +1689,7 @@ public abstract class FSTIntOutputBase : IFSTOutput<int>
 
 public sealed class FSTVarIntOutput : FSTIntOutputBase
 {
-    public static readonly FSTVarIntOutput Instance = new FSTVarIntOutput();
+    public static readonly FSTVarIntOutput Instance = new();
 
     private static readonly int maxByteSize = VarInt.GetByteSize(uint.MaxValue);
 

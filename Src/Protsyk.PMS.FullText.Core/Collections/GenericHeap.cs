@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Linq;
 using System.Text;
 
@@ -338,7 +336,7 @@ public class GenericHeap<T> : IEnumerable<T>
     #endregion
 
     #region Types
-    private class V : IItemReference
+    private sealed class V : IItemReference
     {
         public T item;
 

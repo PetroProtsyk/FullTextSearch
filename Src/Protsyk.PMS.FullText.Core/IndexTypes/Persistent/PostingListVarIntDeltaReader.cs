@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.IO;
 
 using Protsyk.PMS.FullText.Core.Common;
@@ -200,9 +198,9 @@ public class PostingListVarIntDeltaReader : IOccurrenceReader
                             j += VarInt.ReadVUInt64(t.AsSpan(j), out var o2_2);
                             j += VarInt.ReadVUInt64(t.AsSpan(j), out var o2_3);
 
-                            if (Occurrence.O(o1_1, o1_2, o1_3).CompareTo(firstOccurrence) < 0)
+                            if (new Occurrence(o1_1, o1_2, o1_3).CompareTo(firstOccurrence) < 0)
                             {
-                                 if (Occurrence.O(o2_1, o2_2, o2_3).CompareTo(firstOccurrence) >= 0)
+                                 if (new Occurrence(o2_1, o2_2, o2_3).CompareTo(firstOccurrence) >= 0)
                                  {
                                      break;
                                  }
@@ -220,15 +218,13 @@ public class PostingListVarIntDeltaReader : IOccurrenceReader
                         state = 1;
                         indxInBuffer = 0;
                         dataInBuffer = 0;
-                        readOffset   = readOffset + buffer.Length * mid;
+                        readOffset = readOffset + buffer.Length * mid;
                     }
                 }
 
                 if (state == 1)
                 {
-                    current = Occurrence.O(NextNumber(),
-                                           NextNumber(),
-                                           NextNumber());
+                    current = new Occurrence(NextNumber(), NextNumber(), NextNumber());
                     state = 2;
 
                     if (!(current < firstOccurrence))
@@ -278,7 +274,7 @@ public class PostingListVarIntDeltaReader : IOccurrenceReader
                         case 2:
                             {
                                 var deltaToken = NextNumber();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId,
                                                        current.TokenId + deltaToken);
                                 break;
@@ -287,7 +283,7 @@ public class PostingListVarIntDeltaReader : IOccurrenceReader
                             {
                                 var deltaFieldId = NextNumber();
                                 var token = NextNumber();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId + deltaFieldId,
                                                        token);
                                 break;
@@ -298,7 +294,7 @@ public class PostingListVarIntDeltaReader : IOccurrenceReader
                                 var fieldId = NextNumber();
                                 var token = NextNumber();
 
-                                current = Occurrence.O(current.DocumentId + deltaDocId,
+                                current = new Occurrence(current.DocumentId + deltaDocId,
                                                        fieldId,
                                                        token);
                                 break;

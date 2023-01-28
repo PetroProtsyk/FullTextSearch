@@ -21,9 +21,9 @@ public class OrMultiQueryTest : TestWithFolderBase
     public void TestOrMultiQueryWithFixedPostingList_2()
     {
         using var query = new OrMultiQuery(
-            new TermQuery(new PostingListArray(new Occurrence[] { Occurrence.O(1, 1, 1) })),
-            new TermQuery(new PostingListArray(new Occurrence[] { Occurrence.O(1, 1, 2), })),
-            new TermQuery(new PostingListArray(new Occurrence[] { Occurrence.O(1, 1, 2), Occurrence.O(1, 1, 3) }))
+            new TermQuery(new PostingListArray(new Occurrence[] { new(1, 1, 1) })),
+            new TermQuery(new PostingListArray(new Occurrence[] { new(1, 1, 2), })),
+            new TermQuery(new PostingListArray(new Occurrence[] { new(1, 1, 2), new(1, 1, 3) }))
         );
 
         var result = query.ExecuteToString();

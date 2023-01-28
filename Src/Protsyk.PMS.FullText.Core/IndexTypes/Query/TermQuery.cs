@@ -1,7 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 public class TermQuery : ISearchQuery
 {
@@ -44,7 +41,7 @@ public class TermQuery : ISearchQuery
     #endregion
 
     #region Types
-    private class MatchIterator: IMatch, IDisposable
+    private sealed class MatchIterator: IMatch, IDisposable
     {
         private readonly IEnumerator<Occurrence> postings;
 

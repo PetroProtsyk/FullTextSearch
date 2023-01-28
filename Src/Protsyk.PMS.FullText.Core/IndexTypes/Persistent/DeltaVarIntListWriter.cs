@@ -1,5 +1,4 @@
-﻿using System;
-using System.Buffers;
+﻿using System.Buffers;
 using System.Diagnostics;
 using System.IO;
 using System.Linq;
@@ -225,56 +224,56 @@ public class DeltaVarIntListWriter : IDisposable
 
         var timer = Stopwatch.StartNew();
         var ar = new ulong[N];
-        using (var mem = new MemoryStorage())
+
+        using var mem = new MemoryStorage();
+
+        using (var writer = new DeltaVarIntListWriter(mem.GetReference()))
         {
-            using(var writer = new DeltaVarIntListWriter(mem.GetReference()))
+            var s1 = writer.StartList();
+            var prev = 0UL;
+            var r = new Random(2019);
+            for (int i = 0; i < N; ++i)
             {
-                var s1 = writer.StartList();
-                var prev = 0UL;
-                var r = new Random(2019);
-                for (int i = 0; i<N; ++i)
-                {
-                    prev += 1 + (ulong)r.Next(variation);
-                    ar[i] = prev;
-                    writer.AddValue(prev);
-                }
-                var e1 = writer.EndList();
-                Console.WriteLine($"Count  : {N}");
-                Console.WriteLine($"Length : {e1 - s1}");
-
-                listStart = s1;
+                prev += 1 + (ulong)r.Next(variation);
+                ar[i] = prev;
+                writer.AddValue(prev);
             }
-            Console.WriteLine($"Write  : {timer.Elapsed}");
+            var e1 = writer.EndList();
+            Console.WriteLine($"Count  : {N}");
+            Console.WriteLine($"Length : {e1 - s1}");
 
-            timer = Stopwatch.StartNew();
-            using(var reader = new DeltaVarIntListReader(mem.GetReference()))
-            {
-                int i = 0;
-                foreach (var v in reader.Get(listStart))
-                {
-                    if (ar[i] != v)
-                    {
-                        throw new Exception($"{ar[i]} != {v} at {i}");
-                    }
-                    ++i;
-                }
-            }
-            Console.WriteLine($"Read   : {timer.Elapsed}");
-
-            timer = Stopwatch.StartNew();
-            using(var reader = new DeltaVarIntListReader(mem.GetReference()))
-            {
-                for (int i = 0; i<N; ++i)
-                {
-                    var v = reader.GetLowerBound(listStart, ar[i]).First();
-                    if (ar[i] != v)
-                    {
-                        throw new Exception($"{ar[i]} != {v} at {i}");
-                    }
-                }
-            }
-            Console.WriteLine($"Seek   : {timer.Elapsed}");
+            listStart = s1;
         }
+        Console.WriteLine($"Write  : {timer.Elapsed}");
+
+        timer = Stopwatch.StartNew();
+        using (var reader = new DeltaVarIntListReader(mem.GetReference()))
+        {
+            int i = 0;
+            foreach (var v in reader.Get(listStart))
+            {
+                if (ar[i] != v)
+                {
+                    throw new Exception($"{ar[i]} != {v} at {i}");
+                }
+                ++i;
+            }
+        }
+        Console.WriteLine($"Read   : {timer.Elapsed}");
+
+        timer = Stopwatch.StartNew();
+        using (var reader = new DeltaVarIntListReader(mem.GetReference()))
+        {
+            for (int i = 0; i < N; ++i)
+            {
+                var v = reader.GetLowerBound(listStart, ar[i]).First();
+                if (ar[i] != v)
+                {
+                    throw new Exception($"{ar[i]} != {v} at {i}");
+                }
+            }
+        }
+        Console.WriteLine($"Seek   : {timer.Elapsed}");
     }
     #endregion
 }

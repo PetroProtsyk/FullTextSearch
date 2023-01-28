@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Threading;
-
-namespace Protsyk.PMS.FullText.Core.Collections;
+﻿namespace Protsyk.PMS.FullText.Core.Collections;
 
 public class LFUCache<TKey, TValue>
 {

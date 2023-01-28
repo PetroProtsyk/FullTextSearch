@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core.Common.Compression;
+﻿namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
 //
 // http://www.ietf.org/rfc/rfc1978.txt
@@ -11,7 +9,7 @@ public class PredictorCompressionProtocol
 
     public static byte[] Compress(byte[] input)
     {
-        byte[] guessTable = new byte[guessSize];
+        var guessTable = new byte[guessSize];
         uint flags = 0;
         uint bitmask = 1;
         uint hash = 0;
@@ -49,7 +47,7 @@ public class PredictorCompressionProtocol
 
     public static byte[] Uncompress(byte[] input)
     {
-        byte[] guessTable = new byte[guessSize];
+        var guessTable = new byte[guessSize];
         uint hash = 0;
 
         var result = new List<byte>();

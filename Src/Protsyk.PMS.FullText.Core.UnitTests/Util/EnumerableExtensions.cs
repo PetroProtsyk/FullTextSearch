@@ -1,8 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-
-namespace Protsyk.PMS.FullText.Core.UnitTests;
+﻿namespace Protsyk.PMS.FullText.Core.UnitTests;
 
 public static class EnumerableExtensions
 {

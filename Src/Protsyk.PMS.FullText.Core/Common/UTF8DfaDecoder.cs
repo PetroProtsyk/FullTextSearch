@@ -1,5 +1,4 @@
-﻿using System;
-using System.Text;
+﻿using System.Text;
 
 namespace Protsyk.PMS.FullText.Core.Common;
 

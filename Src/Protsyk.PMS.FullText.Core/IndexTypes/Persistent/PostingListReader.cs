@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.IO;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -10,7 +8,7 @@ namespace Protsyk.PMS.FullText.Core;
 public class PostingListReader : IOccurrenceReader
 {
     #region Fields
-    internal static readonly int ReadBufferSize = 4096;
+    internal const int ReadBufferSize = 4_096;
 
     private readonly IPersistentStorage persistentStorage;
     #endregion
@@ -33,7 +31,7 @@ public class PostingListReader : IOccurrenceReader
     #endregion
 
     #region ReaderEnumerator
-    private class PostingListReaderImpl : IPostingList
+    private sealed class PostingListReaderImpl : IPostingList
     {
         private readonly IPersistentStorage storage;
         private readonly PostingListAddress address;
@@ -55,7 +53,7 @@ public class PostingListReader : IOccurrenceReader
         }
     }
 
-    private class ReaderEnumerator : IEnumerator<Occurrence>
+    private sealed class ReaderEnumerator : IEnumerator<Occurrence>
     {
         private readonly IPersistentStorage persistentStorage;
         private readonly PostingListAddress address;
@@ -236,7 +234,7 @@ public class PostingListReader : IOccurrenceReader
                     throw new Exception("Wrong data");
                 }
 
-                current = Occurrence.O(docId, fieldId, tokenId);
+                current = new Occurrence(docId, fieldId, tokenId);
                 return true;
             }
         }

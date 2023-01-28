@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.IO;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -38,7 +36,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
     #endregion
 
     #region ReaderEnumerator
-    private class PostingListReaderImpl : IPostingList
+    private sealed class PostingListReaderImpl : IPostingList
     {
         private readonly IPersistentStorage storage;
         private readonly PostingListAddress address;
@@ -60,7 +58,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
         }
     }
 
-    private class ReaderEnumerator : IEnumerator<Occurrence>
+    private sealed class ReaderEnumerator : IEnumerator<Occurrence>
     {
         private static readonly int HeaderLength = sizeof(long) + sizeof(int);
         private readonly IPersistentStorage persistentStorage;
@@ -200,7 +198,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
 
                 if (state == 1)
                 {
-                    current = Occurrence.O((ulong)NextInteger(),
+                    current = new Occurrence((ulong)NextInteger(),
                                            (ulong)NextInteger(),
                                            (ulong)NextInteger());
                     state = 2;
@@ -242,7 +240,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
                         case 1:
                             {
                                 var deltaToken = (ulong)NextInteger();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId,
                                                        current.TokenId + deltaToken);
                                 break;
@@ -251,7 +249,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
                             {
                                 var deltaFieldId = (ulong)NextInteger();
                                 var token = (ulong)NextInteger();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId + deltaFieldId,
                                                        token);
                                 break;
@@ -262,7 +260,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
                                 var fieldId = (ulong)NextInteger();
                                 var token = (ulong)NextInteger();
 
-                                current = Occurrence.O(current.DocumentId + deltaDocId,
+                                current = new Occurrence(current.DocumentId + deltaDocId,
                                                        fieldId,
                                                        token);
                                 break;

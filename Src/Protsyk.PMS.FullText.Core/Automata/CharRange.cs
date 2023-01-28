@@ -1,13 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
+﻿using System.Diagnostics;
 
 namespace Protsyk.PMS.FullText.Core.Automata;
 
 [DebuggerDisplay("[{start}, {end}]")]
 public readonly struct CharRange : IEquatable<CharRange>
 {
-    public static CharRange Empty = new CharRange(int.MinValue, int.MinValue);
+    public static readonly CharRange Empty = new(int.MinValue, int.MinValue);
 
     public readonly int start;
     public readonly int end;

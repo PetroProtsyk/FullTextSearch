@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Threading;
+﻿using System.Linq;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
@@ -22,7 +20,7 @@ public class HuffmanEncodingBuilder : VarLenCharEncodingBuilder
     {
         foreach(var symbol in symbols)
         {
-            nodes.Add(new CharNode(symbol.c, symbol.f));
+            nodes.Add(new CharNode(symbol.C, symbol.F));
         }
 
         while (nodes.Count > 1)

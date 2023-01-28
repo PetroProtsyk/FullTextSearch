@@ -1,6 +1,4 @@
-﻿using System.Linq;
-
-namespace Protsyk.PMS.FullText.Core.UnitTests;
+﻿namespace Protsyk.PMS.FullText.Core.UnitTests;
 
 public class GroupVarIntTests
 {

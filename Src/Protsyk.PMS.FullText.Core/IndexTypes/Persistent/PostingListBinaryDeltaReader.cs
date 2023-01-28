@@ -1,8 +1,7 @@
-﻿using System;
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
+
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core;
@@ -34,7 +33,7 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
     #endregion
 
     #region ReaderEnumerator
-    private class PostingListReaderImpl : IPostingList
+    private sealed class PostingListReaderImpl : IPostingList
     {
         private readonly IPersistentStorage storage;
         private readonly PostingListAddress address;
@@ -56,7 +55,7 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
         }
     }
 
-    private class ReaderEnumerator : IEnumerator<Occurrence>
+    private sealed class ReaderEnumerator : IEnumerator<Occurrence>
     {
         private const int HeaderLength = sizeof(long) + sizeof(int);
         private readonly IPersistentStorage persistentStorage;
@@ -187,9 +186,7 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
 
                 if (state == 1)
                 {
-                    current = Occurrence.O((ulong)NextInteger(),
-                                           (ulong)NextInteger(),
-                                           (ulong)NextInteger());
+                    current = new Occurrence((ulong)NextInteger(), (ulong)NextInteger(), (ulong)NextInteger());
                     state = 2;
                     return true;
                 }
@@ -229,7 +226,7 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
                         case 1:
                             {
                                 var deltaToken = (ulong)NextInteger();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId,
                                                        current.TokenId + deltaToken);
                                 break;
@@ -238,9 +235,9 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
                             {
                                 var deltaFieldId = (ulong)NextInteger();
                                 var token = (ulong)NextInteger();
-                                current = Occurrence.O(current.DocumentId,
-                                                       current.FieldId + deltaFieldId,
-                                                       token);
+                                current = new Occurrence(current.DocumentId,
+                                                         current.FieldId + deltaFieldId,
+                                                         token);
                                 break;
                             }
                         case 3:
@@ -249,9 +246,7 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
                                 var fieldId = (ulong)NextInteger();
                                 var token = (ulong)NextInteger();
 
-                                current = Occurrence.O(current.DocumentId + deltaDocId,
-                                                       fieldId,
-                                                       token);
+                                current = new Occurrence(current.DocumentId + deltaDocId, fieldId, token);
                                 break;
                             }
                         default:
@@ -355,21 +350,21 @@ public class PostingListBinaryDeltaReader : IOccurrenceReader
                         }
                     case 1:
                         {
-                            o = Occurrence.O(o.DocumentId, o.FieldId, o.TokenId + (ulong)numbers[i]);
+                            o = new Occurrence(o.DocumentId, o.FieldId, o.TokenId + (ulong)numbers[i]);
                             i += 1;
                             occurrences.Add(o);
                             break;
                         }
                     case 2:
                         {
-                            o = Occurrence.O(o.DocumentId, o.FieldId + (ulong)numbers[i], (ulong)numbers[i + 1]);
+                            o = new Occurrence(o.DocumentId, o.FieldId + (ulong)numbers[i], (ulong)numbers[i + 1]);
                             i += 2;
                             occurrences.Add(o);
                             break;
                         }
                     case 3:
                         {
-                            o = Occurrence.O(o.DocumentId + (ulong)numbers[i], (ulong)numbers[i + 1], (ulong)numbers[i + 2]);
+                            o = new Occurrence(o.DocumentId + (ulong)numbers[i], (ulong)numbers[i + 1], (ulong)numbers[i + 2]);
                             i += 3;
                             occurrences.Add(o);
                             break;

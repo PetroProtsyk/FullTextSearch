@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 /// <summary>
 /// Match of the query. One or more occurrences

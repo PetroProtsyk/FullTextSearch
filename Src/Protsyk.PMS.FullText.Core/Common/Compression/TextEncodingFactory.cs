@@ -1,12 +1,10 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Text;
+﻿using System.Text;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
 public class TextEncodingFactory
 {
-    private static SortedDictionary<char, int> latinFrequencies = new SortedDictionary<char, int>()
+    private static readonly SortedDictionary<char, int> latinFrequencies = new()
     {
         { '.', 5 },
         { ',', 5 },

@@ -1,7 +1,5 @@
-﻿using System;
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Collections;
-using System.Collections.Generic;
 using System.IO;
 using System.Text;
 
@@ -12,9 +10,7 @@ namespace Protsyk.PMS.FullText.Core;
 
 public class DeltaVarIntListReader : IDisposable
 {
-    #region Fields
     private readonly IPersistentStorage persistentStorage;
-    #endregion
 
     public DeltaVarIntListReader(string folder, string fileNamePostingLists)
         : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
@@ -65,7 +61,7 @@ public class DeltaVarIntListReader : IDisposable
     #endregion
 
     #region ReaderEnumerator
-    private class DeltaListReaderImpl : IEnumerable<ulong>
+    private sealed class DeltaListReaderImpl : IEnumerable<ulong>
     {
         private readonly IPersistentStorage storage;
         private readonly long listStart;
@@ -89,7 +85,7 @@ public class DeltaVarIntListReader : IDisposable
         }
     }
 
-    private class ReaderEnumerator : IEnumerator<ulong>
+    private sealed class ReaderEnumerator : IEnumerator<ulong>
     {
         #region Fields
         private const int SkipSearchBlocksThreshold = 8;

@@ -1,10 +1,9 @@
-﻿using System;
-using System.Buffers.Binary;
+﻿using System.Buffers.Binary;
 using System.Collections;
-using System.Collections.Generic;
 using System.Globalization;
 using System.Linq;
 using System.Text;
+
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core.Collections;
@@ -20,11 +19,9 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     private readonly IComparer<TKey> comparer = Comparer<TKey>.Default;
     private readonly IDataSerializer<TKey> keySerializer;
     private readonly IDataSerializer<TValue> valueSerializer;
-
     private readonly int order;
     private readonly int maxChildren;
-
-    private NodeManager nodeManager;
+    private readonly NodeManager nodeManager;
 
     #endregion
 
@@ -63,23 +60,22 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     {
         var target = FindLeaf(key);
 
-        using (var transaction = nodeManager.StartTransaction())
+        using var transaction = nodeManager.StartTransaction();
+
+        var dataLink = new DataLink(
+            nodeManager.SaveData(keySerializer.GetBytes(key)),
+            nodeManager.SaveData(valueSerializer.GetBytes(value)));
+        var i = Put(target, key, dataLink);
+
+        nodeManager.Save(target);
+        nodeManager.Count++;
+
+        if (target.Count > maxChildren)
         {
-            var dataLink = new DataLink(
-                nodeManager.SaveData(keySerializer.GetBytes(key)),
-                nodeManager.SaveData(valueSerializer.GetBytes(value)));
-            var i = Put(target, key, dataLink);
-
-            nodeManager.Save(target);
-            nodeManager.Count++;
-
-            if (target.Count > maxChildren)
-            {
-                SplitUp(target);
-            }
-
-            transaction.Commit(nodeManager.Header);
+            SplitUp(target);
         }
+
+        transaction.Commit(nodeManager.Header);
     }
 
     private bool ContainsKeyInternal(TKey key)
@@ -91,8 +87,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     {
         var targetKeys = LoadKeys(target);
 
-        int index;
-        if (TryFindUpperBound(key, targetKeys, comparer, out index))
+        if (TryFindUpperBound(key, targetKeys, comparer, out int index))
         {
             throw new KeyAlreadyExistsException();
         }
@@ -283,16 +278,14 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
     private bool RemoveInternal(TKey key)
     {
-        NodeData temp;
-        if (!TryFindKeyOrLeaf(key, out temp))
+        if (!TryFindKeyOrLeaf(key, out NodeData temp))
         {
             return false;
         }
 
         var targetKeys = LoadKeys(temp);
 
-        int index;
-        if (!TryFindUpperBound(key, targetKeys, comparer, out index))
+        if (!TryFindUpperBound(key, targetKeys, comparer, out int index))
         {
             throw new InvalidOperationException();
         }
@@ -744,8 +737,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
     public bool TryGetValue(TKey key, out TValue value)
     {
-        NodeData temp;
-        if (!TryFindKeyOrLeaf(key, out temp))
+        if (!TryFindKeyOrLeaf(key, out NodeData temp))
         {
             value = default;
             return false;
@@ -753,8 +745,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         var targetKeys = LoadKeys(temp);
 
-        int index;
-        if (!TryFindUpperBound(key, targetKeys, comparer, out index))
+        if (!TryFindUpperBound(key, targetKeys, comparer, out int index))
         {
             value = default;
             return false;
@@ -770,17 +761,13 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     {
         get
         {
-            TValue result;
-            if (!TryGetValue(key, out result))
-            {
-                throw new KeyNotFoundException();
-            }
-            return result;
+            return TryGetValue(key, out TValue result) 
+                ? result 
+                : throw new KeyNotFoundException();
         }
         set
         {
-            NodeData temp;
-            if (!TryFindKeyOrLeaf(key, out temp))
+            if (!TryFindKeyOrLeaf(key, out NodeData temp))
             {
                 AddInternal(key, value);
             }
@@ -1193,7 +1180,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         }
     }
 
-    private class PageDataStorage : IDisposable
+    private sealed class PageDataStorage : IDisposable
     {
         private readonly int pageSize = 4096;
         private readonly int maxPagesInCache = 1000;
@@ -1264,8 +1251,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         private byte[] GetPage(int pageId, uint footer, bool canBeNew)
         {
-            byte[] rawBytes;
-            if (!pageCache.TryGetValue(pageId, out rawBytes))
+            if (!pageCache.TryGetValue(pageId, out byte[] rawBytes))
             {
                 rawBytes = new byte[pageSize];
                 if (persistentStorage.Length < (pageId + 1) * pageSize)

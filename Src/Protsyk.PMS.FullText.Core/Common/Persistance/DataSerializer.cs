@@ -1,6 +1,4 @@
-﻿using System;
-using System.Buffers.Binary;
-using System.Collections.Generic;
+﻿using System.Buffers.Binary;
 using System.Text;
 
 namespace Protsyk.PMS.FullText.Core.Common.Persistance

@@ -1,5 +1,4 @@
-﻿using System;
-using Protsyk.PMS.FullText.Core.Collections;
+﻿using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Automata;
 

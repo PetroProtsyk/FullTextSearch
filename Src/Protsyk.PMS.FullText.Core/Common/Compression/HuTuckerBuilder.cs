@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core.Common.Compression;
+﻿namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
 public partial class HuTuckerBuilder : VarLenCharEncodingBuilder
 {
@@ -15,7 +13,7 @@ public partial class HuTuckerBuilder : VarLenCharEncodingBuilder
     {
         foreach(var symbol in symbols)
         {
-            combinationList.Add(new TreeLeaf() {V = symbol.c, w = symbol.f});
+            combinationList.Add(new TreeLeaf { V = symbol.C, W = symbol.F });
         }
 
         var result = combinationList.PerformGarciaWachsCombination();
@@ -26,7 +24,7 @@ public partial class HuTuckerBuilder : VarLenCharEncodingBuilder
 
     private void SetLevels(ListItem result, int level)
     {
-        result.l = level;
+        result.L = level;
 
         if (result is TreeNode node)
         {
@@ -41,63 +39,68 @@ public partial class HuTuckerBuilder : VarLenCharEncodingBuilder
         var index = 0;
         while (true)
         {
-            if (stack.Count < 2 || (index < queue.Count && stack[stack.Count - 1].l != stack[stack.Count - 2].l))
+            if (stack.Count < 2 || (index < queue.Count && stack[^1].L != stack[^2].L))
             {
-                stack.Add(new TreeLeaf() {l = queue[index].l, V = queue[index].V, w = queue[index].w});
+                stack.Add(new TreeLeaf {
+                    L = queue[index].L,
+                    V = queue[index].V,
+                    W = queue[index].W 
+                });
                 ++index;
             }
             else
             {
-                var l1 = stack[stack.Count - 1];
-                var l2 = stack[stack.Count - 2];
+                var l1 = stack[^1];
+                var l2 = stack[^2];
 
                 stack.RemoveAt(stack.Count - 1);
                 stack.RemoveAt(stack.Count - 1);
 
-                stack.Add(
-                    new TreeNode()
-                    {
-                        Left = l2,
-                        Right = l1,
-                        w = l1.w + l2.w,
-                        l = l2.l - 1
-                    });
+                stack.Add(new TreeNode {
+                    Left = l2,
+                    Right = l1,
+                    W = l1.W + l2.W,
+                    L = l2.L - 1
+                });
 
-                if (l2.l - 1 == 0)
+                if (l2.L - 1 == 0)
                     break;
             }
         }
 
-        return (TreeNode) stack[0];
+        return (TreeNode)stack[0];
     }
 
-    class ListItem : IEncodingNode
+    private abstract class ListItem : IEncodingNode
     {
-        public double w { get; set; }
-        public int l { get; set; }
+        public double W { get; set; }
+        
+        public int L { get; set; }
 
         public ListItem Previous { get; set; }
+
         public ListItem Next { get; set; }
 
-        public virtual string ToString(string ofset, string code)
+        public virtual string ToString(string offset, string code)
         {
             return ToString();
         }
     }
 
-    class TreeLeaf : ListItem, IEncodingLeafNode
+    private sealed class TreeLeaf : ListItem, IEncodingLeafNode
     {
         public char V { get; set; }
 
-        public override string ToString(string ofset, string code)
+        public override string ToString(string offset, string code)
         {
             return $"{V}-{code}";
         }
     }
 
-    class TreeNode : ListItem, IEncodingTreeNode
+    private sealed class TreeNode : ListItem, IEncodingTreeNode
     {
         public ListItem Left { get; set; }
+
         public ListItem Right { get; set; }
 
         IEncodingNode IEncodingTreeNode.Left => Left;
@@ -105,12 +108,11 @@ public partial class HuTuckerBuilder : VarLenCharEncodingBuilder
         IEncodingNode IEncodingTreeNode.Right => Right;
     }
 
-    class HuTuckerEncoding : VarLenCharEncoding
+    private sealed class HuTuckerEncoding : VarLenCharEncoding
     {
         internal HuTuckerEncoding(ListItem root)
             : base(root)
         {
         }
     }
-
 }

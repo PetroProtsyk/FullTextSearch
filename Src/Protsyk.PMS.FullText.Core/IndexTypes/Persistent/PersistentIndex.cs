@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.IO;
+﻿using System.IO;
 using System.Linq;
 
 using Protsyk.PMS.FullText.Core.Collections;
@@ -39,7 +37,7 @@ public class PersistentIndex : IFullTextIndex
         Dictionary = PersistentDictionaryFactory.Create(indexType[1], folder, FileNameDictionary, Header.MaxTokenSize, indexType[4]);
         PostingLists = PostingListIOFactory.CreateReader(indexType[3], folder, FileNamePostingLists);
         PosIndex = PersistentDictionaryFactory.Create(indexType[1], folder, FileNamePosIndex, PosIndexKeySize, indexType[4]);
-        PositionsReader = new DeltaVarIntListReader(folder, FileNamePositions);
+        positionsReader = new DeltaVarIntListReader(folder, FileNamePositions);
         Fields = PersistentMetadataFactory.CreateStorage(indexType[2], folder, FileNameFields);
         this.name = name;
     }
@@ -83,7 +81,7 @@ public class PersistentIndex : IFullTextIndex
 
     public ITermDictionary PosIndex { get; }
 
-    private DeltaVarIntListReader PositionsReader;
+    private readonly DeltaVarIntListReader positionsReader;
 
     public IMetadataStorage<string> Fields { get; }
 
@@ -98,7 +96,7 @@ public class PersistentIndex : IFullTextIndex
         var matcher = new DfaTermMatcher(new SequenceMatcher<char>(key, false));
         var term = PosIndex.GetTerms(matcher).Single();
         var offset = -1;
-        foreach (var pos in PositionsReader.Get(term.Value.Offset))
+        foreach (var pos in positionsReader.Get(term.Value.Offset))
         {
             if (offset == -1)
             {
@@ -117,28 +115,26 @@ public class PersistentIndex : IFullTextIndex
         var key = GetKeyForPositions('T', docId, fieldId);
         var matcher = new DfaTermMatcher(new SequenceMatcher<char>(key, false));
         var term = PosIndex.GetTerms(matcher).Single();
-        return PositionsReader.GetText(term.Value.Offset);
+        return positionsReader.GetText(term.Value.Offset);
     }
 
     public ITermMatcher CompilePattern(string pattern)
     {
-        using (var compiler = new FullTextQueryCompiler(this))
-        {
-            return compiler.CompilePattern(pattern);
-        }
+        using var compiler = new FullTextQueryCompiler(this);
+
+        return compiler.CompilePattern(pattern);
     }
 
     public ISearchQuery Compile(string query)
     {
-        using (var compiler = new FullTextQueryCompiler(this))
-        {
-            return compiler.Compile(query);
-        }
+        using var compiler = new FullTextQueryCompiler(this);
+
+        return compiler.Compile(query);
     }
 
     public void Dispose()
     {
-        PositionsReader?.Dispose();
+        positionsReader?.Dispose();
         PosIndex?.Dispose();
         PostingLists?.Dispose();
         Dictionary?.Dispose();

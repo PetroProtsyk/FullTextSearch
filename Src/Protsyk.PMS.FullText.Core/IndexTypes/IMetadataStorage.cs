@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 public interface IMetadataStorage<T> : IDisposable
 {

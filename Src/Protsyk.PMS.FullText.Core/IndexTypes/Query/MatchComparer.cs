@@ -1,42 +1,39 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 public class MatchComparer : IComparer<IMatch>
 {
-    public static readonly MatchComparer Instance = new MatchComparer();
+    public static readonly MatchComparer Instance = new();
 
     public int Compare(IMatch x, IMatch y)
     {
-        using (var occurrenceX = x.GetOccurrences().GetEnumerator())
-        using (var occurrenceY = y.GetOccurrences().GetEnumerator())
+        using var occurrenceX = x.GetOccurrences().GetEnumerator();
+        using var occurrenceY = y.GetOccurrences().GetEnumerator();
+
+        while (true)
         {
-            while (true)
+            if (!occurrenceX.MoveNext())
             {
-                if (!occurrenceX.MoveNext())
+                if (!occurrenceY.MoveNext())
                 {
-                    if (!occurrenceY.MoveNext())
-                    {
-                        return 0;
-                    }
-                    else
-                    {
-                        return -1;
-                    }
+                    return 0;
                 }
                 else
                 {
-                    if (!occurrenceY.MoveNext())
+                    return -1;
+                }
+            }
+            else
+            {
+                if (!occurrenceY.MoveNext())
+                {
+                    return 1;
+                }
+                else
+                {
+                    var r = occurrenceX.Current.CompareTo(occurrenceY.Current);
+                    if (r != 0)
                     {
-                        return 1;
-                    }
-                    else
-                    {
-                        var r = occurrenceX.Current.CompareTo(occurrenceY.Current);
-                        if (r != 0)
-                        {
-                            return r;
-                        }
+                        return r;
                     }
                 }
             }

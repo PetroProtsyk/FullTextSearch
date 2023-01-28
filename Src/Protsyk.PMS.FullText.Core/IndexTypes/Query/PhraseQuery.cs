@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 public class PhraseQuery : ISearchQuery
 {
@@ -45,7 +43,7 @@ public class PhraseQuery : ISearchQuery
                     return null;
                 }
 
-                newTarget = Occurrence.O(
+                newTarget = new Occurrence(
                     Math.Max(target.DocumentId, m.Right.DocumentId),
                     Math.Max(target.FieldId, m.Right.FieldId),
                     0);

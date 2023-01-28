@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -42,15 +40,13 @@ public class VarLenCharEncoding
 
     private void Traverse(IEncodingNode root, Dictionary<char, byte[]> codes, List<byte> current)
     {
-        var leaf = root as IEncodingLeafNode;
-        if (leaf != null)
+        if (root is IEncodingLeafNode leaf)
         {
             codes[leaf.V] = current.ToArray();
             return;
         }
 
-        var node = root as IEncodingTreeNode;
-        if (node != null)
+        if (root is IEncodingTreeNode node)
         {
             current.Add(LeftValue);
             Traverse(node.Left, codes, current);
@@ -380,7 +376,7 @@ public class VarLenCharEncoding
         {
             if (c.Code[index] == LeftValue)
             {
-                parent.Left = parent.Left != null ? parent.Left : new BaseNode();
+                parent.Left ??= new BaseNode();
                 if (parent.Left is IEncodingLeafNode)
                 {
                     throw new Exception("Bad code");
@@ -389,7 +385,7 @@ public class VarLenCharEncoding
             }
             else
             {
-                parent.Right = parent.Right != null ? parent.Right : new BaseNode();
+                parent.Right ??= new BaseNode();
                 if (parent.Right is IEncodingLeafNode)
                 {
                     throw new Exception("Bad code");
@@ -399,14 +395,15 @@ public class VarLenCharEncoding
         }
     }
 
-    private class BaseLeafNode : IEncodingLeafNode
+    private sealed class BaseLeafNode : IEncodingLeafNode
     {
         public char V { get; set; }
     }
 
-    private class BaseNode : IEncodingTreeNode
+    private sealed class BaseNode : IEncodingTreeNode
     {
         public IEncodingNode Left { get; set; }
+
         public IEncodingNode Right { get; set; }
     }
 
@@ -421,11 +418,17 @@ public class VarLenCharEncoding
         public char Symbol { get; init; }
     }
 
-    public class CodeSymbol
+    public readonly struct CodeSymbol
     {
-        public byte[] Code { get; set; }
+        public CodeSymbol(byte[] code, char symbol)
+        {
+            Code = code;
+            Symbol = symbol;
+        }
 
-        public char Symbol { get; set; }
+        public byte[] Code { get; }
+
+        public char Symbol { get; }
     }
 
     public class ByteToBit : IEnumerable<byte>
@@ -437,12 +440,10 @@ public class VarLenCharEncoding
             this.data = data;
         }
 
-
         public IEnumerator<byte> GetEnumerator()
         {
             return new ByteToBitEn(data.GetEnumerator());
         }
-
 
         IEnumerator IEnumerable.GetEnumerator()
         {
@@ -522,8 +523,7 @@ public class VarLenCharEncoding
 
         foreach (var bit in data)
         {
-            var node = current as IEncodingTreeNode;
-            if (node != null)
+            if (current is IEncodingTreeNode node)
             {
                 if (bit == LeftValue)
                 {
@@ -535,8 +535,7 @@ public class VarLenCharEncoding
                 }
             }
 
-            var leaf = current as IEncodingLeafNode;
-            if (leaf != null)
+            if (current is IEncodingLeafNode leaf)
             {
                 current = root;
 
@@ -559,11 +558,8 @@ public class VarLenCharEncoding
         return result.ToString();
     }
 
-    public IBitDecoder GetDecoder()
-    {
-        return new BitDecoder(root);
-    }
-
+    public IBitDecoder GetDecoder() => new BitDecoder(root);
+   
     public static VarLenCharEncoding FromFrequency<T>(IDictionary<char, int> charFrequencies, bool extend = false)
                      where T : VarLenCharEncodingBuilder, new()
     {
@@ -624,8 +620,7 @@ public class VarLenCharEncoding
         {
             states.Push(current);
 
-            var node = current as IEncodingTreeNode;
-            if (node != null)
+            if (current is IEncodingTreeNode node)
             {
                 if (p == (LeftValue == 1))
                 {
@@ -637,8 +632,7 @@ public class VarLenCharEncoding
                 }
             }
 
-            var leaf = current as IEncodingLeafNode;
-            if (leaf != null)
+            if (current is IEncodingLeafNode leaf)
             {
                 current = root;
 
@@ -702,7 +696,7 @@ public abstract class VarLenCharEncodingBuilder
         int maxWeight = 0;
         foreach (var item in symbols)
         {
-            maxWeight = Math.Max(maxWeight, item.f);
+            maxWeight = Math.Max(maxWeight, item.F);
         }
 
         symbols.Add(new CharFrequency(VarLenCharEncoding.TerminalChar, maxWeight));
@@ -727,13 +721,14 @@ public abstract class VarLenCharEncodingBuilder
 
     protected readonly struct CharFrequency
     {
-        public readonly char c;
-        public readonly int f;
-
         public CharFrequency(char c, int f)
         {
-            this.c = c;
-            this.f = f;
+            C = c;
+            F = f;
         }
+
+        public char C { get; }
+
+        public int F { get; }
     }
 }
