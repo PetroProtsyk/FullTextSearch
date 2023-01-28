@@ -20,11 +20,9 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     private readonly IComparer<TKey> comparer = Comparer<TKey>.Default;
     private readonly IDataSerializer<TKey> keySerializer;
     private readonly IDataSerializer<TValue> valueSerializer;
-
     private readonly int order;
     private readonly int maxChildren;
-
-    private NodeManager nodeManager;
+    private readonly NodeManager nodeManager;
 
     #endregion
 
