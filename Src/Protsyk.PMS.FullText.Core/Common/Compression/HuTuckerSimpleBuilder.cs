@@ -127,14 +127,12 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         {
             var current = s.Pop();
 
-            var leaf = current.Item1 as Leaf;
-            if (leaf != null)
+            if (current.Item1 is Leaf leaf)
             {
                 depth[leaf.index] = current.Item2;
             }
 
-            var merge = current.Item1 as MergeNode;
-            if (merge != null)
+            if (current.Item1 is MergeNode merge)
             {
                 s.Push(new ValueTuple<Node, int>(merge.left, current.Item2 + 1));
                 s.Push(new ValueTuple<Node, int>(merge.right, current.Item2 + 1));
@@ -151,14 +149,12 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
 
     private int GetFrequency(Node node)
     {
-        var leaf = node as Leaf;
-        if (leaf != null)
+        if (node is Leaf leaf)
         {
             return leaf.freq;
         }
 
-        var merge = node as MergeNode;
-        if (merge != null)
+        if (node is MergeNode merge)
         {
             return merge.freq;
         }
@@ -171,7 +167,7 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         public int freq { get; set; }
     }
 
-    class MergeNode : Node, IEncodingTreeNode
+    sealed class MergeNode : Node, IEncodingTreeNode
     {
         public IEncodingNode Left => left;
         public IEncodingNode Right => right;
@@ -180,7 +176,7 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         public Node right { get; set; }
     }
 
-    class Leaf : Node, IEncodingLeafNode
+    sealed class Leaf : Node, IEncodingLeafNode
     {
         public char V => c;
 
@@ -189,7 +185,7 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         public int index { get; set; }
     }
 
-    class HuTuckerEncoding : VarLenCharEncoding
+    sealed class HuTuckerEncoding : VarLenCharEncoding
     {
         internal HuTuckerEncoding(Node root)
             : base(root)

@@ -6,7 +6,7 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression;
 // https://en.wikipedia.org/wiki/Shannon%E2%80%93Fano_coding
 public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
 {
-    private readonly int optimiziationType;
+    private readonly int optimizationType;
 
     public BalancedByWeightBuilder()
         : this(1)
@@ -15,7 +15,7 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
 
     public BalancedByWeightBuilder(int type)
     {
-        optimiziationType = type;
+        optimizationType = type;
     }
 
     protected override VarLenCharEncoding DoBuild()
@@ -25,14 +25,12 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
 
     private double Score(BaseNode n, int depth)
     {
-        var d = n as Node;
-        if (d != null)
+        if (n is Node d)
         {
             return Score(d.left, depth + 1) + Score(d.right, depth + 1);
         }
 
-        var l = n as LeafNode;
-        if (l != null)
+        if (n is LeafNode l)
         {
             return l.m * depth;
         }
@@ -83,7 +81,7 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
             };
         }
 
-        if (optimiziationType == 1)
+        if (optimizationType == 1)
         {
             return DivRangeEquallyV1(v, start, end, sums);
         }
@@ -146,12 +144,12 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
     }
 
 
-    class BaseNode : IEncodingNode
+    abstract class BaseNode : IEncodingNode
     {
         public double m;
     }
 
-    class Node : BaseNode, IEncodingTreeNode
+    sealed class Node : BaseNode, IEncodingTreeNode
     {
         public IEncodingNode Left => left;
         public IEncodingNode Right => right;
@@ -159,13 +157,13 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
         public BaseNode right;
     }
 
-    class LeafNode : BaseNode, IEncodingLeafNode
+    sealed class LeafNode : BaseNode, IEncodingLeafNode
     {
         public CharFrequency v;
         public char V => v.c;
     }
 
-    class BalancedByWeightEncoding : VarLenCharEncoding
+    sealed class BalancedByWeightEncoding : VarLenCharEncoding
     {
         public BalancedByWeightEncoding(IEncodingNode root)
             : base(root)
