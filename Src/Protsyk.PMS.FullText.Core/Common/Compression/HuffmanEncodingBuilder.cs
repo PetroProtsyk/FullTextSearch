@@ -20,7 +20,7 @@ public class HuffmanEncodingBuilder : VarLenCharEncodingBuilder
     {
         foreach(var symbol in symbols)
         {
-            nodes.Add(new CharNode(symbol.c, symbol.f));
+            nodes.Add(new CharNode(symbol.C, symbol.F));
         }
 
         while (nodes.Count > 1)

@@ -12,7 +12,7 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         var combine = Combine(CollectionsMarshal.AsSpan(input)).ToArray();
 
         // Rebuild tree based on the depth
-        var nodes = Enumerable.Range(0, input.Count).Select(v => new Leaf { Index = v, C = input[v].c, Frequency = input[v].f }).Cast<Node>().ToArray();
+        var nodes = Enumerable.Range(0, input.Count).Select(v => new Leaf { Index = v, C = input[v].C, Frequency = input[v].F }).Cast<Node>().ToArray();
 
         // TODO: Use heap
         var heap = new SortedSet<ValueTuple<int, int>>(combine,
@@ -70,8 +70,8 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         {
             list.AddLast(new Leaf { 
                 Index = i,
-                C = input[i].c, 
-                Frequency = input[i].f 
+                C = input[i].C, 
+                Frequency = input[i].F 
             });
         }
 

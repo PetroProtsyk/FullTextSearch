@@ -52,16 +52,16 @@ public class FunctionAstQuery : AstQuery
 
 public abstract class TermAstQuery : AstQuery
 {
-    public readonly string Value;
-
-    public readonly string EscapedValue;
-
     public TermAstQuery(string name, string value, string escapedValue)
         : base(name)
     {
-        this.Value = value;
-        this.EscapedValue = escapedValue;
+        Value = value;
+        EscapedValue = escapedValue;
     }
+
+    public string Value { get; }
+
+    public string EscapedValue { get; }
 
     protected internal override StringBuilder ToString(StringBuilder builder)
     {
@@ -96,7 +96,7 @@ public class EditAstQuery : TermAstQuery
     public EditAstQuery(string name, string value, string escapedValue, int distance)
         : base(name, value, escapedValue)
     {
-        this.Distance = distance;
+        Distance = distance;
     }
 
     protected internal override StringBuilder ToString(StringBuilder builder)

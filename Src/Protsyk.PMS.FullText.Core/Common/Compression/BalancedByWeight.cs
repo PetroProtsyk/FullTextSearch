@@ -47,10 +47,10 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
             ? (stackalloc double[64]).Slice(0, v.Length)
             : new double[v.Length];
         
-        sums[0] = v[0].f;
+        sums[0] = v[0].F;
         for (int i=1; i<v.Length; ++i)
         {
-            sums[i] = sums[i-1] + v[i].f;
+            sums[i] = sums[i-1] + v[i].F;
         }
 
         return DivEqually(v, 0, v.Length, sums);
@@ -67,7 +67,7 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
         {
             return new LeafNode {
                 v = v[start],
-                m = v[start].f
+                m = v[start].F
             };
         }
         else if (end - start == 2)
@@ -160,7 +160,7 @@ public class BalancedByWeightBuilder : VarLenCharEncodingBuilder
     sealed class LeafNode : BaseNode, IEncodingLeafNode
     {
         public CharFrequency v;
-        public char V => v.c;
+        public char V => v.C;
     }
 
     sealed class BalancedByWeightEncoding : VarLenCharEncoding

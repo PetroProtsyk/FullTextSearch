@@ -37,7 +37,7 @@ public partial class HuTuckerBuilder
             var node = new TreeNode();
             node.Left = left;
             node.Right = right;
-            node.w = left.w + right.w;
+            node.W = left.W + right.W;
 
             if (left.Next != right)
             {
@@ -117,9 +117,9 @@ public partial class HuTuckerBuilder
                         if (r2 is TreeLeaf)
                             break;
 
-                        if (minW > r1.w + r2.w)
+                        if (minW > r1.W + r2.W)
                         {
-                            minW = r1.w + r2.w;
+                            minW = r1.W + r2.W;
 
                             minV1 = r1;
                             minV2 = r2;
@@ -130,9 +130,9 @@ public partial class HuTuckerBuilder
 
                     if (r2 != null)
                     {
-                        if (minW > r1.w + r2.w)
+                        if (minW > r1.W + r2.W)
                         {
-                            minW = r1.w + r2.w;
+                            minW = r1.W + r2.W;
 
                             minV1 = r1;
                             minV2 = r2;
@@ -164,11 +164,11 @@ public partial class HuTuckerBuilder
                 while (r1 != null)
                 {
 
-                    if (r1.Next == null || ((r1.Previous.w <= r1.Next.w) && (r1.Previous.Previous.w > r1.w)))
+                    if (r1.Next == null || ((r1.Previous.W <= r1.Next.W) && (r1.Previous.Previous.W > r1.W)))
                     {
 
                         var newNode = Combine(r1.Previous, r1);
-                        while (newNode.Previous != null && newNode.Previous.w <= newNode.w)
+                        while (newNode.Previous != null && newNode.Previous.W <= newNode.W)
                             MoveLeft(newNode);
 
                         r1 = First.Next;
@@ -216,9 +216,9 @@ public partial class HuTuckerBuilder
             for (var r = First; r != null; r = r.Next)
             {
                 if (r is TreeLeaf)
-                    sb.Append(r.w);
+                    sb.Append(r.W);
                 else
-                    sb.Append(CultureInfo.InvariantCulture, $"({r.w})");
+                    sb.Append(CultureInfo.InvariantCulture, $"({r.W})");
 
                 if (r.Next != null)
                 {
