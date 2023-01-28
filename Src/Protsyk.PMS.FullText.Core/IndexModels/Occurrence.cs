@@ -15,7 +15,7 @@ public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurren
     /// <summary>
     /// Empty occurrence
     /// </summary>
-    public static readonly Occurrence Empty = O(NoId, NoId, NoId);
+    public static readonly Occurrence Empty = new(NoId, NoId, NoId);
 
     private static readonly Regex regParse = new Regex("^\\[(?<docId>\\d+),(?<fieldId>\\d+),(?<tokenId>\\d+)\\]$",
                                                        RegexOptions.Compiled | RegexOptions.Singleline);
@@ -37,13 +37,6 @@ public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurren
     #endregion
 
     #region Static Methods
-    /// <summary>
-    /// Construct occurrence
-    /// </summary>
-    public static Occurrence O(ulong documentId, ulong fieldId, ulong tokenId)
-    {
-        return new Occurrence(documentId, fieldId, tokenId);
-    }
 
     public static Occurrence Parse(string text)
     {
@@ -70,7 +63,7 @@ public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurren
 
     public override string ToString()
     {
-        return $"[{DocumentId},{FieldId},{TokenId}]";
+        return string.Create(CultureInfo.InvariantCulture, $"[{DocumentId},{FieldId},{TokenId}]");
     }
     #endregion
 

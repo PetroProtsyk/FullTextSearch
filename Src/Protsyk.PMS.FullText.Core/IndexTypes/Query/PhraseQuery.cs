@@ -45,7 +45,7 @@ public class PhraseQuery : ISearchQuery
                     return null;
                 }
 
-                newTarget = Occurrence.O(
+                newTarget = new Occurrence(
                     Math.Max(target.DocumentId, m.Right.DocumentId),
                     Math.Max(target.FieldId, m.Right.FieldId),
                     0);

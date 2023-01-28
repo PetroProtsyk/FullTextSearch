@@ -116,7 +116,7 @@ public abstract class FullTextIndexBuilder : IIndexBuilder
             }
 
             positions.Add(TextPosition.P(token.CharOffset, token.Length));
-            postingList.Add(Occurrence.O(id, fieldId, ++tokenId));
+            postingList.Add(new Occurrence(id, fieldId, ++tokenId));
         }
 
         AddDocVector(id, fieldId, positions);

@@ -174,7 +174,7 @@ public class PostingListBinaryReader : IOccurrenceReader
 
                     state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 4;
 
-                    current = Occurrence.O((ulong)docId, (ulong)fieldId, (ulong)tokenId);
+                    current = new Occurrence((ulong)docId, (ulong)fieldId, (ulong)tokenId);
                     return true;
                 }
 
@@ -200,7 +200,7 @@ public class PostingListBinaryReader : IOccurrenceReader
 
                     state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 3;
 
-                    current = Occurrence.O((ulong)docId, (ulong)fieldId, (ulong)tokenId);
+                    current = new Occurrence((ulong)docId, (ulong)fieldId, (ulong)tokenId);
                     return true;
                 }
 
@@ -226,7 +226,7 @@ public class PostingListBinaryReader : IOccurrenceReader
 
                     state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 2;
 
-                    current = Occurrence.O((ulong)docId, (ulong)fieldId, (ulong)tokenId);
+                    current = new Occurrence((ulong)docId, (ulong)fieldId, (ulong)tokenId);
                     return true;
                 }
 
@@ -245,7 +245,7 @@ public class PostingListBinaryReader : IOccurrenceReader
 
                     state = (isEof && indxInBuffer >= dataInBuffer) ? 0 : 1;
 
-                    current = Occurrence.O((ulong)docId, (ulong)fieldId, (ulong)tokenId);
+                    current = new Occurrence((ulong)docId, (ulong)fieldId, (ulong)tokenId);
                     return true;
                 }
 

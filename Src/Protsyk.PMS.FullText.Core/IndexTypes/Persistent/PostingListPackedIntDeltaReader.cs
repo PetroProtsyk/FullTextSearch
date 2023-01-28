@@ -200,7 +200,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
 
                 if (state == 1)
                 {
-                    current = Occurrence.O((ulong)NextInteger(),
+                    current = new Occurrence((ulong)NextInteger(),
                                            (ulong)NextInteger(),
                                            (ulong)NextInteger());
                     state = 2;
@@ -242,7 +242,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
                         case 1:
                             {
                                 var deltaToken = (ulong)NextInteger();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId,
                                                        current.TokenId + deltaToken);
                                 break;
@@ -251,7 +251,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
                             {
                                 var deltaFieldId = (ulong)NextInteger();
                                 var token = (ulong)NextInteger();
-                                current = Occurrence.O(current.DocumentId,
+                                current = new Occurrence(current.DocumentId,
                                                        current.FieldId + deltaFieldId,
                                                        token);
                                 break;
@@ -262,7 +262,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
                                 var fieldId = (ulong)NextInteger();
                                 var token = (ulong)NextInteger();
 
-                                current = Occurrence.O(current.DocumentId + deltaDocId,
+                                current = new Occurrence(current.DocumentId + deltaDocId,
                                                        fieldId,
                                                        token);
                                 break;

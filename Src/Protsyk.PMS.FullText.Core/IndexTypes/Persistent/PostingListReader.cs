@@ -236,7 +236,7 @@ public class PostingListReader : IOccurrenceReader
                     throw new Exception("Wrong data");
                 }
 
-                current = Occurrence.O(docId, fieldId, tokenId);
+                current = new Occurrence(docId, fieldId, tokenId);
                 return true;
             }
         }
