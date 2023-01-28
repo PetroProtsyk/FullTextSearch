@@ -1,7 +1,4 @@
-﻿using System;
-using System.IO;
-
-namespace Protsyk.PMS.FullText.Core.UnitTests;
+﻿namespace Protsyk.PMS.FullText.Core.UnitTests;
 
 public abstract class TestWithFolderBase : IDisposable
 {

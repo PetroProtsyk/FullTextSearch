@@ -1,8 +1,4 @@
-﻿using System;
-using System.IO;
-using System.Threading;
-
-namespace Protsyk.PMS.FullText.Core.UnitTests;
+﻿namespace Protsyk.PMS.FullText.Core.UnitTests;
 
 public class SearchTest
 {
