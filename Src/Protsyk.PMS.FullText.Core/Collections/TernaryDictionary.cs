@@ -306,8 +306,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         // Nodes
         foreach (var node in Visit())
         {
-            int index = 0;
-            if (!labels.TryGetValue(node.Id, out index))
+            if (!labels.TryGetValue(node.Id, out int index))
             {
                 index = labels.Count + 1;
                 labels.Add(node.Id, index);
@@ -324,8 +323,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
             if (node.Lokid != NodeManager.NoId)
             {
-                int childIndex;
-                if (!labels.TryGetValue(node.Lokid, out childIndex))
+                if (!labels.TryGetValue(node.Lokid, out int childIndex))
                 {
                     childIndex = labels.Count + 1;
                     labels.Add(node.Lokid, childIndex);
@@ -345,8 +343,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
             if (node.Hikid != NodeManager.NoId)
             {
-                int childIndex;
-                if (!labels.TryGetValue(node.Hikid, out childIndex))
+                if (!labels.TryGetValue(node.Hikid, out int childIndex))
                 {
                     childIndex = labels.Count + 1;
                     labels.Add(node.Hikid, childIndex);
@@ -719,8 +716,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
                 throw new ArgumentException();
             }
 
-            NodeData result;
-            if (!cache.TryGetValue(index, out result))
+            if (!cache.TryGetValue(index, out NodeData result))
             {
                 result = Read(index);
                 cache.Add(index, result);
@@ -810,8 +806,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
                     return newNode;
                 }
 
-                NodeData result;
-                if (!cache.TryGetValue(index, out result))
+                if (!cache.TryGetValue(index, out NodeData result))
                 {
                     result = nodeManager.Get(index);
                     cache.Add(index, result);
