@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core;
+﻿namespace Protsyk.PMS.FullText.Core;
 
 public readonly struct DictionaryTerm : IEquatable<DictionaryTerm>
 {

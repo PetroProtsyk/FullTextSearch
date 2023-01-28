@@ -1,5 +1,3 @@
-using System;
-
 namespace Protsyk.PMS.FullText.Core.Automata;
 
 /// <summary>

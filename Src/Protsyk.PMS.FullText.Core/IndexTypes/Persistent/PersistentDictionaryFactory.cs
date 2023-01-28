@@ -1,6 +1,4 @@
-﻿using System;
-using System.IO;
-using Protsyk.PMS.FullText.Core.Common.Compression;
+﻿using Protsyk.PMS.FullText.Core.Common.Compression;
 
 namespace Protsyk.PMS.FullText.Core;
 

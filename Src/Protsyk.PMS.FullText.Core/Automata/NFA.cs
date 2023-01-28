@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 using System.Text;
 
 namespace Protsyk.PMS.FullText.Core.Automata;
@@ -11,16 +9,16 @@ namespace Protsyk.PMS.FullText.Core.Automata;
 /// </summary>
 public class NFA
 {
-    public static char EpsilonChar = 'ε';
-    public static char AnyChar = '*';
+    public const char EpsilonChar = 'ε';
+    public const char AnyChar = '*';
 
-    public static CharRange Epsilon = new CharRange(0, 0);
-    public static CharRange Any = new CharRange(1, 65535);
+    public static readonly CharRange Epsilon = new(0, 0);
+    public static readonly CharRange Any = new(1, 65535);
 
     private int initial = 0;
-    private readonly List<int> states = new List<int>();
-    private readonly List<ValueTuple<int, int, CharRange>> transitions = new List<ValueTuple<int, int, CharRange>>();
-    private readonly HashSet<int> final = new HashSet<int>();
+    private readonly List<int> states = new();
+    private readonly List<ValueTuple<int, int, CharRange>> transitions = new();
+    private readonly HashSet<int> final = new();
 
     public void AddState(int state, bool isFinal)
     {

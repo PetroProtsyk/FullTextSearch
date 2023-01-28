@@ -1,6 +1,4 @@
-﻿using System.Collections.Generic;
-
-namespace Protsyk.PMS.FullText.Core.Common.Compression;
+﻿namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
 public partial class HuTuckerBuilder : VarLenCharEncodingBuilder
 {

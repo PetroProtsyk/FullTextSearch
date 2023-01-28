@@ -1,4 +1,3 @@
-using System;
 using System.Runtime.InteropServices;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression;

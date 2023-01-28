@@ -1,6 +1,4 @@
-﻿using System;
-
-namespace Protsyk.PMS.FullText.Core.Common;
+﻿namespace Protsyk.PMS.FullText.Core.Common;
 
 public static class VarInt
 {

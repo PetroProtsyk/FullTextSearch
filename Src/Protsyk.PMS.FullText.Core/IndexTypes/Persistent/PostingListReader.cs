@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections;
-using System.Collections.Generic;
+﻿using System.Collections;
 using System.IO;
 
 using Protsyk.PMS.FullText.Core.Common.Persistance;
@@ -10,7 +8,7 @@ namespace Protsyk.PMS.FullText.Core;
 public class PostingListReader : IOccurrenceReader
 {
     #region Fields
-    internal static readonly int ReadBufferSize = 4096;
+    internal const int ReadBufferSize = 4_096;
 
     private readonly IPersistentStorage persistentStorage;
     #endregion

@@ -1,6 +1,4 @@
-﻿using System;
-
-using Protsyk.PMS.FullText.Core.Collections;
+﻿using Protsyk.PMS.FullText.Core.Collections;
 
 namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
@@ -10,7 +8,7 @@ internal sealed class DecodingMatcherForUTF8 : IDfaMatcher<byte>
     private int symbol;
     private int index;
     private int tail;
-    private ValueTuple<int, int>[] stack;
+    private readonly ValueTuple<int, int>[] stack;
 
     public DecodingMatcherForUTF8(IDfaMatcher<char> matcher, int maxLength)
     {

@@ -1,6 +1,4 @@
-﻿using System;
-
-using Protsyk.PMS.FullText.Core.Common.Persistance;
+﻿using Protsyk.PMS.FullText.Core.Common.Persistance;
 
 namespace Protsyk.PMS.FullText.Core.Collections;
 

@@ -1,6 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
+﻿using System.Linq;
 
 using Protsyk.PMS.FullText.Core.Automata;
 using Protsyk.PMS.FullText.Core.Collections;
