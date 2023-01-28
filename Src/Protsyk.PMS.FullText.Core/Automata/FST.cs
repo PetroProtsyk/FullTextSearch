@@ -1001,7 +1001,7 @@ public class PersistentFST<T> : IDisposable
         }
 
         toOffset = -1;
-        o = default(T);
+        o = default;
         return false;
     }
 

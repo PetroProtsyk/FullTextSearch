@@ -91,92 +91,91 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
     /// </summary>
     private bool InsertNonRecursive(IEnumerator<TKey> sequence, TValue value, out TValue currentValue)
     {
-        using (var update = StartUpdate())
+        using var update = StartUpdate();
+
+        var transaction = ((Update)update).GetTransaction();
+        var current = transaction.Get(transaction.RootNodeId);
+        if (transaction.RootNodeId == NodeManager.NewId)
         {
-            var transaction = ((Update) update).GetTransaction();
-            var current = transaction.Get(transaction.RootNodeId);
-            if (transaction.RootNodeId == NodeManager.NewId)
-            {
-                transaction.RootNodeId = current.Id;
-                current.Split = sequence.Current;
-            }
+            transaction.RootNodeId = current.Id;
+            current.Split = sequence.Current;
+        }
 
-            bool inserted = false;
+        bool inserted = false;
 
+        while (true)
+        {
+            var label = sequence.Current;
             while (true)
             {
-                var label = sequence.Current;
-                while (true)
+                var next = comparer.Compare(label, current.Split);
+                if (next == 0)
                 {
-                    var next = comparer.Compare(label, current.Split);
-                    if (next == 0)
-                    {
-                        break;
-                    }
-
-                    if (next < 0)
-                    {
-                        if (current.Lokid == NodeManager.NoId)
-                        {
-                            var newNode = transaction.Get(NodeManager.NewId);
-
-                            newNode.Split = label;
-                            current.Lokid = newNode.Id;
-                        }
-
-                        current = transaction.Get(current.Lokid);
-                    }
-                    else
-                    {
-                        if (current.Hikid == NodeManager.NoId)
-                        {
-                            var newNode = transaction.Get(NodeManager.NewId);
-                            newNode.Split = label;
-                            current.Hikid = newNode.Id;
-                        }
-
-                        current = transaction.Get(current.Hikid);
-                    }
+                    break;
                 }
 
-                if (!sequence.MoveNext())
+                if (next < 0)
                 {
-                    if (!current.IsFinal)
+                    if (current.Lokid == NodeManager.NoId)
                     {
-                        current.IsFinal = true;
-                        current.Value = value;
+                        var newNode = transaction.Get(NodeManager.NewId);
 
-                        transaction.Count++;
-                        inserted = true;
-                        currentValue = value;
+                        newNode.Split = label;
+                        current.Lokid = newNode.Id;
                     }
-                    else
-                    {
-                        currentValue = current.Value;
-                    }
-                    break;
+
+                    current = transaction.Get(current.Lokid);
                 }
                 else
                 {
-                    if (current.Eqkid == NodeManager.NoId)
+                    if (current.Hikid == NodeManager.NoId)
                     {
                         var newNode = transaction.Get(NodeManager.NewId);
-                        newNode.Split = sequence.Current;
-
-                        current.Eqkid = newNode.Id;
+                        newNode.Split = label;
+                        current.Hikid = newNode.Id;
                     }
 
-                    current = transaction.Get(current.Eqkid);
+                    current = transaction.Get(current.Hikid);
                 }
             }
 
-            if (inserted)
+            if (!sequence.MoveNext())
             {
-                update.Commit();
-            }
+                if (!current.IsFinal)
+                {
+                    current.IsFinal = true;
+                    current.Value = value;
 
-            return inserted;
+                    transaction.Count++;
+                    inserted = true;
+                    currentValue = value;
+                }
+                else
+                {
+                    currentValue = current.Value;
+                }
+                break;
+            }
+            else
+            {
+                if (current.Eqkid == NodeManager.NoId)
+                {
+                    var newNode = transaction.Get(NodeManager.NewId);
+                    newNode.Split = sequence.Current;
+
+                    current.Eqkid = newNode.Id;
+                }
+
+                current = transaction.Get(current.Eqkid);
+            }
         }
+
+        if (inserted)
+        {
+            update.Commit();
+        }
+
+        return inserted;
     }
 
     /// <summary>

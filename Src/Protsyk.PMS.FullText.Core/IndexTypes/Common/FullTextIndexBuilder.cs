@@ -68,37 +68,32 @@ public abstract class FullTextIndexBuilder : IIndexBuilder
 
     private IEnumerable<ScopedToken> TokenizeFile(ulong id, string fileName)
     {
-        using (var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read))
+        using var stream = new FileStream(fileName, FileMode.Open, FileAccess.Read, FileShare.Read);
+        using var reader = new StreamReader(stream);
+
+        foreach (var token in TokenizeReader(id, DefaultFieldId, reader))
         {
-            using (var reader = new StreamReader(stream))
-            {
-                foreach (var token in TokenizeReader(id, DefaultFieldId, reader))
-                {
-                    yield return token;
-                }
-            }
+            yield return token;
         }
     }
 
     private IEnumerable<ScopedToken> TokenizeReader(ulong id, ulong fieldId, TextReader reader)
     {
-        using (var wrapper = new TextReaderSink(reader, GetTextWriter(id, fieldId)))
+        using var wrapper = new TextReaderSink(reader, GetTextWriter(id, fieldId));
+
+        foreach (var token in TokenizeReader(wrapper))
         {
-            foreach (var token in TokenizeReader(wrapper))
-            {
-                yield return token;
-            }
+            yield return token;
         }
     }
 
     private IEnumerable<ScopedToken> TokenizeReader(TextReader reader)
     {
-        using (var tokenizer = new BasicTokenizer(header.MaxTokenSize))
+        using var tokenizer = new BasicTokenizer(header.MaxTokenSize);
+
+        foreach (var token in tokenizer.Tokenize(reader))
         {
-            foreach (var token in tokenizer.Tokenize(reader))
-            {
-                yield return token;
-            }
+            yield return token;
         }
     }
 

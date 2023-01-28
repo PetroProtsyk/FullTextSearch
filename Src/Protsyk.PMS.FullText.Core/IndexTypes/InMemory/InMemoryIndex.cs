@@ -77,18 +77,16 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
 
     public ITermMatcher CompilePattern(string pattern)
     {
-        using (var compiler = new FullTextQueryCompiler(this))
-        {
-            return compiler.CompilePattern(pattern);
-        }
+        using var compiler = new FullTextQueryCompiler(this);
+
+        return compiler.CompilePattern(pattern);
     }
 
     public ISearchQuery Compile(string query)
     {
-        using (var compiler = new FullTextQueryCompiler(this))
-        {
-            return compiler.Compile(query);
-        }
+        using var compiler = new FullTextQueryCompiler(this);
+
+        return compiler.Compile(query);
     }
     #endregion
 

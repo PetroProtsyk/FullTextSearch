@@ -63,23 +63,22 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     {
         var target = FindLeaf(key);
 
-        using (var transaction = nodeManager.StartTransaction())
+        using var transaction = nodeManager.StartTransaction();
+
+        var dataLink = new DataLink(
+            nodeManager.SaveData(keySerializer.GetBytes(key)),
+            nodeManager.SaveData(valueSerializer.GetBytes(value)));
+        var i = Put(target, key, dataLink);
+
+        nodeManager.Save(target);
+        nodeManager.Count++;
+
+        if (target.Count > maxChildren)
         {
-            var dataLink = new DataLink(
-                nodeManager.SaveData(keySerializer.GetBytes(key)),
-                nodeManager.SaveData(valueSerializer.GetBytes(value)));
-            var i = Put(target, key, dataLink);
-
-            nodeManager.Save(target);
-            nodeManager.Count++;
-
-            if (target.Count > maxChildren)
-            {
-                SplitUp(target);
-            }
-
-            transaction.Commit(nodeManager.Header);
+            SplitUp(target);
         }
+
+        transaction.Commit(nodeManager.Header);
     }
 
     private bool ContainsKeyInternal(TKey key)
