@@ -36,7 +36,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
     #endregion
 
     #region ReaderEnumerator
-    private class PostingListReaderImpl : IPostingList
+    private sealed class PostingListReaderImpl : IPostingList
     {
         private readonly IPersistentStorage storage;
         private readonly PostingListAddress address;
@@ -58,7 +58,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
         }
     }
 
-    private class ReaderEnumerator : IEnumerator<Occurrence>
+    private sealed class ReaderEnumerator : IEnumerator<Occurrence>
     {
         private static readonly int HeaderLength = sizeof(long) + sizeof(int);
         private readonly IPersistentStorage persistentStorage;

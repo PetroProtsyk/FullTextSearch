@@ -41,7 +41,7 @@ public class TermQuery : ISearchQuery
     #endregion
 
     #region Types
-    private class MatchIterator: IMatch, IDisposable
+    private sealed class MatchIterator: IMatch, IDisposable
     {
         private readonly IEnumerator<Occurrence> postings;
 

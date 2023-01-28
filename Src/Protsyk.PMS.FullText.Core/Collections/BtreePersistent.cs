@@ -1180,7 +1180,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         }
     }
 
-    private class PageDataStorage : IDisposable
+    private sealed class PageDataStorage : IDisposable
     {
         private readonly int pageSize = 4096;
         private readonly int maxPagesInCache = 1000;

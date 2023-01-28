@@ -171,7 +171,7 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
         });
     }
 
-    private class TextWriterWrapper : StringWriter
+    private sealed class TextWriterWrapper : StringWriter
     {
         private readonly Action<string> whenDisposed;
 

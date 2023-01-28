@@ -188,7 +188,7 @@ public abstract class FullTextIndexBuilder : IIndexBuilder
     #region Types
     // From MSDN (https://docs.microsoft.com/en-us/dotnet/api/system.io.textreader)
     // A derived class must minimally implement the Peek() and Read() methods to make a useful instance of TextReader.
-    private class TextReaderSink : TextReader
+    private sealed class TextReaderSink : TextReader
     {
         private readonly TextReader reader;
         private readonly TextWriter sink;

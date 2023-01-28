@@ -355,7 +355,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
     #region Types
 
-    private class Node
+    private sealed class Node
     {
         public List<TKey> Keys { get; private set; }
 
@@ -366,7 +366,6 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
         public Node Parent { get; set; }
 
         public bool IsLeaf => Links.All(l => l == null);
-
 
         public Node(Node parent)
         {
@@ -380,8 +379,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
         public int Put(TKey key, TValue value, IComparer<TKey> comparer)
         {
-            int index;
-            if (TryFindUpperBound(key, comparer, out index))
+            if (TryFindUpperBound(key, comparer, out int index))
             {
                 throw new KeyAlreadyExistsException();
             }

@@ -88,7 +88,7 @@ public class FSTBuilder<T> : IDisposable
         this.writeBuffer = new byte[4096];
     }
 
-    private class StateWithTransitions
+    private sealed class StateWithTransitions
     {
         private static int NextId = 0;
 

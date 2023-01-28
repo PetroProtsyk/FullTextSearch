@@ -579,7 +579,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         void Rollback();
     }
 
-    private class Update : IUpdate
+    private sealed class Update : IUpdate
     {
         private readonly ITransaction transaction;
         private bool finalized;
