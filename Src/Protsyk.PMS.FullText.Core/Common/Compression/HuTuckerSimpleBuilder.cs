@@ -15,7 +15,7 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
         var nodes = Enumerable.Range(0, input.Count).Select(v => new Leaf { Index = v, C = input[v].C, Frequency = input[v].F }).Cast<Node>().ToArray();
 
         // TODO: Use heap
-        var heap = new SortedSet<ValueTuple<int, int>>(combine,
+        var heap = new SortedSet<(int, int)>(combine,
                                                         Comparer<(int, int)>.Create((x, y) =>
                                                         {
                                                             if (x.Item2 == y.Item2)
@@ -49,15 +49,15 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
                 Frequency = f1 + f2
             };
 
-            heap.Add(new ValueTuple<int, int>(m1.Item1, m1.Item2 - 1));
+            heap.Add((m1.Item1, m1.Item2 - 1));
         }
 
         return new HuTuckerEncoding(nodes[heap.Single().Item1]);
     }
 
-    private ValueTuple<int, int>[] Combine(ReadOnlySpan<CharFrequency> input)
+    private (int, int)[] Combine(ReadOnlySpan<CharFrequency> input)
     {
-        if (input == null || input.Length < 2)
+        if (input.Length < 2)
         {
             throw new ArgumentException("Input should have at least two items", nameof(input));
         }
@@ -121,7 +121,7 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
 
         // Label each input item with the depth in the tree
         var depth = new int[input.Length];
-        var s = new Stack<ValueTuple<Node, int>>();
+        var s = new Stack<(Node, int)>();
         s.Push(new(list.Single(), 0));
         while (s.Count > 0)
         {
@@ -138,10 +138,10 @@ public class HuTuckerSimpleBuilder : VarLenCharEncodingBuilder
             }
         }
 
-        var result = new ValueTuple<int, int>[input.Length];
+        var result = new (int, int)[input.Length];
         for (int i = 0; i < input.Length; ++i)
         {
-            result[i] = new(i, depth[i]);
+            result[i] = (i, depth[i]);
         }
         return result;
     }

@@ -1004,9 +1004,9 @@ public class PersistentFST<T> : IDisposable
 
     public IEnumerable<string> Match(IDfaMatcher<char> matcher)
     {
-        var stack = new Stack<ValueTuple<int, long, char>>();
+        var stack = new Stack<(int, long, char)>();
         var prefix = new List<char>();
-        stack.Push(new ValueTuple<int, long, char>(0, initial, '\0'));
+        stack.Push((0, initial, '\0'));
 
         while (stack.Count > 0)
         {
@@ -1036,9 +1036,9 @@ public class PersistentFST<T> : IDisposable
                             // 1 - Add to prefix
                             // 0 - Go to the state
                             // 2 - Remove from prefix
-                            stack.Push(new ValueTuple<int, long, char>(2, 0, '\0'));
-                            stack.Push(new ValueTuple<int, long, char>(0, t.ToOffset, '\0'));
-                            stack.Push(new ValueTuple<int, long, char>(1, 0, t.Input));
+                            stack.Push((2, 0, '\0'));
+                            stack.Push((0, t.ToOffset, '\0'));
+                            stack.Push((1, 0, t.Input));
                         }
                     }
                 }

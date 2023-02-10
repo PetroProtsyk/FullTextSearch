@@ -8,12 +8,12 @@ internal sealed class DecodingMatcherForUTF8 : IDfaMatcher<byte>
     private int symbol;
     private int index;
     private int tail;
-    private readonly ValueTuple<int, int>[] stack;
+    private readonly (int, int)[] stack;
 
     public DecodingMatcherForUTF8(IDfaMatcher<char> matcher, int maxLength)
     {
         this.matcher = matcher;
-        this.stack = new ValueTuple<int, int>[maxLength];
+        this.stack = new (int, int)[maxLength];
     }
 
     public bool IsFinal()

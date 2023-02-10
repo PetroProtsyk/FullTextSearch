@@ -618,12 +618,12 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     }
 
 
-    private IEnumerable<Tuple<NodeData, int>> Visit()
+    private IEnumerable<(NodeData, int)> Visit()
     {
-        var stack = new Stack<Tuple<NodeData, bool, int>>();
+        var stack = new Stack<(NodeData, bool, int)>();
         if (nodeManager.RootNodeId != NodeManager.NoId)
         {
-            stack.Push(Tuple.Create(nodeManager.Get(nodeManager.RootNodeId), false, 0));
+            stack.Push((nodeManager.Get(nodeManager.RootNodeId), false, 0));
         }
 
         while (stack.Count > 0)
@@ -648,23 +648,23 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
             if (linksProcessed)
             {
-                yield return Tuple.Create(node, li);
+                yield return (node, li);
 
                 if (li + 1 < node.Count)
                 {
-                    stack.Push(Tuple.Create(node, false, li + 1));
+                    stack.Push((node, false, li + 1));
                 }
                 else if (li + 1 < node.Count + 1 && node.GetLink(li + 1) != NodeManager.NoId)
                 {
-                    stack.Push(Tuple.Create(nodeManager.Get(node.GetLink(li + 1)), false, 0));
+                    stack.Push((nodeManager.Get(node.GetLink(li + 1)), false, 0));
                 }
             }
             else
             {
-                stack.Push(Tuple.Create(node, true, li));
+                stack.Push((node, true, li));
                 if (li < node.Count + 1 && node.GetLink(li + 1) != NodeManager.NoId)
                 {
-                    stack.Push(Tuple.Create(nodeManager.Get(node.GetLink(li)), false, 0));
+                    stack.Push((nodeManager.Get(node.GetLink(li)), false, 0));
                 }
             }
         }

@@ -495,12 +495,12 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
         text.AppendLine();
     }
 
-    private IEnumerable<Tuple<Node, int>> Visit()
+    private IEnumerable<(Node, int)> Visit()
     {
-        var stack = new Stack<Tuple<Node, bool, int>>();
+        var stack = new Stack<(Node, bool, int)>();
         if (rootNode != null)
         {
-            stack.Push(Tuple.Create(rootNode, false, 0));
+            stack.Push((rootNode, false, 0));
         }
 
         while (stack.Count > 0)
@@ -525,23 +525,23 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
             if (linksProcessed)
             {
-                yield return Tuple.Create(node, li);
+                yield return (node, li);
 
                 if (li + 1 < node.Values.Count)
                 {
-                    stack.Push(Tuple.Create(node, false, li + 1));
+                    stack.Push((node, false, li + 1));
                 }
                 else if (li + 1 < node.Links.Count && node.Links[li + 1] != null)
                 {
-                    stack.Push(Tuple.Create(node.Links[li + 1], false, 0));
+                    stack.Push((node.Links[li + 1], false, 0));
                 }
             }
             else
             {
-                stack.Push(Tuple.Create(node, true, li));
+                stack.Push((node, true, li));
                 if (li < node.Links.Count && node.Links[li] != null)
                 {
-                    stack.Push(Tuple.Create(node.Links[li], false, 0));
+                    stack.Push((node.Links[li], false, 0));
                 }
             }
         }

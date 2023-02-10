@@ -14,9 +14,9 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
     private readonly ConcurrentDictionary<string, PostingListAddress> data = new();
     private readonly ConcurrentDictionary<PostingListAddress, Occurrence[]> postingLists = new();
     private readonly ConcurrentDictionary<ulong, string> fields = new();
-    private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, PostingListAddress> posIndex = new();
+    private readonly ConcurrentDictionary<(ulong, ulong), PostingListAddress> posIndex = new();
     private readonly ConcurrentDictionary<PostingListAddress, TextPosition[]> positions = new();
-    private readonly ConcurrentDictionary<ValueTuple<ulong, ulong>, string> docTexts = new();
+    private readonly ConcurrentDictionary<(ulong, ulong), string> docTexts = new();
     #endregion
 
     #region Constructor
@@ -49,7 +49,7 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
 
     IEnumerable<TextPosition> IFullTextIndex.GetPositions(ulong docId, ulong fieldId)
     {
-        var vectorId = new ValueTuple<ulong,ulong>(docId, fieldId);
+        var vectorId = (docId, fieldId);
         if (!posIndex.TryGetValue(vectorId, out var address))
         {
             throw new Exception($"Not found document field id:{docId}, field:{fieldId}");
@@ -65,7 +65,7 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
 
     TextReader IFullTextIndex.GetText(ulong docId, ulong fieldId)
     {
-        var textId = new ValueTuple<ulong,ulong>(docId, fieldId);
+        var textId = (docId, fieldId);
         if (!docTexts.TryGetValue(textId, out var text))
         {
             throw new Exception($"Not found document field id:{docId}, field:{fieldId}");
@@ -151,7 +151,7 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
     public void AddDocVector(ulong id, ulong fieldId, IEnumerable<TextPosition> pos)
     {
         var address = new PostingListAddress(posIndex.Count);
-        var vectorId = new ValueTuple<ulong,ulong>(id, fieldId);
+        var vectorId = (id, fieldId);
         if (!posIndex.TryAdd(vectorId, address))
         {
             throw new Exception($"Duplicate document field id:{id}, field:{fieldId}");
@@ -166,7 +166,7 @@ internal sealed class InMemoryIndex : ITermDictionary, IPostingLists, IIndexName
     public TextWriter GetTextWriter(ulong id, ulong fieldId)
     {
         return new TextWriterWrapper((text)=>{
-            var textId = new ValueTuple<ulong,ulong>(id, fieldId);
+            var textId = (id, fieldId);
             docTexts.TryAdd(textId, text);
         });
     }
