@@ -981,7 +981,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         public ulong SaveData(byte[] data)
         {
             //TODO: Allow to save zero length data
-            if (data == null || data.Length == 0)
+            if (data is null || data.Length == 0)
             {
                 throw new ArgumentNullException();
             }
@@ -1281,11 +1281,11 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         public ITransaction StartTransaction()
         {
-            if (currentTransaction == null)
+            if (currentTransaction is null)
             {
                 lock (syncRoot)
                 {
-                    if (currentTransaction == null)
+                    if (currentTransaction is null)
                     {
                         currentTransaction = new Transaction(this);
                         return currentTransaction;
@@ -1299,7 +1299,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         {
             lock (syncRoot)
             {
-                if (currentTransaction == null)
+                if (currentTransaction is null)
                 {
                     throw new InvalidOperationException("Not in transaction");
                 }
@@ -1340,7 +1340,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         {
             lock (syncRoot)
             {
-                if (currentTransaction == null)
+                if (currentTransaction is null)
                 {
                     throw new InvalidOperationException("Not in transaction");
                 }

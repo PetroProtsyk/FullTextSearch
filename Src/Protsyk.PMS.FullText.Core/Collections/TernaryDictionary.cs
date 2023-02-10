@@ -283,7 +283,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
             }
         }
 
-        if (parent.Data == null || !parent.IsFinal)
+        if (parent.Data is null || !parent.IsFinal)
         {
             value = default;
             return false;
@@ -687,7 +687,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         {
             lock (syncRoot)
             {
-                if (activeTransaction == null)
+                if (activeTransaction is null)
                 {
                     activeTransaction = new Transaction(this, Header);
                 }

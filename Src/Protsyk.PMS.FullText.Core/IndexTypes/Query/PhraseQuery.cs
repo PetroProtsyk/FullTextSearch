@@ -33,11 +33,11 @@ public class PhraseQuery : ISearchQuery
         {
             var newTarget = Occurrence.Empty;
 
-            while (matches[i] == null || matches[i].Right < target)
+            while (matches[i] is null || matches[i].Right < target)
             {
                 var m = queries[i].NextMatch();
                 matches[i] = m;
-                if (m == null)
+                if (m is null)
                 {
                     consumed = true;
                     return null;

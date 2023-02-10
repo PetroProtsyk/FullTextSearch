@@ -41,7 +41,7 @@ public class OrQuery : ISearchQuery
                 case State.Initial:
                     leftMatch = leftQuery.NextMatch();
                     rightMatch = rightQuery.NextMatch();
-                    if (leftMatch == null && rightMatch == null)
+                    if (leftMatch is null && rightMatch is null)
                     {
                         state = State.Null;
                         return null;
@@ -58,7 +58,7 @@ public class OrQuery : ISearchQuery
                     break;
                 case State.AdvanceLeft:
                     leftMatch = leftQuery.NextMatch();
-                    if (leftMatch == null)
+                    if (leftMatch is null)
                     {
                         state = State.Tail;
                         return rightMatch;
@@ -67,7 +67,7 @@ public class OrQuery : ISearchQuery
                     break;
                 case State.AdvanceRight:
                     rightMatch = rightQuery.NextMatch();
-                    if (rightMatch == null)
+                    if (rightMatch is null)
                     {
                         state = State.Tail;
                         return leftMatch;
@@ -75,10 +75,10 @@ public class OrQuery : ISearchQuery
                     state = State.Merge;
                     break;
                 case State.Tail:
-                    if (leftMatch == null)
+                    if (leftMatch is null)
                     {
                         rightMatch = rightQuery.NextMatch();
-                        if (rightMatch == null)
+                        if (rightMatch is null)
                         {
                             state = State.Null;
                             return null;
@@ -86,10 +86,10 @@ public class OrQuery : ISearchQuery
                         return rightMatch;
                     }
 
-                    if (rightMatch == null)
+                    if (rightMatch is null)
                     {
                         leftMatch = leftQuery.NextMatch();
-                        if (leftMatch == null)
+                        if (leftMatch is null)
                         {
                             state = State.Null;
                             return null;
