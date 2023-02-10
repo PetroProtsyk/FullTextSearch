@@ -286,7 +286,7 @@ public class PersistentHashTable<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
             {
                 var record = ReadDataRecord(nextOffset, nextSize);
 
-                yield return new KeyValuePair<TKey, TValue>(record.key, record.value);
+                yield return new(record.key, record.value);
 
                 nextOffset = record.nextOffset;
                 nextSize = record.nextSize;
