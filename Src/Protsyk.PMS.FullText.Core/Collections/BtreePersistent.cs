@@ -224,7 +224,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         return result;
     }
 
-
     private NodeData FindLeaf(TKey key)
     {
         if (TryFindKeyOrLeaf(key, out NodeData result))
@@ -243,9 +242,8 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         var current = nodeManager.Get(nodeManager.RootNodeId);
         while (true)
         {
-            int index;
             var currentKeys = LoadKeys(current);
-            if (TryFindUpperBound(key, currentKeys, comparer, out index))
+            if (TryFindUpperBound(key, currentKeys, comparer, out int index))
             {
                 keyOrLeafNode = current;
                 return true;
@@ -517,10 +515,8 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         if (nodeManager.RootNodeId != NodeManager.NoId)
         {
-            text.AppendFormat("node{0};", nodeManager.RootNodeId);
-            text.AppendLine();
-            text.AppendFormat("{{rank = same; node{0}; }}", nodeManager.RootNodeId);
-            text.AppendLine();
+            text.AppendLine(CultureInfo.InvariantCulture, $"node{nodeManager.RootNodeId};");
+            text.AppendLine(CultureInfo.InvariantCulture, $"{{rank = same; node{nodeManager.RootNodeId}; }}");
         }
 
         // Nodes
@@ -593,7 +589,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             text.AppendLine();
         }
     }
-
 
     private void FormatNode(StringBuilder text, in NodeData node, int id)
     {
@@ -756,7 +751,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         return true;
     }
 
-
     public TValue this[TKey key]
     {
         get
@@ -775,8 +769,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             {
                 var targetKeys = LoadKeys(temp);
 
-                int index;
-                if (TryFindUpperBound(key, targetKeys, comparer, out index))
+                if (TryFindUpperBound(key, targetKeys, comparer, out int index))
                 {
                     var oldAddress = temp.GetData(index, maxChildren + 1);
                     var newAddress = new DataLink(
@@ -795,7 +788,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
         }
     }
-
 
     public void DeleteData(ulong address)
     {
@@ -960,7 +952,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             return result;
         }
 
-
         public void DisposeNode(int nodeId)
         {
             var node = Get(nodeId);
@@ -971,12 +962,10 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             Save(node);
         }
 
-
         public ITransaction StartTransaction()
         {
             return storage.StartTransaction();
         }
-
 
         public ulong SaveData(byte[] data)
         {
@@ -1047,7 +1036,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             Save(node);
             return result;
         }
-
 
         public byte[] LoadData(ulong address)
         {
@@ -1175,7 +1163,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         private int GetNewId()
         {
-            MaxId = MaxId + 1;
+            MaxId++;
             return MaxId;
         }
     }
@@ -1194,7 +1182,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         private ITransaction currentTransaction;
         private readonly IPersistentStorage persistentStorage;
         private readonly int headerSize;
-
 
         public PageDataStorage(IPersistentStorage persistentStorage, int headerSize, int maxChildren)
         {
@@ -1578,7 +1565,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
         }
 
-
         public void RemoveDataAt(int position, int maxChildren)
         {
             int count = Count;
@@ -1592,7 +1578,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
         }
 
-
         public int IndexOfLink(int id)
         {
             int count = Count;
@@ -1605,7 +1590,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
             return -1;
         }
-
 
         public void ClearData()
         {
