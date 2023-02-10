@@ -99,7 +99,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     private void SplitUp(in NodeData target)
     {
         NodeData targetParent;
-        if (target.ParentId == NodeManager.NoId)
+        if (target.ParentId is NodeManager.NoId)
         {
             targetParent = CreateNode();
             nodeManager.RootNodeId = targetParent.Id;
@@ -217,9 +217,10 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         for (int i = 0; i < node.Count; ++i)
         {
             var address = node.GetData(i, maxChildren + 1);
-            result[i] = new KeyValuePair<TKey, TValue>(
+            result[i] = new (
                 keySerializer.GetValue(nodeManager.LoadData(address.KeyAddress)),
-                valueSerializer.GetValue(nodeManager.LoadData(address.ValueAddress)));
+                valueSerializer.GetValue(nodeManager.LoadData(address.ValueAddress))
+            );
         }
         return result;
     }
@@ -823,18 +824,13 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         private static ReadOnlySpan<byte> HeaderBytes => "Btree-v1"u8;
 
         private const int NewId = -1;
-        public static readonly int NoId = 0;
+        public const int NoId = 0;
 
         private readonly byte[] headerData;
         private readonly int maxChildren;
         private readonly PageDataStorage storage;
 
         public byte[] Header => headerData;
-
-        private string Text
-        {
-            get { return Encoding.UTF8.GetString(headerData, 0, HeaderBytes.Length); }
-        }
 
         private int Order
         {
@@ -1098,7 +1094,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
                     break;
                 }
 
-                if (currentNode.ParentId == NodeManager.NoId)
+                if (currentNode.ParentId is NoId)
                 {
                     break;
                 }
@@ -1140,7 +1136,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
                 return newNode;
             }
 
-            if (index == NoId)
+            if (index is NoId)
             {
                 throw new ArgumentException();
             }
