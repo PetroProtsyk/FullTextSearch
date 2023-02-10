@@ -830,7 +830,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     {
         private static ReadOnlySpan<byte> HeaderBytes => "Btree-v1"u8;
 
-        private static readonly int NewId = -1;
+        private const int NewId = -1;
         public static readonly int NoId = 0;
 
         private readonly byte[] headerData;
@@ -1144,7 +1144,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         public NodeData Get(int index)
         {
-            if (index == NewId)
+            if (index is NewId)
             {
                 int id = GetNewId();
                 var newNode = NodeData.ForId(id, maxChildren);

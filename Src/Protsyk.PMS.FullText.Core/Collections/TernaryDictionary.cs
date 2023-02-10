@@ -93,7 +93,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
         var transaction = ((Update)update).GetTransaction();
         var current = transaction.Get(transaction.RootNodeId);
-        if (transaction.RootNodeId == NodeManager.NewId)
+        if (transaction.RootNodeId is NodeManager.NewId)
         {
             transaction.RootNodeId = current.Id;
             current.Split = sequence.Current;
@@ -252,7 +252,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
     public bool TryGet(IEnumerable<TKey> s, out TValue value)
     {
         if (nodeManager.RootNodeId == NodeManager.NoId ||
-            nodeManager.RootNodeId == NodeManager.NewId)
+            nodeManager.RootNodeId is NodeManager.NewId)
         {
             value = default;
             return false;
@@ -264,7 +264,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         {
             while (true)
             {
-                if (currentId == NodeManager.NoId)
+                if (currentId is NodeManager.NoId)
                 {
                     value = default;
                     return false;
@@ -711,7 +711,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
         public NodeData Get(int index)
         {
-            if (index == NewId || index == NoId)
+            if (index is NewId || index == NoId)
             {
                 throw new ArgumentException();
             }
@@ -796,7 +796,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
                     throw new InvalidOperationException();
                 }
 
-                if (index == NodeManager.NewId)
+                if (index is NewId)
                 {
                     var data = new byte[NodeData.Size(keySerializer.Size + valueSerializer.Size)];
                     var newNode = new NodeData(keySerializer, valueSerializer, data);
