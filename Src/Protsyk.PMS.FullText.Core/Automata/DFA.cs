@@ -7,7 +7,7 @@ namespace Protsyk.PMS.FullText.Core.Automata;
 /// </summary>
 public class DFA
 {
-    public static readonly int NoState = -1;
+    public const int NoState = -1;
 
     private readonly List<List<(CharRange, int)>> transitions = new();
     private readonly HashSet<int> final = new ();
@@ -33,7 +33,7 @@ public class DFA
 
     public int Next(int s, char c)
     {
-        if (s == NoState)
+        if (s is NoState)
         {
             return NoState;
         }
