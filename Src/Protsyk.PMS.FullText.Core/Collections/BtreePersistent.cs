@@ -1357,13 +1357,13 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         {
             private readonly PageDataStorage owner;
             private readonly HashSet<int> pages;
-            private bool commited;
+            private bool isCommitted;
 
             public Transaction(PageDataStorage owner)
             {
                 this.owner = owner;
                 this.pages = new HashSet<int>();
-                this.commited = false;
+                this.isCommitted = false;
             }
 
             public void TouchPage(int pageId)
@@ -1374,12 +1374,12 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             public void Commit(ReadOnlySpan<byte> header)
             {
                 owner.CommitCurrentTransaction(header, pages);
-                commited = true;
+                isCommitted = true;
             }
 
             public void Dispose()
             {
-                if (!commited)
+                if (!isCommitted)
                 {
                     owner.RollbackCurrentTransaction();
                 }
