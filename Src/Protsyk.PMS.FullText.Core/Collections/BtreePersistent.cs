@@ -1389,12 +1389,10 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             ValueAddress = valueAddress;
         }
 
-        public byte[] GetBytes()
+        public void WriteTo(Span<byte> buffer)
         {
-            var buffer = new byte[SizeInBytes];
-            BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(0), KeyAddress);
-            BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(8), ValueAddress);
-            return buffer;
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(0), KeyAddress);
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(8), ValueAddress);
         }
 
         public static DataLink FromBytes(ReadOnlySpan<byte> buffer)
@@ -1482,14 +1480,12 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         public void SetData(int index, int maxChildren, in DataLink location)
         {
             int offset = HeaderLength + (maxChildren + 1) * sizeof(int) + index * DataLink.SizeInBytes;
-            var bytes = location.GetBytes();
 
-            if (DataLink.SizeInBytes != bytes.Length)
-            {
-                throw new ArgumentException();
-            }
+            Span<byte> bytes = stackalloc byte[DataLink.SizeInBytes];
 
-            Array.Copy(bytes, 0, data, offset, bytes.Length);
+            location.WriteTo(bytes);
+
+            bytes.CopyTo(data.AsSpan(offset));
         }
 
         public static int Size(int maxChildren)
