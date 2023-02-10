@@ -27,7 +27,7 @@ public class PersistentIndex : IFullTextIndex
 
         HeaderReader = new PersistentIndexInfo(folder, FileNameInfo);
         Header = HeaderReader.Read();
-        if (Header == null)
+        if (Header is null)
         {
             throw new InvalidOperationException("No index");
         }

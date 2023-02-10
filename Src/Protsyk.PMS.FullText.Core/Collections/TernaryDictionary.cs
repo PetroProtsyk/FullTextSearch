@@ -93,7 +93,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
         var transaction = ((Update)update).GetTransaction();
         var current = transaction.Get(transaction.RootNodeId);
-        if (transaction.RootNodeId == NodeManager.NewId)
+        if (transaction.RootNodeId is NodeManager.NewId)
         {
             transaction.RootNodeId = current.Id;
             current.Split = sequence.Current;
@@ -187,7 +187,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         if (nodeManager.RootNodeId != NodeManager.NoId &&
             nodeManager.RootNodeId != NodeManager.NewId)
         {
-            stack.Push(new KeyValuePair<int, bool>(nodeManager.RootNodeId, false));
+            stack.Push(new(nodeManager.RootNodeId, false));
         }
 
         while (stack.Count > 0)
@@ -216,26 +216,26 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
             if (node.Hikid != NodeManager.NoId)
             {
-                stack.Push(new KeyValuePair<int, bool>(node.Hikid, false));
+                stack.Push(new(node.Hikid, false));
             }
 
             if (matcher.Next(node.Split))
             {
                 matcher.Pop();
 
-                stack.Push(new KeyValuePair<int, bool>(NodeManager.NoId, false));
+                stack.Push(new(NodeManager.NoId, false));
 
                 if (node.Eqkid != NodeManager.NoId)
                 {
-                    stack.Push(new KeyValuePair<int, bool>(node.Eqkid, false));
+                    stack.Push(new(node.Eqkid, false));
                 }
 
-                stack.Push(new KeyValuePair<int, bool>(current.Key, true));
+                stack.Push(new(current.Key, true));
             }
 
             if (node.Lokid != NodeManager.NoId)
             {
-                stack.Push(new KeyValuePair<int, bool>(node.Lokid, false));
+                stack.Push(new(node.Lokid, false));
             }
         }
     }
@@ -252,7 +252,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
     public bool TryGet(IEnumerable<TKey> s, out TValue value)
     {
         if (nodeManager.RootNodeId == NodeManager.NoId ||
-            nodeManager.RootNodeId == NodeManager.NewId)
+            nodeManager.RootNodeId is NodeManager.NewId)
         {
             value = default;
             return false;
@@ -264,7 +264,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         {
             while (true)
             {
-                if (currentId == NodeManager.NoId)
+                if (currentId is NodeManager.NoId)
                 {
                     value = default;
                     return false;
@@ -283,7 +283,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
             }
         }
 
-        if (parent.Data == null || !parent.IsFinal)
+        if (parent.Data is null || !parent.IsFinal)
         {
             value = default;
             return false;
@@ -362,7 +362,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
         if (nodeManager.RootNodeId != NodeManager.NoId)
         {
-            stack.Push(new KeyValuePair<int, bool>(nodeManager.RootNodeId, false));
+            stack.Push(new(nodeManager.RootNodeId, false));
         }
 
         while (stack.Count > 0)
@@ -378,19 +378,19 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
             if (node.Hikid != NodeManager.NoId)
             {
-                stack.Push(new KeyValuePair<int, bool>(node.Hikid, false));
+                stack.Push(new(node.Hikid, false));
             }
 
             if (node.Eqkid != NodeManager.NoId)
             {
-                stack.Push(new KeyValuePair<int, bool>(node.Eqkid, false));
+                stack.Push(new(node.Eqkid, false));
             }
 
-            stack.Push(new KeyValuePair<int, bool>(current.Key, true));
+            stack.Push(new(current.Key, true));
 
             if (node.Lokid != NodeManager.NoId)
             {
-                stack.Push(new KeyValuePair<int, bool>(node.Lokid, false));
+                stack.Push(new(node.Lokid, false));
             }
         }
     }
@@ -649,10 +649,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
         private Transaction activeTransaction;
 
-        public Header Header
-        {
-            get;
-        }
+        public Header Header { get; }
 
         public int Count => Header.Count;
 
@@ -687,7 +684,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
         {
             lock (syncRoot)
             {
-                if (activeTransaction == null)
+                if (activeTransaction is null)
                 {
                     activeTransaction = new Transaction(this, Header);
                 }
@@ -711,7 +708,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
 
         public NodeData Get(int index)
         {
-            if (index == NewId || index == NoId)
+            if (index is NewId || index == NoId)
             {
                 throw new ArgumentException();
             }
@@ -796,7 +793,7 @@ public class TernaryDictionary<TKey, TValue> : IDisposable
                     throw new InvalidOperationException();
                 }
 
-                if (index == NodeManager.NewId)
+                if (index is NewId)
                 {
                     var data = new byte[NodeData.Size(keySerializer.Size + valueSerializer.Size)];
                     var newNode = new NodeData(keySerializer, valueSerializer, data);

@@ -99,7 +99,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     private void SplitUp(in NodeData target)
     {
         NodeData targetParent;
-        if (target.ParentId == NodeManager.NoId)
+        if (target.ParentId is NodeManager.NoId)
         {
             targetParent = CreateNode();
             nodeManager.RootNodeId = targetParent.Id;
@@ -217,13 +217,13 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         for (int i = 0; i < node.Count; ++i)
         {
             var address = node.GetData(i, maxChildren + 1);
-            result[i] = new KeyValuePair<TKey, TValue>(
+            result[i] = new (
                 keySerializer.GetValue(nodeManager.LoadData(address.KeyAddress)),
-                valueSerializer.GetValue(nodeManager.LoadData(address.ValueAddress)));
+                valueSerializer.GetValue(nodeManager.LoadData(address.ValueAddress))
+            );
         }
         return result;
     }
-
 
     private NodeData FindLeaf(TKey key)
     {
@@ -243,9 +243,8 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         var current = nodeManager.Get(nodeManager.RootNodeId);
         while (true)
         {
-            int index;
             var currentKeys = LoadKeys(current);
-            if (TryFindUpperBound(key, currentKeys, comparer, out index))
+            if (TryFindUpperBound(key, currentKeys, comparer, out int index))
             {
                 keyOrLeafNode = current;
                 return true;
@@ -517,10 +516,8 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         if (nodeManager.RootNodeId != NodeManager.NoId)
         {
-            text.AppendFormat("node{0};", nodeManager.RootNodeId);
-            text.AppendLine();
-            text.AppendFormat("{{rank = same; node{0}; }}", nodeManager.RootNodeId);
-            text.AppendLine();
+            text.AppendLine(CultureInfo.InvariantCulture, $"node{nodeManager.RootNodeId};");
+            text.AppendLine(CultureInfo.InvariantCulture, $"{{rank = same; node{nodeManager.RootNodeId}; }}");
         }
 
         // Nodes
@@ -594,7 +591,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         }
     }
 
-
     private void FormatNode(StringBuilder text, in NodeData node, int id)
     {
         text.AppendFormat("node{0}[label = \"", id);
@@ -618,12 +614,12 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     }
 
 
-    private IEnumerable<Tuple<NodeData, int>> Visit()
+    private IEnumerable<(NodeData, int)> Visit()
     {
-        var stack = new Stack<Tuple<NodeData, bool, int>>();
+        var stack = new Stack<(NodeData, bool, int)>();
         if (nodeManager.RootNodeId != NodeManager.NoId)
         {
-            stack.Push(Tuple.Create(nodeManager.Get(nodeManager.RootNodeId), false, 0));
+            stack.Push((nodeManager.Get(nodeManager.RootNodeId), false, 0));
         }
 
         while (stack.Count > 0)
@@ -648,23 +644,23 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
             if (linksProcessed)
             {
-                yield return Tuple.Create(node, li);
+                yield return (node, li);
 
                 if (li + 1 < node.Count)
                 {
-                    stack.Push(Tuple.Create(node, false, li + 1));
+                    stack.Push((node, false, li + 1));
                 }
                 else if (li + 1 < node.Count + 1 && node.GetLink(li + 1) != NodeManager.NoId)
                 {
-                    stack.Push(Tuple.Create(nodeManager.Get(node.GetLink(li + 1)), false, 0));
+                    stack.Push((nodeManager.Get(node.GetLink(li + 1)), false, 0));
                 }
             }
             else
             {
-                stack.Push(Tuple.Create(node, true, li));
+                stack.Push((node, true, li));
                 if (li < node.Count + 1 && node.GetLink(li + 1) != NodeManager.NoId)
                 {
-                    stack.Push(Tuple.Create(nodeManager.Get(node.GetLink(li)), false, 0));
+                    stack.Push((nodeManager.Get(node.GetLink(li)), false, 0));
                 }
             }
         }
@@ -756,7 +752,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         return true;
     }
 
-
     public TValue this[TKey key]
     {
         get
@@ -775,8 +770,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             {
                 var targetKeys = LoadKeys(temp);
 
-                int index;
-                if (TryFindUpperBound(key, targetKeys, comparer, out index))
+                if (TryFindUpperBound(key, targetKeys, comparer, out int index))
                 {
                     var oldAddress = temp.GetData(index, maxChildren + 1);
                     var newAddress = new DataLink(
@@ -795,7 +789,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
         }
     }
-
 
     public void DeleteData(ulong address)
     {
@@ -830,19 +823,14 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     {
         private static ReadOnlySpan<byte> HeaderBytes => "Btree-v1"u8;
 
-        private static readonly int NewId = -1;
-        public static readonly int NoId = 0;
+        private const int NewId = -1;
+        public const int NoId = 0;
 
         private readonly byte[] headerData;
         private readonly int maxChildren;
         private readonly PageDataStorage storage;
 
         public byte[] Header => headerData;
-
-        private string Text
-        {
-            get { return Encoding.UTF8.GetString(headerData, 0, HeaderBytes.Length); }
-        }
 
         private int Order
         {
@@ -960,7 +948,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             return result;
         }
 
-
         public void DisposeNode(int nodeId)
         {
             var node = Get(nodeId);
@@ -971,17 +958,15 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             Save(node);
         }
 
-
         public ITransaction StartTransaction()
         {
             return storage.StartTransaction();
         }
 
-
         public ulong SaveData(byte[] data)
         {
             //TODO: Allow to save zero length data
-            if (data == null || data.Length == 0)
+            if (data is null || data.Length == 0)
             {
                 throw new ArgumentNullException();
             }
@@ -1048,7 +1033,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             return result;
         }
 
-
         public byte[] LoadData(ulong address)
         {
             var index = (int) (address >> 32);
@@ -1110,7 +1094,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
                     break;
                 }
 
-                if (currentNode.ParentId == NodeManager.NoId)
+                if (currentNode.ParentId is NoId)
                 {
                     break;
                 }
@@ -1144,7 +1128,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         public NodeData Get(int index)
         {
-            if (index == NewId)
+            if (index is NewId)
             {
                 int id = GetNewId();
                 var newNode = NodeData.ForId(id, maxChildren);
@@ -1152,7 +1136,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
                 return newNode;
             }
 
-            if (index == NoId)
+            if (index is NoId)
             {
                 throw new ArgumentException();
             }
@@ -1175,7 +1159,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         private int GetNewId()
         {
-            MaxId = MaxId + 1;
+            MaxId++;
             return MaxId;
         }
     }
@@ -1194,7 +1178,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         private ITransaction currentTransaction;
         private readonly IPersistentStorage persistentStorage;
         private readonly int headerSize;
-
 
         public PageDataStorage(IPersistentStorage persistentStorage, int headerSize, int maxChildren)
         {
@@ -1281,11 +1264,11 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
         public ITransaction StartTransaction()
         {
-            if (currentTransaction == null)
+            if (currentTransaction is null)
             {
                 lock (syncRoot)
                 {
-                    if (currentTransaction == null)
+                    if (currentTransaction is null)
                     {
                         currentTransaction = new Transaction(this);
                         return currentTransaction;
@@ -1299,7 +1282,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         {
             lock (syncRoot)
             {
-                if (currentTransaction == null)
+                if (currentTransaction is null)
                 {
                     throw new InvalidOperationException("Not in transaction");
                 }
@@ -1340,7 +1323,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         {
             lock (syncRoot)
             {
-                if (currentTransaction == null)
+                if (currentTransaction is null)
                 {
                     throw new InvalidOperationException("Not in transaction");
                 }
@@ -1357,13 +1340,13 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         {
             private readonly PageDataStorage owner;
             private readonly HashSet<int> pages;
-            private bool commited;
+            private bool isCommitted;
 
             public Transaction(PageDataStorage owner)
             {
                 this.owner = owner;
                 this.pages = new HashSet<int>();
-                this.commited = false;
+                this.isCommitted = false;
             }
 
             public void TouchPage(int pageId)
@@ -1374,12 +1357,12 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             public void Commit(ReadOnlySpan<byte> header)
             {
                 owner.CommitCurrentTransaction(header, pages);
-                commited = true;
+                isCommitted = true;
             }
 
             public void Dispose()
             {
-                if (!commited)
+                if (!isCommitted)
                 {
                     owner.RollbackCurrentTransaction();
                 }
@@ -1406,12 +1389,10 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             ValueAddress = valueAddress;
         }
 
-        public byte[] GetBytes()
+        public void WriteTo(Span<byte> buffer)
         {
-            var buffer = new byte[SizeInBytes];
-            BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(0), KeyAddress);
-            BinaryPrimitives.WriteUInt64LittleEndian(buffer.AsSpan(8), ValueAddress);
-            return buffer;
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(0), KeyAddress);
+            BinaryPrimitives.WriteUInt64LittleEndian(buffer.Slice(8), ValueAddress);
         }
 
         public static DataLink FromBytes(ReadOnlySpan<byte> buffer)
@@ -1499,14 +1480,12 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
         public void SetData(int index, int maxChildren, in DataLink location)
         {
             int offset = HeaderLength + (maxChildren + 1) * sizeof(int) + index * DataLink.SizeInBytes;
-            var bytes = location.GetBytes();
 
-            if (DataLink.SizeInBytes != bytes.Length)
-            {
-                throw new ArgumentException();
-            }
+            Span<byte> bytes = stackalloc byte[DataLink.SizeInBytes];
 
-            Array.Copy(bytes, 0, data, offset, bytes.Length);
+            location.WriteTo(bytes);
+
+            bytes.CopyTo(data.AsSpan(offset));
         }
 
         public static int Size(int maxChildren)
@@ -1578,7 +1557,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
         }
 
-
         public void RemoveDataAt(int position, int maxChildren)
         {
             int count = Count;
@@ -1592,7 +1570,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
         }
 
-
         public int IndexOfLink(int id)
         {
             int count = Count;
@@ -1605,7 +1582,6 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
             }
             return -1;
         }
-
 
         public void ClearData()
         {

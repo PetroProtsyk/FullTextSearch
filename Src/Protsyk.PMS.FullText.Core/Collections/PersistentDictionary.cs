@@ -50,7 +50,7 @@ public class PersistentDictionary<TValue> : IDisposable
             int dataSize = dataStorage.ReadInt32LittleEndian(offset);
 
             //TODO: Improve serializer, no need to reallocate
-            if (valueBuffer == null || valueBuffer.Length != dataSize)
+            if (valueBuffer is null || valueBuffer.Length != dataSize)
             {
                 valueBuffer = new byte[dataSize];
             }

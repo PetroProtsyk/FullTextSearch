@@ -15,7 +15,7 @@ public partial class HuTuckerBuilder
         {
             list.Add(item);
 
-            if (First == null && Last == null)
+            if (First is null && Last is null)
             {
                 First = item;
                 Last = item;
@@ -85,10 +85,10 @@ public partial class HuTuckerBuilder
             left.Next = null;
             left.Previous = null;
 
-            if (node.Previous == null)
+            if (node.Previous is null)
                 First = node;
 
-            if (node.Next == null)
+            if (node.Next is null)
                 Last = node;
 
             return node;
@@ -106,13 +106,13 @@ public partial class HuTuckerBuilder
 
                 while (r1 != null)
                 {
-                    if (r1.Next == null)
+                    if (r1.Next is null)
                         break;
 
                     var r2 = r1.Next;
                     do
                     {
-                        if (r2 == null)
+                        if (r2 is null)
                             break;
                         if (r2 is TreeLeaf)
                             break;
@@ -155,7 +155,7 @@ public partial class HuTuckerBuilder
             {
                 var r1 = First.Next.Next;
 
-                if (r1 == null)
+                if (r1 is null)
                 {
                     Combine(First, First.Next);
                     break;
@@ -164,7 +164,7 @@ public partial class HuTuckerBuilder
                 while (r1 != null)
                 {
 
-                    if (r1.Next == null || ((r1.Previous.W <= r1.Next.W) && (r1.Previous.Previous.W > r1.W)))
+                    if (r1.Next is null || ((r1.Previous.W <= r1.Next.W) && (r1.Previous.Previous.W > r1.W)))
                     {
 
                         var newNode = Combine(r1.Previous, r1);
@@ -202,10 +202,10 @@ public partial class HuTuckerBuilder
             else
                 Last = n1;
 
-            if (newNode.Previous == null)
+            if (newNode.Previous is null)
                 First = newNode;
 
-            if (newNode.Next == null)
+            if (newNode.Next is null)
                 Last = newNode;
         }
 

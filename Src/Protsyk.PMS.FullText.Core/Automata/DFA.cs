@@ -9,8 +9,8 @@ public class DFA
 {
     public static readonly int NoState = -1;
 
-    private readonly List<List<ValueTuple<CharRange, int>>> transitions = new List<List<ValueTuple<CharRange, int>>>();
-    private readonly HashSet<int> final = new HashSet<int>();
+    private readonly List<List<(CharRange, int)>> transitions = new();
+    private readonly HashSet<int> final = new ();
 
     public void AddState(int state, bool isFinal)
     {
@@ -19,7 +19,7 @@ public class DFA
             throw new ArgumentException();
         }
 
-        transitions.Add(new List<ValueTuple<CharRange, int>>());
+        transitions.Add(new List<(CharRange, int)>());
         if (isFinal)
         {
             final.Add(state);
@@ -28,7 +28,7 @@ public class DFA
 
     public void AddTransition(int from, int to, CharRange c)
     {
-        transitions[from].Add(new ValueTuple<CharRange, int>(c, to));
+        transitions[from].Add((c, to));
     }
 
     public int Next(int s, char c)

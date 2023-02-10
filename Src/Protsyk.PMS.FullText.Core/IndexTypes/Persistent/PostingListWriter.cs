@@ -85,7 +85,7 @@ public class PostingListWriter : IOccurrenceWriter
 
     public PostingListAddress EndList()
     {
-        if (currentList == null)
+        if (currentList is null)
         {
             throw new InvalidOperationException("Previous list was started");
         }

@@ -17,7 +17,7 @@ public class InMemoryIndexFactory : IIndexTypeFactory
         ArgumentNullException.ThrowIfNull(name);
 
         var result = name as InMemoryIndexName;
-        if (result == null)
+        if (result is null)
         {
             throw new InvalidOperationException($"Invalid type {name.GetType().Name}");
         }

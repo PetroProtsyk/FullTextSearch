@@ -2,8 +2,8 @@
 
 public class LFUCache<TKey, TValue>
 {
-    private readonly GenericHeap<ValueTuple<int, int, TKey>> h = new();
-    private readonly Dictionary<TKey, ValueTuple<TValue, GenericHeap<ValueTuple<int, int, TKey>>.IItemReference>> c = new();
+    private readonly GenericHeap<(int, int, TKey)> h = new();
+    private readonly Dictionary<TKey, (TValue, GenericHeap<(int, int, TKey)>.IItemReference)> c = new();
     private readonly int capacity;
     private int nextOrder;
 
@@ -36,16 +36,16 @@ public class LFUCache<TKey, TValue>
         {
             Ensure(1);
             var order = Interlocked.Increment(ref nextOrder);
-            var newRef = h.Add(new ValueTuple<int, int, TKey>(1, nextOrder, key));
-            valref = new ValueTuple<TValue, GenericHeap<ValueTuple<int, int, TKey>>.IItemReference>(value, newRef);
+            var newRef = h.Add((1, nextOrder, key));
+            valref = (value, newRef);
             c.Add(key, valref);
         }
         else
         {
             var order = Interlocked.Increment(ref nextOrder);
             var newFrequency = valref.Item2.Value.Item1 + 1;
-            valref.Item2.Change(new ValueTuple<int, int, TKey>(newFrequency, order, key));
-            c[key] = new ValueTuple<TValue, GenericHeap<ValueTuple<int, int, TKey>>.IItemReference>(value, valref.Item2);
+            valref.Item2.Change((newFrequency, order, key));
+            c[key] = (value, valref.Item2);
         }
     }
 
@@ -69,7 +69,7 @@ public class LFUCache<TKey, TValue>
         {
             var order = Interlocked.Increment(ref nextOrder);
             var newFrequency = valref.Item2.Value.Item1 + 1;
-            valref.Item2.Change(new ValueTuple<int, int, TKey>(newFrequency, order, key));
+            valref.Item2.Change((newFrequency, order, key));
             value = valref.Item1;
             return true;
         }

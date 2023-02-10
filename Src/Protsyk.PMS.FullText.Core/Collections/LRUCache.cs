@@ -2,8 +2,8 @@ namespace Protsyk.PMS.FullText.Core.Collections;
 
 public class LRUCache<TKey, TValue>
 {
-    private readonly IDictionary<TKey, LinkedListNode<ValueTuple<TKey, TValue>>> items;
-    private readonly LinkedList<ValueTuple<TKey, TValue>> usageQueue;
+    private readonly IDictionary<TKey, LinkedListNode<(TKey, TValue)>> items;
+    private readonly LinkedList<(TKey, TValue)> usageQueue;
     private readonly int maxSize;
 
     public LRUCache()
@@ -18,8 +18,8 @@ public class LRUCache<TKey, TValue>
             throw new ArgumentOutOfRangeException(nameof(capacity));
         }
 
-        items = new Dictionary<TKey, LinkedListNode<ValueTuple<TKey, TValue>>>();
-        usageQueue = new LinkedList<ValueTuple<TKey, TValue>>();
+        items = new Dictionary<TKey, LinkedListNode<(TKey, TValue)>>();
+        usageQueue = new LinkedList<(TKey, TValue)>();
         maxSize = capacity;
     }
 
@@ -30,7 +30,7 @@ public class LRUCache<TKey, TValue>
             Evict(maxSize - 1);
         }
 
-        var valueNode = usageQueue.AddFirst(new ValueTuple<TKey, TValue>(key, value));
+        var valueNode = usageQueue.AddFirst((key, value));
         try
         {
             items.Add(key, valueNode);

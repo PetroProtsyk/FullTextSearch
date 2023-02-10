@@ -155,7 +155,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
 
         private int NextInteger()
         {
-            if (data == null || dataIndex >= data.Length)
+            if (data is null || dataIndex >= data.Length)
             {
                 data = ReadPacked();
                 dataIndex = 0;
@@ -207,7 +207,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
 
                 if (state == 2)
                 {
-                    if (isEof && indxInBuffer >= dataInBuffer && (data == null || dataIndex >= data.Length))
+                    if (isEof && indxInBuffer >= dataInBuffer && (data is null || dataIndex >= data.Length))
                     {
                         state = 0;
                     }

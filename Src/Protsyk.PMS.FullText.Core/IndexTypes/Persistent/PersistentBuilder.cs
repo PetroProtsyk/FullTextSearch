@@ -139,7 +139,7 @@ public class PersistentBuilder : FullTextIndexBuilder
         var postingType = PostingListIOFactory.GetName(name.PostingType);
         var textEncoding = TextEncodingFactory.GetName(name.TextEncoding);
 
-        if (header == null)
+        if (header is null)
         {
             header = new IndexHeaderData
             {

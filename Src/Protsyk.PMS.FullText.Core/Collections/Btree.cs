@@ -233,7 +233,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
                     neighbor.Dispose();
                 }
 
-                if (nodeThatLostKey.Parent.Parent == null && nodeThatLostKey.Parent.Keys.Count == 0)
+                if (nodeThatLostKey.Parent.Parent is null && nodeThatLostKey.Parent.Keys.Count == 0)
                 {
                     var oldRoot = rootNode;
                     rootNode = nodeThatLostKey.Parent.Links[0];
@@ -255,7 +255,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
     private void SplitUp(Node target)
     {
         var targetParent = target.Parent;
-        if (targetParent == null)
+        if (targetParent is null)
         {
             rootNode = new Node(null);
             targetParent = rootNode;
@@ -322,7 +322,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
     private bool TryFindKeyOrLeaf(TKey key, out Node keyOrLeafNode)
     {
-        if (rootNode == null)
+        if (rootNode is null)
             throw new InvalidOperationException();
 
         var current = rootNode;
@@ -342,7 +342,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
             current = current.Links[index];
         }
 
-        if (current == null)
+        if (current is null)
         {
             throw new InvalidOperationException();
         }
@@ -365,7 +365,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
         public Node Parent { get; set; }
 
-        public bool IsLeaf => Links.All(l => l == null);
+        public bool IsLeaf => Links.All(l => l is null);
 
         public Node(Node parent)
         {
@@ -463,7 +463,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
         for (int i = 0; i < node.Links.Count; ++i)
         {
             var child = node.Links[i];
-            if (child == null)
+            if (child is null)
             {
                 continue;
             }
@@ -495,12 +495,12 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
         text.AppendLine();
     }
 
-    private IEnumerable<Tuple<Node, int>> Visit()
+    private IEnumerable<(Node, int)> Visit()
     {
-        var stack = new Stack<Tuple<Node, bool, int>>();
+        var stack = new Stack<(Node, bool, int)>();
         if (rootNode != null)
         {
-            stack.Push(Tuple.Create(rootNode, false, 0));
+            stack.Push((rootNode, false, 0));
         }
 
         while (stack.Count > 0)
@@ -513,7 +513,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
             if (node.Keys.Count < order)
             {
-                if (node.IsLeaf || node.Parent == null)
+                if (node.IsLeaf || node.Parent is null)
                 {
                     // Only root
                 }
@@ -525,23 +525,23 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
             if (linksProcessed)
             {
-                yield return Tuple.Create(node, li);
+                yield return (node, li);
 
                 if (li + 1 < node.Values.Count)
                 {
-                    stack.Push(Tuple.Create(node, false, li + 1));
+                    stack.Push((node, false, li + 1));
                 }
                 else if (li + 1 < node.Links.Count && node.Links[li + 1] != null)
                 {
-                    stack.Push(Tuple.Create(node.Links[li + 1], false, 0));
+                    stack.Push((node.Links[li + 1], false, 0));
                 }
             }
             else
             {
-                stack.Push(Tuple.Create(node, true, li));
+                stack.Push((node, true, li));
                 if (li < node.Links.Count && node.Links[li] != null)
                 {
-                    stack.Push(Tuple.Create(node.Links[li], false, 0));
+                    stack.Push((node.Links[li], false, 0));
                 }
             }
         }

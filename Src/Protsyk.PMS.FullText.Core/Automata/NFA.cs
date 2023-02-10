@@ -17,7 +17,7 @@ public class NFA
 
     private int initial = 0;
     private readonly List<int> states = new();
-    private readonly List<ValueTuple<int, int, CharRange>> transitions = new();
+    private readonly List<(int, int, CharRange)> transitions = new();
     private readonly HashSet<int> final = new();
 
     public void AddState(int state, bool isFinal)
@@ -33,7 +33,7 @@ public class NFA
     {
         if (!transitions.Any(t => t.Item1 == from && t.Item2 == to && t.Item3.Equals(c)))
         {
-            transitions.Add(new ValueTuple<int, int, CharRange>(from, to, c));
+            transitions.Add((from, to, c));
         }
     }
 
@@ -121,7 +121,7 @@ public class NFA
         }
     }
 
-    private IEnumerable<ValueTuple<int, int, CharRange>> FindTransitions(int from_state)
+    private IEnumerable<(int, int, CharRange)> FindTransitions(int from_state)
     {
         return transitions.Where(t => t.Item1 == from_state);
     }
@@ -208,7 +208,7 @@ public class NFA
     {
         var target = new DFA();
 
-        var frontier = new Stack<ValueTuple<int, HashSet<int>>>();
+        var frontier = new Stack<(int, HashSet<int>)>();
         var seen = new Dictionary<HashSet<int>, int>(new SetStateComparer());
         int setKey = 0;
 
@@ -218,7 +218,7 @@ public class NFA
 
         target.AddState(setKey, ContainsFinalState(setInitial));
 
-        frontier.Push(new ValueTuple<int, HashSet<int>>(setKey, setInitial));
+        frontier.Push((setKey, setInitial));
         seen[setInitial] = setKey;
 
         while (frontier.Count > 0)
@@ -275,7 +275,7 @@ public class NFA
                         target.AddTransition(currentKey, setKey, range);
                     }
 
-                    frontier.Push(new ValueTuple<int, HashSet<int>>(setKey, newState));
+                    frontier.Push((setKey, newState));
                     seen[newState] = setKey;
                 }
                 else

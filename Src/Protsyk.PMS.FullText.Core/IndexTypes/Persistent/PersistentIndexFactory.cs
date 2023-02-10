@@ -21,7 +21,7 @@ public class PersistentIndexFactory : IIndexTypeFactory
         ArgumentNullException.ThrowIfNull(name);
 
         var result = name as PersistentIndexName;
-        if (result == null)
+        if (result is null)
         {
             throw new InvalidOperationException($"Invalid type {name.GetType().Name}");
         }

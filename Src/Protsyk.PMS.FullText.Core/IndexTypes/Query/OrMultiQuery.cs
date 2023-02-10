@@ -6,7 +6,7 @@ public class OrMultiQuery : ISearchQuery
 {
     #region Fields
     private readonly ISearchQuery[] queries;
-    private readonly Heap<ValueTuple<IMatch, ISearchQuery>> heap;
+    private readonly Heap<(IMatch, ISearchQuery)> heap;
     private States state;
 
     private enum States
@@ -23,8 +23,8 @@ public class OrMultiQuery : ISearchQuery
     {
         this.queries = queries;
         this.state = States.Initial;
-        this.heap = new Heap<ValueTuple<IMatch, ISearchQuery>>(
-                Comparer<ValueTuple<IMatch, ISearchQuery>>.Create(
+        this.heap = new Heap<(IMatch, ISearchQuery)>(
+                Comparer<(IMatch, ISearchQuery)>.Create(
                     (x, y) => MatchComparer.Instance.Compare(x.Item1, y.Item1)));
     }
     #endregion
@@ -47,7 +47,7 @@ public class OrMultiQuery : ISearchQuery
                             var match = searchQuery.NextMatch();
                             if (match != null)
                             {
-                                heap.Add(new ValueTuple<IMatch, ISearchQuery>(match, searchQuery));
+                                heap.Add((match, searchQuery));
                             }
                         }
                     }
@@ -67,7 +67,7 @@ public class OrMultiQuery : ISearchQuery
                         var match = searchQuery.NextMatch();
                         if (match != null)
                         {
-                            heap.Add(new ValueTuple<IMatch, ISearchQuery>(match, searchQuery));
+                            heap.Add((match, searchQuery));
                         }
                         state = States.MatchReturn;
                     }
