@@ -8,11 +8,9 @@ namespace Protsyk.PMS.FullText.Core;
 
 public class PostingListBinaryDeltaReader : IOccurrenceReader
 {
-    #region Fields
-    internal static readonly int ReadBufferSize = 4096;
+    internal const int ReadBufferSize = 4_096;
 
     private readonly IPersistentStorage persistentStorage;
-    #endregion
 
     public PostingListBinaryDeltaReader(string folder, string fileNamePostingLists)
         : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))

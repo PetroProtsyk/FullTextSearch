@@ -450,7 +450,7 @@ public class VarLenCharEncoding
             return GetEnumerator();
         }
 
-        class ByteToBitEn : IEnumerator<byte>
+        private sealed class ByteToBitEn : IEnumerator<byte>
         {
             private readonly IEnumerator<byte> data;
             private int c;

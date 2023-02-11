@@ -1405,8 +1405,8 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
 
     private readonly struct NodeData
     {
-        public static readonly int HeaderLength = 3 * sizeof(int);
-        public static readonly int DataHeaderLength = HeaderLength + sizeof(int);
+        public const int HeaderLength = 3 * sizeof(int);
+        public const int DataHeaderLength = HeaderLength + sizeof(int);
 
         private readonly byte[] data;
 

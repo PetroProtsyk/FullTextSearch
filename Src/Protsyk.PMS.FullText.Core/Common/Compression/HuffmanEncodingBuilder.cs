@@ -66,7 +66,7 @@ public class HuffmanEncodingBuilder : VarLenCharEncodingBuilder
         }
     }
 
-    class HuffmanEncoding : VarLenCharEncoding
+    private sealed class HuffmanEncoding : VarLenCharEncoding
     {
         public HuffmanEncoding(IEncodingNode root)
             : base(root)
@@ -74,7 +74,7 @@ public class HuffmanEncodingBuilder : VarLenCharEncodingBuilder
         }
     }
 
-    class TreeNode : IEncodingNode
+    private class TreeNode : IEncodingNode
     {
         private static int nextId = 0;
 
@@ -88,7 +88,7 @@ public class HuffmanEncodingBuilder : VarLenCharEncodingBuilder
         }
     }
 
-    class CharNode : TreeNode, IEncodingLeafNode
+    private sealed class CharNode : TreeNode, IEncodingLeafNode
     {
         public readonly char c;
 
@@ -101,7 +101,7 @@ public class HuffmanEncodingBuilder : VarLenCharEncodingBuilder
         char IEncodingLeafNode.V => c;
     }
 
-    class CombineNode : TreeNode, IEncodingTreeNode
+    private sealed class CombineNode : TreeNode, IEncodingTreeNode
     {
         public readonly TreeNode left;
         public readonly TreeNode right;

@@ -24,14 +24,19 @@ public class PostingListArray : IPostingList
 
     IEnumerator IEnumerable.GetEnumerator()
     {
-        return GetEnumerator();
+        return values.GetEnumerator();
     }
 
     public static IPostingList Parse(string text)
     {
-        return new PostingListArray(text
-                                        .Split(new string[] {", "}, StringSplitOptions.RemoveEmptyEntries)
-                                        .Select(Occurrence.Parse)
-                                        .ToArray());
+        var list = text.Split(", ", StringSplitOptions.RemoveEmptyEntries);
+        var values = new Occurrence[list.Length];
+
+        for (int i = 0; i < list.Length; i++)
+        {
+            values[i] = Occurrence.Parse(list[i]);
+        }
+
+        return new PostingListArray(values);
     }
 }

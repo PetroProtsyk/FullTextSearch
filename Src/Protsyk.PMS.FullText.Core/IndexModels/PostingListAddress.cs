@@ -2,7 +2,7 @@
 
 public readonly struct PostingListAddress : IEquatable<PostingListAddress>
 {
-    public static PostingListAddress Null = new(-1);
+    public static readonly PostingListAddress Null = new(-1);
 
     public readonly long Offset;
 

@@ -10,8 +10,8 @@ public class PostingListPackedIntDeltaWriter : IOccurrenceWriter
     #region Fields
     public static readonly string Id = "PackedInt";
 
-    private static readonly int BlocksInMemory = 128;
-    internal static readonly int FlushThreshold = 3 /* Remainder from encoding 1,2,3 bytes */ + 3 /* full occurrence */ + BlocksInMemory * (1 /* deltaSelector */ + 16 /* 16 deltas in one block */ * 3 /* delta can take up to 3 bytes */);
+    private const int BlocksInMemory = 128;
+    internal const int FlushThreshold = 3 /* Remainder from encoding 1,2,3 bytes */ + 3 /* full occurrence */ + BlocksInMemory * (1 /* deltaSelector */ + 16 /* 16 deltas in one block */ * 3 /* delta can take up to 3 bytes */);
 
     private readonly int[] buffer;
     private readonly IPersistentStorage persistentStorage;

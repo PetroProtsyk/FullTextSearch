@@ -107,7 +107,7 @@ public abstract class FullTextIndexBuilder : IIndexBuilder
                 temp.Add(term, postingList);
             }
 
-            positions.Add(TextPosition.P(token.CharOffset, token.Length));
+            positions.Add(new TextPosition(token.CharOffset, token.Length));
             postingList.Add(new Occurrence(id, fieldId, ++tokenId));
         }
 

@@ -30,5 +30,5 @@ public class VarLenEncoding : ITextEncoding
         => 4 * maxTokenLength;
 
     public IDfaMatcher<byte> CreateMatcher(IDfaMatcher<char> charMatcher, int maxLength)
-        => (IDfaMatcher<byte>)new DecodingMatcherForVarLenCharEncoding(charMatcher, encoding);
+        => new DecodingMatcherForVarLenCharEncoding(charMatcher, encoding);
 }

@@ -5,11 +5,11 @@ namespace Protsyk.PMS.FullText.Core.Common.Compression;
 
 public partial class HuTuckerBuilder
 {
-    class CombinationList
+    private sealed class CombinationList
     {
         ListItem First { get; set; }
         ListItem Last { get; set; }
-        public List<TreeLeaf> list = new List<TreeLeaf>();
+        public List<TreeLeaf> list = new();
 
         public void Add(TreeLeaf item)
         {
@@ -34,10 +34,12 @@ public partial class HuTuckerBuilder
 
         public TreeNode Combine(ListItem left, ListItem right)
         {
-            var node = new TreeNode();
-            node.Left = left;
-            node.Right = right;
-            node.W = left.W + right.W;
+            var node = new TreeNode
+            {
+                Left = left,
+                Right = right,
+                W = left.W + right.W
+            };
 
             if (left.Next != right)
             {

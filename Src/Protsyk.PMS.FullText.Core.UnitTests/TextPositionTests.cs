@@ -22,31 +22,31 @@ public class TextPositionTests: TestWithFolderBase
     {
         Assert.Equal(new TextPosition[]
                         {
-                            TextPosition.P(0, 5),
-                            TextPosition.P(6, 5)
+                            new(0, 5),
+                            new(6, 5)
                         },
                         index.GetPositions(1, 1));
 
         Assert.Equal(new TextPosition[]
                         {
-                            TextPosition.P(0, 5),
-                            TextPosition.P(6, 9),
-                            TextPosition.P(16, 6)
+                            new(0, 5),
+                            new(6, 9),
+                            new(16, 6)
                         },
                         index.GetPositions(2, 1));
 
         Assert.Equal(new TextPosition[]
                         {
-                            TextPosition.P(0, 11),
-                            TextPosition.P(12, 2),
-                            TextPosition.P(15, 4),
-                            TextPosition.P(20, 8),
-                            TextPosition.P(30, 8),
-                            TextPosition.P(39, 3),
-                            TextPosition.P(43, 4),
-                            TextPosition.P(49, 4),
-                            TextPosition.P(54, 2),
-                            TextPosition.P(57, 9)
+                            new(0, 11),
+                            new(12, 2),
+                            new(15, 4),
+                            new(20, 8),
+                            new(30, 8),
+                            new(39, 3),
+                            new(43, 4),
+                            new(49, 4),
+                            new(54, 2),
+                            new(57, 9)
                         },
                     index.GetPositions(6, 1));
 
@@ -70,5 +70,16 @@ public class TextPositionTests: TestWithFolderBase
         Assert.Equal("is", doc.TokenAt(13));
         Assert.Equal("very", doc.TokenAt(15));
         Assert.Equal("fantastic", doc.TokenAt(60));
+    }
+
+    [Theory]
+    [InlineData("[0,0]", 0, 0)]
+    [InlineData("[1,5]", 1, 5)]
+    public void CanParse(string text, int offset, int length)
+    {
+        var result = TextPosition.Parse(text);
+
+        Assert.Equal(offset, result.Offset);
+        Assert.Equal(length, result.Length);
     }
 }

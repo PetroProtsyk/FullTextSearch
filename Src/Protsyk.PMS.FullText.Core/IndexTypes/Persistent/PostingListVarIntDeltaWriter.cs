@@ -28,10 +28,9 @@ namespace Protsyk.PMS.FullText.Core;
 // search for a specific occurrence, using for example binary search algorithm.
 public class PostingListVarIntDeltaWriter : IOccurrenceWriter
 {
-    #region Fields
     public static readonly string Id = "VarIntCompressed";
 
-    internal static readonly int BlockSize = 1024; // Should be at least 3 * MaxVarInt
+    internal const int BlockSize = 1_024; // Should be at least 3 * MaxVarInt
 
     private readonly byte[] buffer;
     private readonly IPersistentStorage persistentStorage;
@@ -39,9 +38,7 @@ public class PostingListVarIntDeltaWriter : IOccurrenceWriter
     private Occurrence previous;
     private long listStart;
     private long totalSize;
-
     private bool first;
-    #endregion
 
     public PostingListVarIntDeltaWriter(string folder, string fileNamePostingLists)
         : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))

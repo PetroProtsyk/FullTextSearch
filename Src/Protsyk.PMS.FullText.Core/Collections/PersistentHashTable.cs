@@ -12,7 +12,7 @@ public class PersistentHashTable<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
     private const int MinCapacity = 8;
     private static ReadOnlySpan<byte> Header => "PMS-HASH"u8;
     private static readonly int HeaderSize = Header.Length;
-    private static readonly int IndexRecordSize = sizeof(long) + sizeof(int);
+    private const int IndexRecordSize = sizeof(long) + sizeof(int);
 
     private readonly IDataSerializer<TKey> keySerializer;
     private readonly IDataSerializer<TValue> valueSerializer;
@@ -54,7 +54,7 @@ public class PersistentHashTable<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
             this.dataStorage.WriteInt32LittleEndian(HeaderSize + sizeof(int), count);
 
             // Index
-            var zero = new byte[IndexRecordSize*1024];
+            var zero = new byte[IndexRecordSize * 1_024];
             var i = 0;
             while (i < capacity)
             {
@@ -63,7 +63,7 @@ public class PersistentHashTable<TKey, TValue> : IEnumerable<KeyValuePair<TKey, 
                 {
                     toWrite = (capacity-i) % 1024;
                 }
-                this.dataStorage.WriteAll(headerSize + i*IndexRecordSize, zero.AsSpan(0, IndexRecordSize * toWrite));
+                this.dataStorage.WriteAll(headerSize + i* IndexRecordSize, zero.AsSpan(0, IndexRecordSize * toWrite));
                 i += toWrite;
             }
         }

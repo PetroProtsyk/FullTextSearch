@@ -15,7 +15,7 @@ public class PostingListWriter : IOccurrenceWriter
 
     internal static ReadOnlySpan<byte> EmptyContinuationAddress => " -> FFFFFFFF"u8;
 
-    private static readonly int MemoryBufferThreshold = 65_536;
+    private const int MemoryBufferThreshold = 65_536;
 
     private readonly IPersistentStorage persistentStorage;
     private readonly ArrayBufferWriter<byte> buffer;
