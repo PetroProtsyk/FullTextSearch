@@ -8,11 +8,9 @@ namespace Protsyk.PMS.FullText.Core;
 
 public class PostingListBinaryReader : IOccurrenceReader
 {
-    #region Fields
-    internal static readonly int ReadBufferSize = 4096;
+    internal const int ReadBufferSize = 4_096;
 
     private readonly IPersistentStorage persistentStorage;
-    #endregion
 
     public PostingListBinaryReader(string folder, string fileNamePostingLists)
         : this(new FileStorage(Path.Combine(folder, fileNamePostingLists)))
@@ -56,7 +54,7 @@ public class PostingListBinaryReader : IOccurrenceReader
 
     private sealed class ReaderEnumerator : IEnumerator<Occurrence>
     {
-        private static readonly int HeaderLength = sizeof(long) + sizeof(int);
+        private const int HeaderLength = sizeof(long) + sizeof(int);
         private readonly IPersistentStorage persistentStorage;
         private readonly PostingListAddress address;
         private long readOffset;

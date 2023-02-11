@@ -12,7 +12,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
     #region Fields
     // Should be more than Writer can write in one PackedInt block.
     // Here an approximation is used - a value greater than FlushThreshold in Writer.
-    internal static readonly int ReadBufferSize = 2 * 4096;
+    internal const int ReadBufferSize = 2 * 4_096;
 
     private readonly IPersistentStorage persistentStorage;
     #endregion
@@ -60,7 +60,7 @@ public class PostingListPackedIntDeltaReader : IOccurrenceReader
 
     private sealed class ReaderEnumerator : IEnumerator<Occurrence>
     {
-        private static readonly int HeaderLength = sizeof(long) + sizeof(int);
+        private const int HeaderLength = sizeof(long) + sizeof(int);
         private readonly IPersistentStorage persistentStorage;
         private readonly PostingListAddress address;
         private long readOffset;

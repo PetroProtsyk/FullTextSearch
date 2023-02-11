@@ -15,7 +15,7 @@ public class DeltaVarIntListWriter : IDisposable
 {
     #region Fields
      // Should be at least MaxVarInt
-    internal static readonly int BlockSize = 1024;
+    internal const int BlockSize = 1_024;
     private readonly byte[] buffer;
     private readonly IPersistentStorage persistentStorage;
 

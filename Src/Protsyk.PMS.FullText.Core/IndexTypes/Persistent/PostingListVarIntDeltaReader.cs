@@ -64,7 +64,7 @@ public class PostingListVarIntDeltaReader : IOccurrenceReader
     {
         #region Fields
         private const int SkipSearchBlocksThreshold = 8;
-        private static readonly int HeaderLength = sizeof(long) + sizeof(int);
+        private const int HeaderLength = sizeof(long) + sizeof(int);
         private readonly IPersistentStorage persistentStorage;
         private readonly PostingListAddress address;
         private readonly byte[] buffer;

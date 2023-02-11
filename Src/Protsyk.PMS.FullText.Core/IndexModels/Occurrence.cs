@@ -9,7 +9,7 @@ public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurren
     /// <summary>
     /// Not valid Id
     /// </summary>
-    public static readonly ulong NoId = 0;
+    public const ulong NoId = 0;
 
     /// <summary>
     /// Empty occurrence

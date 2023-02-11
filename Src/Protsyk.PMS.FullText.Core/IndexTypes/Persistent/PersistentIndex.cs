@@ -13,7 +13,7 @@ public class PersistentIndex : IFullTextIndex
     public static readonly string FileNameInfo = "index-info.pms";
     public static readonly string FileNamePositions = "index-textpos.pms";
     public static readonly string FileNamePosIndex = "index-posindex.pms";
-    public static readonly int PosIndexKeySize = 65;
+    public const int PosIndexKeySize = 65;
     private readonly PersistentIndexName name;
 
     public PersistentIndex(PersistentIndexName name)
