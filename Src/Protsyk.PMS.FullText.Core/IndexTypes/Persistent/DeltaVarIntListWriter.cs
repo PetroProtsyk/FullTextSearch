@@ -130,7 +130,7 @@ public class DeltaVarIntListWriter : IDisposable
         return new PayloadText(persistentStorage);
     }
 
-    class PayloadText : TextWriter
+    private sealed class PayloadText : TextWriter
     {
         private readonly IPersistentStorage persistentStorage;
 

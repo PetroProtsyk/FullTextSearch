@@ -76,7 +76,7 @@ public class PersistentDictionaryFst : ITermDictionary, IUpdateTermDictionary, I
 
     #region IUpdateTermDictionary
 
-    class Update : IUpdate
+    private sealed class Update : IUpdate
     {
         private List<string> input = new();
         private List<int> output = new();

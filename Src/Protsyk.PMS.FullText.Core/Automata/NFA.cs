@@ -126,7 +126,7 @@ public class NFA
         return transitions.Where(t => t.Item1 == from_state);
     }
 
-    class SetStateComparer : IEqualityComparer<HashSet<int>>
+    private sealed class SetStateComparer : IEqualityComparer<HashSet<int>>
     {
         public bool Equals(HashSet<int> x, HashSet<int> y)
         {
