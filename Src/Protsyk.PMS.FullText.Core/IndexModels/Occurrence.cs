@@ -1,11 +1,9 @@
 ﻿using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Protsyk.PMS.FullText.Core;
 
 public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurrence>
 {
-    #region Fields
     /// <summary>
     /// Not valid Id
     /// </summary>
@@ -16,57 +14,54 @@ public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurren
     /// </summary>
     public static readonly Occurrence Empty = new(NoId, NoId, NoId);
 
-    private static readonly Regex regParse = new Regex("^\\[(?<docId>\\d+),(?<fieldId>\\d+),(?<tokenId>\\d+)\\]$",
-                                                       RegexOptions.Compiled | RegexOptions.Singleline);
+    public Occurrence(ulong documentId, ulong fieldId, ulong tokenId)
+    {
+        DocumentId = documentId;
+        FieldId = fieldId;
+        TokenId = tokenId;
+    }
 
     /// <summary>
     /// Document Id
     /// </summary>
-    public readonly ulong DocumentId;
+    public ulong DocumentId { get; }
 
     /// <summary>
     /// Fields Id
     /// </summary>
-    public readonly ulong FieldId;
+    public ulong FieldId { get; }
 
     /// <summary>
     /// Token Id
     /// </summary>
-    public readonly ulong TokenId;
-    #endregion
+    public ulong TokenId { get; }
 
     #region Static Methods
 
-    public static Occurrence Parse(string text)
+    public static Occurrence Parse(ReadOnlySpan<char> text)
     {
-        var match = regParse.Match(text);
-        if (!match.Success)
+        if (text is [ '[', .. var inner, ']' ])
         {
-            throw new InvalidOperationException($"Occurrence text has invalid format: {text}");
+            var splitter = new StringSplitter(inner, ',');
+
+            if (splitter.TryRead(out var t0) && ulong.TryParse(t0, NumberStyles.None, CultureInfo.InvariantCulture, out ulong docId) &&
+                splitter.TryRead(out var t1) && ulong.TryParse(t1, NumberStyles.None, CultureInfo.InvariantCulture, out ulong fieldId) &&
+                splitter.TryRead(out var t2) && ulong.TryParse(t2, NumberStyles.None, CultureInfo.InvariantCulture, out ulong tokenId))
+            {
+                return new Occurrence(docId, fieldId, tokenId);
+            }           
         }
 
-        return new Occurrence(
-            ulong.Parse(match.Groups["docId"].ValueSpan, provider: CultureInfo.InvariantCulture),
-            ulong.Parse(match.Groups["fieldId"].ValueSpan, provider: CultureInfo.InvariantCulture),
-            ulong.Parse(match.Groups["tokenId"].ValueSpan, provider: CultureInfo.InvariantCulture));
+        throw new InvalidOperationException($"Occurrence text has invalid format. Was {text}");
     }
-    #endregion
 
-    #region Methods
-    public Occurrence(ulong documentId, ulong fieldId, ulong tokenId)
-    {
-        this.DocumentId = documentId;
-        this.FieldId = fieldId;
-        this.TokenId = tokenId;
-    }
+    #endregion   
 
     public override string ToString()
     {
         return string.Create(CultureInfo.InvariantCulture, $"[{DocumentId},{FieldId},{TokenId}]");
     }
-    #endregion
-
-    #region IEquatable<Occurrence>
+   
     public bool Equals(Occurrence other)
     {
         return DocumentId == other.DocumentId &&
@@ -80,8 +75,6 @@ public readonly struct Occurrence : IEquatable<Occurrence>, IComparable<Occurren
     }
 
     public override int GetHashCode() => HashCode.Combine(DocumentId, FieldId, TokenId);
-
-    #endregion
 
     #region IComparable
     public int CompareTo(Occurrence other)
