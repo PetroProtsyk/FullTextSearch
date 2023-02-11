@@ -104,7 +104,7 @@ public class PersistentIndex : IFullTextIndex
             }
             else
             {
-                yield return TextPosition.P(offset - 1, (int)pos - offset);
+                yield return new TextPosition(offset - 1, (int)pos - offset);
                 offset = -1;
             }
         }

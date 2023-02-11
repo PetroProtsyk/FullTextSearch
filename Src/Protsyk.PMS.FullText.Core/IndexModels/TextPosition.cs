@@ -1,62 +1,52 @@
 ﻿using System.Globalization;
-using System.Text.RegularExpressions;
 
 namespace Protsyk.PMS.FullText.Core;
 
 public readonly struct TextPosition : IEquatable<TextPosition>, IComparable<TextPosition>
 {
-    #region Fields
-    public static readonly TextPosition Empty = P(0, 0);
-    private static readonly Regex regParse = new Regex("^\\[(?<offset>\\d+),(?<length>\\d+)\\]$",
-                                                       RegexOptions.Compiled | RegexOptions.Singleline);
-
-    public readonly int Offset;
-    public readonly int Length;
-    #endregion
-
-    #region Static Methods
-    /// <summary>
-    /// Construct occurrence
-    /// </summary>
-    public static TextPosition P(int offset, int length)
-    {
-        return new TextPosition(offset, length);
-    }
-
-    public static TextPosition Parse(string text)
-    {
-        var match = regParse.Match(text);
-        if (!match.Success)
-        {
-            throw new InvalidOperationException($"Occurrence text has invalid format: {text}");
-        }
-
-        return P(
-            int.Parse(match.Groups["offset"].ValueSpan),
-            int.Parse(match.Groups["length"].ValueSpan));
-    }
-    #endregion
-
-    #region Methods
+    public static readonly TextPosition Empty = new(0, 0);
+   
     public TextPosition(int offset, int length)
     {
         if (offset < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(offset));
         }
+        
         if (length < 0)
         {
             throw new ArgumentOutOfRangeException(nameof(length));
         }
-        this.Offset = offset;
-        this.Length = length;
+
+        Offset = offset;
+        Length = length;
     }
+
+    public int Offset { get; }
+
+    public int Length { get; }
 
     public override string ToString()
     {
         return string.Create(CultureInfo.InvariantCulture, $"[{Offset},{Length}]");
     }
-    #endregion
+
+    public static TextPosition Parse(ReadOnlySpan<char> text)
+    {
+        int commaIndex;
+
+        if (text is ['[', .. var inner, ']' ] 
+            && (commaIndex = inner.IndexOf(',')) > -1
+            && int.TryParse(inner.Slice(0, commaIndex), NumberStyles.None, CultureInfo.InvariantCulture, out int offset)
+            && int.TryParse(inner.Slice(commaIndex + 1), NumberStyles.None, CultureInfo.InvariantCulture, out int length))
+        {
+            return new TextPosition(offset, length);
+        }
+        else
+        {
+            throw new InvalidOperationException($"Occurrence text has invalid format. Was {text}");
+        }
+    }
 
     #region IEquatable<TextPosition>
 
