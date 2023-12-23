@@ -30,11 +30,7 @@ public static class HeapExtensions
     {
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(comparer);
-
-        if (n < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(n));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(n);
 
         if (n == 0)
         {

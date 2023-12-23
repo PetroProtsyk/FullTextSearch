@@ -13,10 +13,7 @@ public class LRUCache<TKey, TValue>
 
     public LRUCache(int capacity)
     {
-        if (capacity < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(capacity));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
         items = new Dictionary<TKey, LinkedListNode<(TKey, TValue)>>();
         usageQueue = new LinkedList<(TKey, TValue)>();

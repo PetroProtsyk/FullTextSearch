@@ -38,11 +38,7 @@ public class BtreePersistent<TKey, TValue> : IDictionary<TKey, TValue>, IDisposa
     public BtreePersistent(IPersistentStorage persistentStorage, int order)
     {
         ArgumentNullException.ThrowIfNull(persistentStorage);
-
-        if (order < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(order));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(order);
 
         keySerializer = DataSerializer.GetDefault<TKey>();
         valueSerializer = DataSerializer.GetDefault<TValue>();
