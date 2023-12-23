@@ -227,7 +227,7 @@ public class PackedIntN8 : IPackedInts
     private const int BitsInBaseType = 8;
     private const int LastBitIndexInBaseType = 7;
 
-    private static readonly uint[] mask = new uint[] {
+    private static ReadOnlySpan<uint> mask => [
         0b0000_0000,
         0b0000_0001,
         0b0000_0011,
@@ -237,7 +237,7 @@ public class PackedIntN8 : IPackedInts
         0b0011_1111,
         0b0111_1111,
         0b1111_1111
-    };
+    ];
 
     private readonly byte[] data;
     private readonly int bits;
@@ -393,7 +393,7 @@ public class PackedIntN16 : IPackedInts
     private const int BitsInBaseType = 16;
     private const int LastBitIndexInBaseType = 15;
 
-    private static readonly uint[] mask = new uint[] {
+    private static ReadOnlySpan<uint> mask => [
         0b0000_0000_0000_0000,
         0b0000_0000_0000_0001,
         0b0000_0000_0000_0011,
@@ -411,7 +411,7 @@ public class PackedIntN16 : IPackedInts
         0b0011_1111_1111_1111,
         0b0111_1111_1111_1111,
         0b1111_1111_1111_1111 
-    };
+    ];
 
     private readonly ushort[] data;
     private readonly int bits;
@@ -579,7 +579,7 @@ public class PackedIntN32 : IPackedInts
     private const int BitsInBaseType = 32;
     private const int LastBitIndexInBaseType = 31;
 
-    private static readonly uint[] mask = new uint[] {
+    private static ReadOnlySpan<uint> mask => [
         0b0000_0000_0000_0000_0000_0000_0000_0000,
         0b0000_0000_0000_0000_0000_0000_0000_0001,
         0b0000_0000_0000_0000_0000_0000_0000_0011,
@@ -613,7 +613,7 @@ public class PackedIntN32 : IPackedInts
         0b0011_1111_1111_1111_1111_1111_1111_1111,
         0b0111_1111_1111_1111_1111_1111_1111_1111,
         0b1111_1111_1111_1111_1111_1111_1111_1111 
-    };
+    ];
 
     private readonly uint[] data;
     private readonly int bits;
@@ -786,7 +786,7 @@ public class PackedIntN64 : IPackedInts, IPackedLongs
     private const int BitsInBaseType = 64;
     private const int LastBitIndexInBaseType = 63;
 
-    private static readonly ulong[] mask = new ulong[] {
+    private static ReadOnlySpan<ulong> mask => [
         0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000,
         0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0001,
         0b0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0000_0011,
@@ -852,7 +852,7 @@ public class PackedIntN64 : IPackedInts, IPackedLongs
         0b0011_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111,
         0b0111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111,
         0b1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111_1111 
-    };
+    ];
 
     private readonly ulong[] data;
     private readonly int bits;
