@@ -9,10 +9,7 @@ public class LFUCache<TKey, TValue>
 
     public LFUCache(int capacity)
     {
-        if (capacity <= 0)
-        {
-            throw new ArgumentOutOfRangeException();
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(capacity);
 
         this.capacity = capacity;
         this.nextOrder = 0;

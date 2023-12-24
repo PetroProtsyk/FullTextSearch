@@ -42,10 +42,8 @@ public class PersistentDictionary<TValue> : IDisposable
         get
         {
             var offset = linearIndex[index];
-            if (offset == 0)
-            {
-                throw new ArgumentOutOfRangeException(nameof(index));
-            }
+
+            ArgumentOutOfRangeException.ThrowIfZero(offset);
 
             int dataSize = dataStorage.ReadInt32LittleEndian(offset);
 

@@ -11,8 +11,8 @@ public class UTF8DfaDecoder
     //
     // Type 0                   Invalid UTF-8 byte
     // Type 2                   10xxxxxx
-    private static readonly int[] ByteClass = new int[]
-    {
+    private static ReadOnlySpan<int> ByteClass =>
+    [
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
         1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1,
@@ -29,16 +29,16 @@ public class UTF8DfaDecoder
         3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,
         5, 5, 5, 5, 5, 5, 5, 5, 0, 0, 0, 0, 0, 0, 0, 0
-    };
+    ];
 
     // State ID = k * 6, where k = 0, 1, 2, 3
     // 6 - number of transitions corresponding to 6 byte types
-    private static readonly int[] states = new int[]{
+    private static ReadOnlySpan<int> states => [
         -1,  0, -1,  6, 12, 18, // state 0
         -1, -1,  0, -1, -1, -1, // state 1 * 6
         -1, -1,  6, -1, -1, -1, // state 2 * 6
         -1, -1, 12, -1, -1, -1, // state 3 * 6
-    };
+    ];
 
     static UTF8DfaDecoder()
     {

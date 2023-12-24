@@ -1,39 +1,32 @@
-﻿using System.Text;
+﻿using System.Buffers;
+using System.Collections.Frozen;
+using System.Text;
 
 namespace Protsyk.PMS.FullText.Core;
 
 public class QueryParser
 {
-    private static readonly Dictionary<string, Func<string, int, string, ParseResult>> argumentsParsers = new()
-    {
-        { "OR", ParseArguments },
-        { "AND", ParseArguments },
-        { "SEQ", ParseArguments },
+    private static readonly FrozenDictionary<string, Func<string, int, string, ParseResult>> argumentsParsers = ((KeyValuePair<string, Func<string, int, string, ParseResult>>[])[
+        new("OR", ParseArguments),
+        new("AND", ParseArguments),
+        new("SEQ", ParseArguments),
+        new("WORD", ParseWord),
+        new("WILD", ParseWildcard),
+        new("EDIT", ParseEdit)
+    ]).ToFrozenDictionary();
 
-        { "WORD", ParseWord },
-        { "WILD", ParseWildcard },
-        { "EDIT", ParseEdit }
-    };
-
-    private static readonly HashSet<char> specialChars = new()
-    {
+    private static readonly SearchValues<char> s_specialChars = SearchValues.Create(
+    [
         ',',
         '(',
         ')',
-
         '\\',
-
         '~',
-
         '*',
         '?'
-    };
+    ]);
 
-    private static readonly HashSet<char> whitespaceCharacters = new()
-    {
-        ' ',
-        '\t'
-    };
+    private static readonly SearchValues<char> s_whitespaceCharacters = SearchValues.Create([' ', '\t']);
 
     public AstQuery Parse(string s)
     {
@@ -95,7 +88,7 @@ public class QueryParser
     {
         var query = new FunctionAstQuery(name);
 
-        while (pos < s.Length && !specialChars.Contains(s[pos]))
+        while (pos < s.Length && !s_specialChars.Contains(s[pos]))
         {
             var result = Parse(s, pos);
 
@@ -206,7 +199,7 @@ public class QueryParser
     {
         if (pos + 1 < s.Length)
         {
-            if (!specialChars.Contains(s[pos + 1]))
+            if (!s_specialChars.Contains(s[pos + 1]))
             {
                 throw new QueryParserException("invalid escape character", pos + 1);
             }
@@ -229,12 +222,12 @@ public class QueryParser
 
     private static bool IsStopCharacter(char c)
     {
-        return whitespaceCharacters.Contains(c) || specialChars.Contains(c);
+        return s_whitespaceCharacters.Contains(c) || s_specialChars.Contains(c);
     }
 
     private static int SkipWhitespace(string s, int pos)
     {
-        while (pos < s.Length && whitespaceCharacters.Contains(s[pos]))
+        while (pos < s.Length && s_whitespaceCharacters.Contains(s[pos]))
         {
             pos++;
         }

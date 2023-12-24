@@ -8,15 +8,8 @@ public readonly struct TextPosition : IEquatable<TextPosition>, IComparable<Text
    
     public TextPosition(int offset, int length)
     {
-        if (offset < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(offset));
-        }
-        
-        if (length < 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(length));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegative(offset);
+        ArgumentOutOfRangeException.ThrowIfNegative(length);
 
         Offset = offset;
         Length = length;

@@ -7,8 +7,6 @@ using Protsyk.PMS.FullText.Core.Collections;
 using Protsyk.PMS.FullText.Core.Common;
 using Protsyk.PMS.FullText.Core.Common.Persistance;
 
-using StringComparer = System.StringComparer;
-
 namespace Protsyk.PMS.FullText.Core.Automata;
 
 public static class FSTExtensions
@@ -94,10 +92,10 @@ public class FSTBuilder<T> : IDisposable
 
         public int Id { get; private set; }
 
-        // When state is fronzen. Offset in the output file.
+        // When state is frozen. Offset in the output file.
         public long Offset { get; set; }
 
-        public bool IsFronzen { get; set; }
+        public bool IsFrozen { get; set; }
 
         public bool IsFinal { get; set; }
 
@@ -106,7 +104,7 @@ public class FSTBuilder<T> : IDisposable
         public StateWithTransitions()
         {
             Id = Interlocked.Increment(ref NextId);
-            IsFronzen = false;
+            IsFrozen = false;
             Offset = 0;
 
             IsFinal = false;
@@ -169,8 +167,9 @@ public class FSTBuilder<T> : IDisposable
 
     private static StateWithTransitions CopyOf(StateWithTransitions s)
     {
-        var t = new StateWithTransitions();
-        t.IsFinal = s.IsFinal;
+        var t = new StateWithTransitions {
+            IsFinal = s.IsFinal
+        };
         t.Arcs.AddRange(s.Arcs);
         return t;
     }
@@ -180,7 +179,7 @@ public class FSTBuilder<T> : IDisposable
         //TODO: Frozen state should only have toStateOffset in Arcs
         //      therefore other type
         var r = CopyOf(s);
-        r.IsFronzen = true;
+        r.IsFrozen = true;
         r.Offset = WriteState(r);
         frozenStates.Add(r.Id, r);
         return r;
@@ -188,7 +187,7 @@ public class FSTBuilder<T> : IDisposable
 
     private long WriteState(StateWithTransitions s)
     {
-        if (!s.IsFronzen) throw new Exception("What?");
+        if (!s.IsFrozen) throw new Exception("What?");
 
         long startOffset = storage.Length;
         var size = 0;
@@ -346,7 +345,7 @@ public class FSTBuilder<T> : IDisposable
             {
                 if (!minimalTransducerStatesDictionary.TryGetValue(dedupHash, out var listToAdd))
                 {
-                    listToAdd = new List<LinkedListNode<int>>();
+                    listToAdd = [];
                     minimalTransducerStatesDictionary.Add(dedupHash, listToAdd);
                 }
                 listToAdd.Add(usageQueue.AddFirst(r.Id));
@@ -358,7 +357,7 @@ public class FSTBuilder<T> : IDisposable
 
     private void SetTransition(StateWithTransitions from, char c, StateWithTransitions to)
     {
-        if (from.IsFronzen) throw new Exception("What?");
+        if (from.IsFrozen) throw new Exception("What?");
 
         for (int i = 0; i < from.Arcs.Count; ++i)
         {
@@ -398,7 +397,7 @@ public class FSTBuilder<T> : IDisposable
 
     private static void SetOutput(StateWithTransitions from, char c, T output)
     {
-        if (from.IsFronzen) throw new Exception("What?");
+        if (from.IsFrozen) throw new Exception("What?");
 
         for (int i = 0; i < from.Arcs.Count; ++i)
         {
@@ -419,7 +418,7 @@ public class FSTBuilder<T> : IDisposable
 
     private static void PropagateOutput(StateWithTransitions from, T output, IFSTOutput<T> outputType)
     {
-        if (from.IsFronzen) throw new Exception("What?");
+        if (from.IsFrozen) throw new Exception("What?");
 
         for (int i = 0; i < from.Arcs.Count; ++i)
         {
@@ -435,7 +434,7 @@ public class FSTBuilder<T> : IDisposable
 
     private static void ClearState(StateWithTransitions s)
     {
-        if (s.IsFronzen) throw new Exception("What?");
+        if (s.IsFrozen) throw new Exception("What?");
 
         s.IsFinal = false;
         s.Arcs.Clear();
@@ -443,7 +442,7 @@ public class FSTBuilder<T> : IDisposable
 
     private static void SetFinal(StateWithTransitions s)
     {
-        if (s.IsFronzen) throw new Exception("What?");
+        if (s.IsFrozen) throw new Exception("What?");
 
         s.IsFinal = true;
     }
@@ -492,12 +491,12 @@ public class FSTBuilder<T> : IDisposable
             tempState = newTemp;
         }
 
-        if (StringComparer.Ordinal.Compare(currentWord, previousWord) <= 0)
+        if (currentWord.AsSpan().CompareTo(previousWord, StringComparison.Ordinal) <= 0)
         {
             throw new Exception($"Input should be ordered and each item should be unique: {previousWord} < {currentWord}");
         }
 
-        var prefixLengthPlusOne = 1 + Utils.LCP(previousWord, currentWord);
+        var prefixLengthPlusOne = 1 + previousWord.AsSpan().CommonPrefixLength(currentWord);
 
         if (prefixLengthPlusOne == 1 + currentWord.Length)
         {
@@ -1124,7 +1123,6 @@ public class FST<T> : IFST<T>
     public IFSTOutput<T> OutputType => outputType;
     #endregion
 
-    #region Methods
     public FST(IFSTOutput<T> outputType)
     {
         this.states = new List<State>();
@@ -1134,7 +1132,6 @@ public class FST<T> : IFST<T>
 
         Initial = 0;
     }
-    #endregion
 
     #region Serialization
     public byte[] GetBytes()
@@ -1747,7 +1744,7 @@ public sealed class FSTStringOutput : IFSTOutput<string>
 
     public string Min(string a, string b)
     {
-        return a.Substring(0, Utils.LCP(a, b));
+        return a[..a.AsSpan().CommonPrefixLength(b)];
     }
 
     public string Sub(string a, string b)
@@ -1788,19 +1785,5 @@ public sealed class FSTStringOutput : IFSTOutput<string>
         Encoding.UTF8.GetBytes(value, buffer[size..]);
 
         return size + byteCount;
-    }
-}
-
-internal static class Utils
-{
-    // Calculate length of the longest common prefix
-    public static int LCP(string a, string b)
-    {
-        int i = 0;
-        while (i < a.Length && i < b.Length && a[i] == b[i])
-        {
-            ++i;
-        }
-        return i;
     }
 }

@@ -32,10 +32,7 @@ public class Btree<TKey, TValue> : IDictionary<TKey, TValue>
 
     public Btree(int order)
     {
-        if (order < 1)
-        {
-            throw new ArgumentOutOfRangeException(nameof(order));
-        }
+        ArgumentOutOfRangeException.ThrowIfNegativeOrZero(order);
 
         this.order = order;
         this.maxChildren = 2 * order;

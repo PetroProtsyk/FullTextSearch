@@ -59,7 +59,7 @@ public class BtreePersistentTests : TestWithFolderBase
 
     [Theory]
     [InlineData(1000)]
-    public string TestBtreeP(int size)
+    public void TestBtreeP(int size)
     {
         var rnd = Enumerable.Range(1, size).ToArray().Shuffle();
         var testFile = Path.Combine(TestFolder, "btree-test.bin");
@@ -94,7 +94,5 @@ public class BtreePersistentTests : TestWithFolderBase
                 Assert.False(tree.ContainsKey(i));
             }
         }
-
-        return testFile;
     }
 }

@@ -65,10 +65,7 @@ public class DeltaVarIntListWriter : IDisposable
 
     public void AddValue(ulong value)
     {
-        if (value == 0)
-        {
-            throw new ArgumentOutOfRangeException(nameof(value));
-        }
+        ArgumentOutOfRangeException.ThrowIfZero(value);
 
         if (first)
         {
@@ -78,10 +75,7 @@ public class DeltaVarIntListWriter : IDisposable
         }
         else
         {
-            if (value <= previous)
-            {
-                throw new ArgumentOutOfRangeException(nameof(value));
-            }
+            ArgumentOutOfRangeException.ThrowIfLessThanOrEqual(value, previous);
 
             int previousIndex = bufferIndex;
             bufferIndex += VarInt.WriteVUInt64(value - previous, buffer.AsSpan(bufferIndex));
